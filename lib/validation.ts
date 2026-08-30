@@ -32,6 +32,7 @@ export const outgoingSchema = z.object({
   recipient_name: optionalText,
   case_id: optionalUuid,
   signatory_id: optionalUuid,
+  signatory_label: optionalText,
   language: z.enum(LANGUAGE).default("FA"),
   priority: z.enum(PRIORITY).default("NORMAL"),
   requires_response: z.coerce.boolean().default(false),

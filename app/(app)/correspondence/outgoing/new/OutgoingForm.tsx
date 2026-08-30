@@ -63,6 +63,10 @@ export function OutgoingForm({
           </Field>
         </div>
 
+        <Field label="نام/سمت زیر امضا" hint="اختیاری — همین متن دقیقاً کنار امضا و مهر روی PDF چاپ می‌شود">
+          <input name="signatory_label" className="input" placeholder="مثلاً مرضیه سلیمیان، مدیرعامل" />
+        </Field>
+
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="زبان">
             <select name="language" className="input" defaultValue="FA">

@@ -39,7 +39,7 @@ export async function buildLetterPdfForCorrespondence(
   const { data: letter, error } = await supabase
     .from("correspondence")
     .select(
-      "id, display_number, subject, draft_text, recipient_name, recipient_company_id, signatory_id, finalized_at, created_at",
+      "id, display_number, subject, draft_text, recipient_name, recipient_company_id, signatory_id, signatory_label, finalized_at, created_at",
     )
     .eq("id", correspondenceId)
     .single();
@@ -51,11 +51,7 @@ export async function buildLetterPdfForCorrespondence(
       ? supabase.from("companies").select("legal_name").eq("id", letter.recipient_company_id).single()
       : Promise.resolve({ data: null }),
     letter.signatory_id
-      ? supabase
-          .from("profiles")
-          .select("full_name, title, signature_path")
-          .eq("id", letter.signatory_id)
-          .single()
+      ? supabase.from("profiles").select("signature_path").eq("id", letter.signatory_id).single()
       : Promise.resolve({ data: null }),
   ]);
   const recipientCompany = companyRes.data;
@@ -73,8 +69,7 @@ export async function buildLetterPdfForCorrespondence(
     recipientLabel: recipientCompany?.legal_name ?? letter.recipient_name ?? null,
     subject: letter.subject,
     bodyHtml: letter.draft_text ?? "",
-    signatoryName: signatory?.full_name ?? null,
-    signatoryTitle: signatory?.title ?? null,
+    signatoryLabel: letter.signatory_label,
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
