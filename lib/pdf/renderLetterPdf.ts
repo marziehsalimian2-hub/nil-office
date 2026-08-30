@@ -39,8 +39,6 @@ export function buildLetterHtml(input: LetterPdfInput): string {
     recipientLabel,
     subject,
     bodyHtml,
-    signatoryName,
-    signatoryTitle,
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
@@ -80,13 +78,17 @@ export function buildLetterHtml(input: LetterPdfInput): string {
     font-size: 13px;
     line-height: 2;
   }
-  .meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 10mm;
+  /* Overlaid on the letterhead's own DATE:/NO: labels (top-left).
+     Coordinates are calibrated against the current letterhead image —
+     nudge top/left here if a different letterhead is uploaded later. */
+  .header-fields {
+    position: absolute;
+    top: 14.5mm;
+    left: 22mm;
+    font-size: 11px;
+    line-height: 5.7mm;
+    text-align: left;
   }
-  .meta .num { font-weight: 700; }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
   .subject b { text-decoration: underline; }
@@ -123,16 +125,15 @@ export function buildLetterHtml(input: LetterPdfInput): string {
     max-height: 30mm;
     opacity: 0.9;
   }
-  .signatory-name { font-weight: 700; margin-top: 2mm; }
 </style>
 </head>
 <body>
   ${letterheadDataUri ? `<img class="letterhead" src="${letterheadDataUri}" />` : ""}
+  <div class="header-fields">
+    <div>${esc(dateLabel)}</div>
+    <div>${displayNumber ? esc(displayNumber) : "پیش‌نویس"}</div>
+  </div>
   <div class="content">
-    <div class="meta">
-      <span class="num">${displayNumber ? `شماره: ${esc(displayNumber)}` : "پیش‌نویس"}</span>
-      <span>تاریخ: ${esc(dateLabel)}</span>
-    </div>
     ${recipientLabel ? `<div class="recipient">گیرنده: ${esc(recipientLabel)}</div>` : ""}
     ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
     <div class="body">${bodyHtml}</div>
@@ -142,8 +143,6 @@ export function buildLetterHtml(input: LetterPdfInput): string {
       ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
       ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
     </div>
-    ${signatoryName ? `<div class="signatory-name">${esc(signatoryName)}</div>` : ""}
-    ${signatoryTitle ? `<div>${esc(signatoryTitle)}</div>` : ""}
   </div>
 </body>
 </html>`;
