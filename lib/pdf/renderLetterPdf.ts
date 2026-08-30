@@ -64,18 +64,19 @@ export function buildLetterHtml(input: LetterPdfInput): string {
     color: #1a1a1a;
     position: relative;
     width: 210mm;
-    height: 297mm;
   }
   .letterhead {
-    position: absolute;
+    /* fixed (not absolute) so it repeats on every printed page if the
+       letter runs long enough to overflow onto a second page */
+    position: fixed;
     inset: 0;
     width: 100%;
-    height: 100%;
+    height: 297mm;
     object-fit: cover;
     z-index: -1;
   }
   .content {
-    padding: 55mm 20mm 45mm 20mm;
+    padding: 55mm 20mm 25mm 20mm;
     font-size: 13px;
     line-height: 2;
   }
@@ -92,10 +93,12 @@ export function buildLetterHtml(input: LetterPdfInput): string {
   .body p { margin: 0 0 3mm 0; }
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
   .signoff {
-    position: absolute;
-    bottom: 30mm;
-    left: 20mm;
-    right: 20mm;
+    /* a sibling of .content (not nested inside it), so it needs the
+       same horizontal margin .content gets via padding. Flows right
+       after the letter body instead of pinning to the page bottom —
+       a short letter gets its signature close to the text, a long one
+       lands wherever the text actually ends (and onto page 2 if needed) */
+    margin: 20mm 20mm 25mm 20mm;
     text-align: left;
     font-size: 12px;
   }
