@@ -1,7 +1,8 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import puppeteer from "puppeteer";
+import puppeteer, { type Browser } from "puppeteer";
+import { PDFDocument } from "pdf-lib";
 
 export type LetterPdfInput = {
   displayNumber: string | null;
@@ -26,83 +27,39 @@ function fontBase64(): string {
 const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
+const FONT_FACE = `@font-face {
+  font-family: "Vazirmatn";
+  src: url(data:font/woff2;base64,${fontBase64()}) format("woff2");
+  font-weight: 100 900;
+}`;
+
 /**
- * Builds the full HTML document rendered to PDF. Layout is a first pass —
- * the top/bottom safe margins and the exact signature/stamp placement are
- * meant to be tuned once against the company's real letterhead image.
+ * HTML for the letter TEXT only — no letterhead image, no date/number
+ * overlay. Those are composited on top of page 1 afterwards (see
+ * renderLetterPdf) as a separately-rendered transparent PNG + the raw
+ * image, via pdf-lib. Keeping them out of this document means the
+ * page.pdf() margin below repeats reliably on every page: mixing a
+ * full-page absolutely-positioned image into a margined, paginated flow
+ * previously caused Chromium to misplace it and, worse, spilled a
+ * one-paragraph letter onto a spurious page 2.
  */
-export function buildLetterHtml(input: LetterPdfInput): string {
-  const {
-    displayNumber,
-    dateLabel,
-    recipientLabel,
-    subject,
-    bodyHtml,
-    signatoryLabel,
-    letterheadDataUri,
-    stampDataUri,
-    signatureDataUri,
-  } = input;
+function buildLetterHtml(input: LetterPdfInput): string {
+  const { recipientLabel, subject, bodyHtml, signatoryLabel, stampDataUri, signatureDataUri } = input;
 
   return `<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8" />
 <style>
-  @font-face {
-    font-family: "Vazirmatn";
-    src: url(data:font/woff2;base64,${fontBase64()}) format("woff2");
-    font-weight: 100 900;
-  }
+  ${FONT_FACE}
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Vazirmatn", sans-serif;
     direction: rtl;
     color: #1a1a1a;
-    position: relative;
-    width: 210mm;
-  }
-  .letterhead {
-    /* absolute (not fixed): Chromium's print-to-PDF does not reliably
-       repeat position:fixed content at the top of each physical page —
-       in practice it lands the image once, at an arbitrary point in the
-       flow, which looked far worse than just showing the letterhead on
-       page 1 only. Continuation pages (rare — most letters fit on one
-       page) render on plain white with a normal margin instead. */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 297mm;
-    object-fit: cover;
-    z-index: -1;
-  }
-  .content {
-    /* All page spacing lives here in plain CSS padding — page.pdf() is
-       called with margin:0 below. Mixing a PDF-level margin with a
-       297mm-tall absolutely-positioned letterhead image caused Chromium
-       to shrink the usable per-page height by the margin amount, which
-       pushed the bottom of that image (its footer bar) onto a spurious
-       page 2 even for a one-paragraph letter. Padding-top clears the
-       header art, padding-bottom the footer bar; both apply once (start
-       and end of this block), which is exactly right for page 1. */
-    padding: 60mm 20mm 48mm 20mm;
     font-size: 13px;
     line-height: 2;
-  }
-  /* Overlaid on the letterhead's own DATE:/NO: labels (top-left).
-     Coordinates are calibrated against the current letterhead image —
-     nudge top/left here if a different letterhead is uploaded later.
-     absolute (not fixed) for the same reason as .letterhead above —
-     this only ever needs to appear on page 1. */
-  .header-fields {
-    position: absolute;
-    top: 14mm;
-    left: 22mm;
-    font-size: 11px;
-    line-height: 5.2mm;
-    text-align: left;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
@@ -112,9 +69,8 @@ export function buildLetterHtml(input: LetterPdfInput): string {
   .signoff {
     /* flows right after the letter body instead of pinning to the page
        bottom — a short letter gets its signature close to the text, a
-       long one lands wherever the text actually ends. Horizontal margin
-       matches .content's padding since there's no page-level margin. */
-    margin: 20mm 20mm 0 20mm;
+       long one lands wherever the text actually ends. */
+    margin-top: 20mm;
     text-align: left;
     font-size: 12px;
   }
@@ -143,16 +99,9 @@ export function buildLetterHtml(input: LetterPdfInput): string {
 </style>
 </head>
 <body>
-  ${letterheadDataUri ? `<img class="letterhead" src="${letterheadDataUri}" />` : ""}
-  <div class="header-fields">
-    <div>${esc(dateLabel)}</div>
-    <div>${displayNumber ? esc(displayNumber) : "پیش‌نویس"}</div>
-  </div>
-  <div class="content">
-    ${recipientLabel ? `<div class="recipient">گیرنده: ${esc(recipientLabel)}</div>` : ""}
-    ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
-    <div class="body">${bodyHtml}</div>
-  </div>
+  ${recipientLabel ? `<div class="recipient">گیرنده: ${esc(recipientLabel)}</div>` : ""}
+  ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
+  <div class="body">${bodyHtml}</div>
   <div class="signoff">
     ${signatoryLabel ? `<div class="signatory-label">${esc(signatoryLabel)}</div>` : ""}
     <div class="stamp-row">
@@ -164,24 +113,119 @@ export function buildLetterHtml(input: LetterPdfInput): string {
 </html>`;
 }
 
+/** Small transparent snippet with just the date/number, rendered by
+ * Chromium so Persian text shaping (letter joining, digit forms) is
+ * correct — pdf-lib's own text drawing can't shape Arabic-script text. */
+function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null): string {
+  return `<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<style>
+  ${FONT_FACE}
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body {
+    font-family: "Vazirmatn", sans-serif;
+    direction: rtl;
+    text-align: left;
+    color: #1a1a1a;
+    font-size: 22px;
+    line-height: 33px;
+  }
+</style>
+</head>
+<body>
+  <div>${esc(dateLabel)}</div>
+  <div>${displayNumber ? esc(displayNumber) : "پیش‌نویس"}</div>
+</body>
+</html>`;
+}
+
+const HEADER_SNIPPET_WIDTH_PX = 400;
+const HEADER_SNIPPET_HEIGHT_PX = 90;
+const PX_TO_PT = 0.75; // CSS px (96dpi) -> PDF points (72dpi)
+
+async function renderHeaderFieldsPng(browser: Browser, dateLabel: string, displayNumber: string | null) {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: HEADER_SNIPPET_WIDTH_PX, height: HEADER_SNIPPET_HEIGHT_PX, deviceScaleFactor: 3 });
+    await page.setContent(buildHeaderFieldsHtml(dateLabel, displayNumber), { waitUntil: "load" });
+    return await page.screenshot({ type: "png", omitBackground: true });
+  } finally {
+    await page.close();
+  }
+}
+
+const A4_WIDTH_PT = 595.28;
+const A4_HEIGHT_PT = 841.89;
+const MM_TO_PT = A4_WIDTH_PT / 210;
+
+function dataUriToBytes(dataUri: string): { bytes: Uint8Array; isJpg: boolean } {
+  const [meta, b64] = dataUri.split(",");
+  return { bytes: Buffer.from(b64, "base64"), isJpg: /jpeg|jpg/i.test(meta) };
+}
+
 export async function renderLetterPdf(input: LetterPdfInput): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
+  let textPdfBytes: Uint8Array;
+  let headerPng: Uint8Array | null = null;
   try {
     const page = await browser.newPage();
     await page.setContent(buildLetterHtml(input), { waitUntil: "load" });
-    // No PDF-level margin — see the .content comment above for why
-    // combining one with a full-page absolutely-positioned image breaks
-    // pagination. All spacing is plain CSS padding/margin instead.
-    const pdf = await page.pdf({
+    // Plain text only here (see buildLetterHtml) — no images or overlays
+    // to fight with these margins, so they repeat correctly on every
+    // generated page, including page 2/3+ for a long letter.
+    textPdfBytes = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 },
+      margin: { top: "60mm", bottom: "48mm", left: "20mm", right: "20mm" },
     });
-    return Buffer.from(pdf);
+
+    if (input.letterheadDataUri) {
+      headerPng = await renderHeaderFieldsPng(browser, input.dateLabel, input.displayNumber);
+    }
   } finally {
     await browser.close();
   }
+
+  // Composite the letterhead image + date/number onto page 1 only,
+  // underneath the already-rendered text, using pdf-lib. This sidesteps
+  // Chromium's print engine entirely for the branding artwork, so there
+  // is no more fighting between a fixed-size background image and the
+  // page margins used for the actual letter text above.
+  const textDoc = await PDFDocument.load(textPdfBytes);
+  const pageCount = textDoc.getPageCount();
+
+  const outDoc = await PDFDocument.create();
+  const embeddedTextPages = await outDoc.embedPdf(textPdfBytes, Array.from({ length: pageCount }, (_, i) => i));
+
+  for (let i = 0; i < pageCount; i++) {
+    const outPage = outDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
+
+    if (i === 0 && input.letterheadDataUri) {
+      const { bytes, isJpg } = dataUriToBytes(input.letterheadDataUri);
+      const img = isJpg ? await outDoc.embedJpg(bytes) : await outDoc.embedPng(bytes);
+      outPage.drawImage(img, { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
+
+      if (headerPng) {
+        const embeddedHeader = await outDoc.embedPng(headerPng);
+        const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
+        const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
+        outPage.drawImage(embeddedHeader, {
+          x: 22 * MM_TO_PT,
+          y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
+          width: w,
+          height: h,
+        });
+      }
+    }
+
+    outPage.drawPage(embeddedTextPages[i], { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
+  }
+
+  const finalBytes = await outDoc.save();
+  return Buffer.from(finalBytes);
 }
