@@ -74,7 +74,7 @@ export function buildLetterHtml(input: LetterPdfInput): string {
     z-index: -1;
   }
   .content {
-    padding: 55mm 20mm 25mm 20mm;
+    padding: 65mm 20mm 25mm 20mm;
     font-size: 13px;
     line-height: 2;
   }
