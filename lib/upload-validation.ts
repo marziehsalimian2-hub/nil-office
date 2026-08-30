@@ -80,6 +80,34 @@ export function checkSignature(ext: string, bytes: Uint8Array): boolean {
 
 export type UploadCheck = { ok: true } | { ok: false; error: string };
 
+export const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp"];
+
+/**
+ * Validate a branding image (letterhead / stamp / signature). Same rules
+ * as validateUpload but restricted to image extensions and a smaller
+ * size cap, since these are logos/seals, not scanned documents.
+ */
+export function validateImageUpload(
+  fileName: string,
+  mimeType: string | null | undefined,
+  size: number,
+): UploadCheck {
+  if (!fileName || size <= 0) return { ok: false, error: "فایلی انتخاب نشده است." };
+  if (size > MAX_IMAGE_UPLOAD_BYTES)
+    return { ok: false, error: "حجم فایل بیش از حد مجاز (۵ مگابایت) است." };
+
+  const ext = extensionOf(fileName);
+  if (!ext || !IMAGE_EXTS.includes(ext))
+    return { ok: false, error: "فقط تصویر PNG، JPG یا WebP مجاز است." };
+
+  const mime = (mimeType || "").trim().toLowerCase();
+  if (mime && !EXT_MIME[ext].includes(mime))
+    return { ok: false, error: "نوع فایل با پسوند آن هم‌خوان نیست." };
+
+  return { ok: true };
+}
+
 /**
  * Validate a file by name, browser MIME and size.
  * - extension must be in the allow-list

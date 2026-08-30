@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { outgoingSchema, incomingSchema } from "@/lib/validation";
 import { persianError } from "@/lib/enums";
 import { currentJalaliYear } from "@/lib/jalali";
+import { sanitizeLetterHtml } from "@/lib/sanitize-html";
+import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
 
 export type ActionState = { error?: string } | null;
 
@@ -39,6 +41,7 @@ export async function createOutgoing(
     .from("correspondence")
     .insert({
       ...parsed.data,
+      draft_text: parsed.data.draft_text ? sanitizeLetterHtml(parsed.data.draft_text) : undefined,
       direction: "OUTGOING",
       status,
       created_by: userId,
@@ -58,13 +61,42 @@ export async function finalizeOutgoing(
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "شناسه نامه نامعتبر است." };
-  const { supabase } = await currentUserId();
+  const { supabase, userId } = await currentUserId();
 
   const { error } = await supabase.rpc("finalize_correspondence", {
     p_letter_id: id,
     p_year: currentJalaliYear(),
   });
   if (error) return { error: persianError(error.message) };
+
+  // Best-effort: archive a permanent letterhead PDF as an attachment.
+  // Numbering already succeeded above; a PDF failure must never undo that.
+  try {
+    const { data: fresh } = await supabase
+      .from("correspondence")
+      .select("display_number")
+      .eq("id", id)
+      .single();
+    const pdf = await buildLetterPdfForCorrespondence(supabase, id);
+    const safeNumber = (fresh?.display_number ?? id).replace(/[^\w.-]+/g, "_");
+    const path = `correspondence/${id}/${Date.now()}-letter-${safeNumber}.pdf`;
+    const { error: upErr } = await supabase.storage
+      .from("nil-files")
+      .upload(path, pdf, { contentType: "application/pdf", upsert: false });
+    if (!upErr) {
+      await supabase.from("attachments").insert({
+        entity_type: "CORRESPONDENCE",
+        entity_id: id,
+        file_name: `نامه-${fresh?.display_number ?? ""}.pdf`,
+        storage_path: path,
+        mime_type: "application/pdf",
+        size_bytes: pdf.length,
+        uploaded_by: userId,
+      });
+    }
+  } catch (pdfErr) {
+    console.error("finalizeOutgoing: letterhead PDF archival failed", pdfErr);
+  }
 
   revalidatePath(`/correspondence/${id}`);
   revalidatePath("/correspondence/outgoing");

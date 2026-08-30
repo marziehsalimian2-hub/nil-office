@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createOutgoing, type ActionState } from "@/app/actions/correspondence";
 import { Field, FormError, SubmitButton } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { LANGUAGE, LANGUAGE_LABEL, PRIORITY, PRIORITY_LABEL } from "@/lib/enums";
 
 type Opt = { id: string; label: string };
@@ -92,8 +93,8 @@ export function OutgoingForm({
           </Field>
         </div>
 
-        <Field label="متن نامه" hint="اختیاری — می‌توانید فایل نهایی را بعداً پیوست کنید">
-          <textarea name="draft_text" rows={6} className="input" placeholder="متن نامه…" />
+        <Field label="متن نامه" hint="اختیاری — با «دانلود PDF» در صفحهٔ نامه روی سربرگ رسمی نمایش داده می‌شود">
+          <RichTextEditor name="draft_text" />
         </Field>
 
         <Field label="یادداشت داخلی">

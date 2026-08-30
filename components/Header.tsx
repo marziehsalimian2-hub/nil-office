@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Menu, Search, LogOut, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/Sidebar";
@@ -45,7 +46,9 @@ export function Header({ userName }: { userName: string }) {
         </form>
 
         <div className="mr-auto flex items-center gap-2">
-          <span className="hidden text-sm text-ink-muted sm:block">{userName}</span>
+          <Link href="/profile" className="hidden text-sm text-ink-muted hover:text-ink sm:block">
+            {userName}
+          </Link>
           <button className="btn-quiet p-2" onClick={signOut} aria-label="خروج">
             <LogOut className="h-[18px] w-[18px]" />
           </button>

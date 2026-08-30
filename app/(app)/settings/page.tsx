@@ -4,9 +4,12 @@ import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
+import { BrandingUpload } from "@/components/BrandingUpload";
+import { SignatureUpload } from "@/components/SignatureUpload";
+import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
 import { ACCOUNTING_ROLE_LABEL } from "@/lib/enums";
 import { currentJalaliYear, toFaDigits } from "@/lib/jalali";
-import type { NumberSequence, Profile } from "@/lib/types/database";
+import type { AppSettings, NumberSequence, Profile } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +24,36 @@ export default async function SettingsPage() {
   const [{ data: seqs }, { data: users }, { data: settings }] = await Promise.all([
     supabase.from("number_sequences").select("*").order("scope").order("year", { ascending: false }),
     supabase.from("profiles").select("*").order("created_at"),
-    supabase.from("app_settings").select("display_unit").eq("id", 1).single(),
+    supabase.from("app_settings").select("*").eq("id", 1).single(),
   ]);
   const displayUnit = (settings?.display_unit as "RIAL" | "TOMAN") ?? "RIAL";
   const sequences = (seqs ?? []) as NumberSequence[];
   const people = (users ?? []) as Profile[];
+  const appSettings = settings as AppSettings | null;
+
+  let signedLetterheadUrl: string | null = null;
+  let signedStampUrl: string | null = null;
+  const signedSignatureUrls = new Map<string, string>();
+  if (isAdmin) {
+    if (appSettings?.letterhead_path) {
+      const { data } = await supabase.storage.from("nil-files").createSignedUrl(appSettings.letterhead_path, 3600);
+      signedLetterheadUrl = data?.signedUrl ?? null;
+    }
+    if (appSettings?.stamp_path) {
+      const { data } = await supabase.storage.from("nil-files").createSignedUrl(appSettings.stamp_path, 3600);
+      signedStampUrl = data?.signedUrl ?? null;
+    }
+    await Promise.all(
+      people
+        .filter((p) => p.signature_path)
+        .map(async (p) => {
+          const { data } = await supabase.storage
+            .from("nil-files")
+            .createSignedUrl(p.signature_path as string, 3600);
+          if (data?.signedUrl) signedSignatureUrls.set(p.id, data.signedUrl);
+        }),
+    );
+  }
 
   return (
     <div>
@@ -35,6 +63,31 @@ export default async function SettingsPage() {
         <Card><p className="text-sm text-ink-muted">این بخش فقط برای مدیر سامانه در دسترس است.</p></Card>
       ) : (
         <div className="space-y-6">
+          <Card>
+            <p className="mb-1 text-sm font-medium text-ink">سربرگ و مهر شرکت</p>
+            <p className="mb-4 text-xs text-ink-muted">
+              برای تولید خودکار PDF نامهٔ صادره روی سربرگ رسمی استفاده می‌شود.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs text-ink-muted">سربرگ</p>
+                {signedLetterheadUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={signedLetterheadUrl} alt="سربرگ فعلی" className="mb-2 h-20 border border-line bg-white p-1" />
+                )}
+                <BrandingUpload action={uploadLetterhead} hasImage={!!appSettings?.letterhead_path} />
+              </div>
+              <div>
+                <p className="mb-2 text-xs text-ink-muted">مهر شرکت</p>
+                {signedStampUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={signedStampUrl} alt="مهر فعلی" className="mb-2 h-20 border border-line bg-white p-1" />
+                )}
+                <BrandingUpload action={uploadStamp} hasImage={!!appSettings?.stamp_path} />
+              </div>
+            </div>
+          </Card>
+
           <Card>
             <p className="mb-1 text-sm font-medium text-ink">واحد پول حسابداری</p>
             <p className="mb-4 text-xs text-ink-muted">واحد نمایش مبالغ در بخش مالی و حسابداری.</p>
@@ -76,7 +129,8 @@ export default async function SettingsPage() {
             <table className="w-full">
               <thead><tr className="table-head">
                 <th className="px-3 py-2">نام</th><th className="px-3 py-2">عنوان/سمت</th>
-                <th className="px-3 py-2">نقش</th><th className="px-3 py-2">دسترسی مالی</th><th className="px-3 py-2">وضعیت</th>
+                <th className="px-3 py-2">نقش</th><th className="px-3 py-2">دسترسی مالی</th>
+                <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
               </tr></thead>
               <tbody>
                 {people.map((u) => (
@@ -88,6 +142,15 @@ export default async function SettingsPage() {
                       {u.role === "ADMIN"
                         ? <span className="text-xs text-ink-muted">{ACCOUNTING_ROLE_LABEL.ADMIN} (کامل)</span>
                         : <AccountingRoleSelect userId={u.id} current={u.accounting_role} />}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        {signedSignatureUrls.get(u.id) && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={signedSignatureUrls.get(u.id)} alt="امضا" className="h-8 border border-line bg-white p-0.5" />
+                        )}
+                        <SignatureUpload userId={u.id} hasSignature={!!u.signature_path} />
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-ink-muted">{u.is_active ? "فعال" : "غیرفعال"}</td>
                   </tr>

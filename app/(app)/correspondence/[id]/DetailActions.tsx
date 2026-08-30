@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Send, Clock, XCircle, Reply, FileCheck2 } from "lucide-react";
+import { CheckCircle2, Send, Clock, XCircle, Reply, FileCheck2, FileDown } from "lucide-react";
 import {
   finalizeOutgoing,
   sendForReview,
@@ -50,6 +50,17 @@ export function DetailActions({
     <div className="space-y-3">
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
+        {direction === "OUTGOING" && (
+          <a
+            href={`/api/correspondence/${id}/pdf`}
+            target="_blank"
+            rel="noopener"
+            className="btn-ghost"
+          >
+            <FileDown className="h-4 w-4" /> دانلود PDF (پیش‌نمایش)
+          </a>
+        )}
+
         {direction === "OUTGOING" && editable && !hasNumber && (
           <>
             {status === "DRAFT" && (

@@ -18,6 +18,7 @@ import {
 } from "@/lib/enums";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatBytes } from "@/lib/utils";
+import { sanitizeLetterHtml } from "@/lib/sanitize-html";
 import type { Correspondence, Attachment, CorrespondenceLink, Company, Case } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -138,7 +139,11 @@ export default async function CorrespondenceDetailPage({
           {l.draft_text && (
             <Card>
               <p className="mb-2 text-sm font-medium text-ink">متن نامه</p>
-              <p className="whitespace-pre-wrap text-sm leading-7 text-ink">{l.draft_text}</p>
+              <div
+                dir="rtl"
+                className="text-sm leading-7 text-ink [&_ol]:mr-5 [&_ol]:list-decimal [&_ul]:mr-5 [&_ul]:list-disc"
+                dangerouslySetInnerHTML={{ __html: sanitizeLetterHtml(l.draft_text) }}
+              />
             </Card>
           )}
 

@@ -41,6 +41,7 @@ export interface Profile {
   role: AppRole;
   accounting_role: AccountingRoleT | null;
   is_active: boolean;
+  signature_path: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -196,6 +197,8 @@ export interface AppSettings {
   id: number;
   base_currency_code: string;
   display_unit: "RIAL" | "TOMAN";
+  letterhead_path: string | null;
+  stamp_path: string | null;
   updated_at: string;
 }
 
