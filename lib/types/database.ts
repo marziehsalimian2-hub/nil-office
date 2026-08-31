@@ -91,6 +91,7 @@ export interface Correspondence {
   case_id: string | null;
   created_by: string;
   signatory_id: string | null;
+  signatory_label: string | null;
   assigned_to: string | null;
   status: CorrStatusT;
   priority: PriorityT;

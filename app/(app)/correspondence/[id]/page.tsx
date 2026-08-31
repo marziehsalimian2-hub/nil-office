@@ -4,12 +4,11 @@ import { Download, Trash2, LinkIcon, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, StatusBadge } from "@/components/ui";
 import { DetailActions } from "./DetailActions";
+import { EditableLetterCard } from "./EditableLetterCard";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import {
   DIRECTION_LABEL,
-  PRIORITY_LABEL,
-  LANGUAGE_LABEL,
   LINK_RELATION_LABEL,
   type CorrStatus,
   type Priority,
@@ -19,18 +18,9 @@ import {
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatBytes } from "@/lib/utils";
 import { sanitizeLetterHtml } from "@/lib/sanitize-html";
-import type { Correspondence, Attachment, CorrespondenceLink, Company, Case } from "@/lib/types/database";
+import type { Correspondence, Attachment, CorrespondenceLink, Company, Case, Profile } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-3 border-b border-paper-line/60 py-2.5 last:border-0">
-      <span className="w-40 shrink-0 text-sm text-ink-muted">{label}</span>
-      <span className="text-sm text-ink">{children}</span>
-    </div>
-  );
-}
 
 export default async function CorrespondenceDetailPage({
   params,
@@ -99,6 +89,13 @@ export default async function CorrespondenceDetailPage({
       ? (l.recipient_company_id && companyName.get(l.recipient_company_id)) || l.recipient_name
       : (l.sender_company_id && companyName.get(l.sender_company_id)) || l.recipient_name;
 
+  const canEditLetter = l.direction === "OUTGOING" && (l.status === "DRAFT" || l.status === "REVIEW");
+  const { data: profiles } = canEditLetter
+    ? await supabase.from("profiles").select("id, full_name").eq("is_active", true)
+    : { data: null };
+
+  const draftHtml = l.draft_text ? sanitizeLetterHtml(l.draft_text) : null;
+
   return (
     <div>
       <PageHeader
@@ -109,50 +106,38 @@ export default async function CorrespondenceDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <Row label="موضوع">{l.subject || "—"}</Row>
-            <Row label={l.direction === "OUTGOING" ? "گیرنده" : "فرستنده"}>{counterparty || "—"}</Row>
-            <Row label="اولویت">{PRIORITY_LABEL[l.priority as Priority]}</Row>
-            <Row label="زبان">{LANGUAGE_LABEL[l.language as Language]}</Row>
-            <Row label="پرونده">
-              {relatedCase ? (
-                <Link href={`/cases/${relatedCase.id}`} className="text-seal hover:underline">
-                  {relatedCase.case_code} — {relatedCase.title}
-                </Link>
-              ) : (
-                "—"
-              )}
-            </Row>
-            {l.direction === "INCOMING" && (
-              <>
-                <Row label="شمارهٔ نامهٔ فرستنده">{l.external_letter_number || "—"}</Row>
-                <Row label="تاریخ نامهٔ فرستنده">{formatJalali(l.external_letter_date)}</Row>
-              </>
-            )}
-            <Row label="نیاز به پاسخ">{l.requires_response ? "بله" : "خیر"}</Row>
-            <Row label="تاریخ پیگیری">{formatJalali(l.followup_date)}</Row>
-            <Row label="روش ارسال/دریافت">{l.sent_received_method || "—"}</Row>
-            <Row label="تاریخ ثبت">{formatJalali(l.created_at)}</Row>
-            {l.finalized_at && <Row label="تاریخ ثبت نهایی">{formatJalali(l.finalized_at)}</Row>}
-          </Card>
-
-          {l.draft_text && (
-            <Card>
-              <p className="mb-2 text-sm font-medium text-ink">متن نامه</p>
-              <div
-                dir="rtl"
-                className="text-sm leading-7 text-ink [&_ol]:mr-5 [&_ol]:list-decimal [&_ul]:mr-5 [&_ul]:list-disc"
-                dangerouslySetInnerHTML={{ __html: sanitizeLetterHtml(l.draft_text) }}
-              />
-            </Card>
-          )}
-
-          {l.internal_notes && (
-            <Card className="bg-seal-tint/40">
-              <p className="mb-1 text-sm font-medium text-ink">یادداشت داخلی</p>
-              <p className="whitespace-pre-wrap text-sm text-ink-muted">{l.internal_notes}</p>
-            </Card>
-          )}
+          <EditableLetterCard
+            id={id}
+            direction={l.direction}
+            canEdit={canEditLetter}
+            companies={((companies ?? []) as Pick<Company, "id" | "legal_name">[]).map((c) => ({ id: c.id, label: c.legal_name }))}
+            cases={((cases ?? []) as Pick<Case, "id" | "case_code" | "title">[]).map((c) => ({ id: c.id, label: `${c.case_code ?? ""} ${c.title}`.trim() }))}
+            profiles={((profiles ?? []) as Pick<Profile, "id" | "full_name">[]).map((p) => ({ id: p.id, label: p.full_name ?? "—" }))}
+            view={{
+              subject: l.subject,
+              counterparty: counterparty ?? null,
+              priority: l.priority as Priority,
+              language: l.language as Language,
+              relatedCase: relatedCase ? { id: relatedCase.id, label: `${relatedCase.case_code} — ${relatedCase.title}` } : null,
+              requiresResponse: l.requires_response,
+              followupDate: l.followup_date,
+              sentReceivedMethod: l.sent_received_method,
+              createdAt: l.created_at,
+              finalizedAt: l.finalized_at,
+              externalLetterNumber: l.external_letter_number,
+              externalLetterDate: l.external_letter_date,
+              draftHtml,
+              internalNotes: l.internal_notes,
+            }}
+            initial={{
+              recipient_company_id: l.recipient_company_id,
+              recipient_name: l.recipient_name,
+              case_id: l.case_id,
+              signatory_id: l.signatory_id,
+              signatory_label: l.signatory_label,
+              draft_text: draftHtml,
+            }}
+          />
 
           <Card>
             <p className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">

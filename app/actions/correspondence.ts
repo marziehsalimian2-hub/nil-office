@@ -54,6 +54,54 @@ export async function createOutgoing(
   redirect(`/correspondence/${data.id}`);
 }
 
+/** Update an outgoing letter's editable fields — only while it is DRAFT or REVIEW. */
+export async function updateOutgoing(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "شناسه نامه نامعتبر است." };
+
+  const parsed = outgoingSchema.safeParse(fd(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "ورودی نامعتبر است." };
+  }
+
+  const { supabase } = await currentUserId();
+  const { data: current } = await supabase
+    .from("correspondence")
+    .select("direction, status")
+    .eq("id", id)
+    .single();
+  if (!current || current.direction !== "OUTGOING" || !["DRAFT", "REVIEW"].includes(current.status)) {
+    return { error: "این نامه دیگر قابل ویرایش نیست." };
+  }
+
+  const d = parsed.data;
+  const { error } = await supabase
+    .from("correspondence")
+    .update({
+      subject: d.subject,
+      recipient_company_id: d.recipient_company_id ?? null,
+      recipient_name: d.recipient_name ?? null,
+      case_id: d.case_id ?? null,
+      signatory_id: d.signatory_id ?? null,
+      signatory_label: d.signatory_label ?? null,
+      language: d.language,
+      priority: d.priority,
+      requires_response: d.requires_response,
+      followup_date: d.followup_date ?? null,
+      sent_received_method: d.sent_received_method ?? null,
+      draft_text: d.draft_text ? sanitizeLetterHtml(d.draft_text) : null,
+      internal_notes: d.internal_notes ?? null,
+    })
+    .eq("id", id);
+  if (error) return { error: persianError(error.message) };
+
+  revalidatePath(`/correspondence/${id}`);
+  return null;
+}
+
 /** Atomically finalize an outgoing letter and issue its official number. */
 export async function finalizeOutgoing(
   _prev: ActionState,
