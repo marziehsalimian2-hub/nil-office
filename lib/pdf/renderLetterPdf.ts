@@ -73,6 +73,10 @@ function buildLetterHtml(input: LetterPdfInput): string {
     margin-top: 20mm;
     text-align: left;
     font-size: 12px;
+    /* tighter than the body's line-height:2 — that was inherited here too,
+       so each signatory-label line carried a lot of built-in whitespace
+       below its own text before the stamp-row's margin even started. */
+    line-height: 1.3;
   }
   .signatory-label { font-weight: 700; }
   .signatory-label div { margin-top: 1mm; }
@@ -85,7 +89,7 @@ function buildLetterHtml(input: LetterPdfInput): string {
        into the label above — avoids needing a large margin-top as a
        buffer, which was reading as a big empty gap. */
     height: 33mm;
-    margin-top: 2mm;
+    margin-top: 0;
   }
   .stamp-row img.stamp {
     position: absolute;
