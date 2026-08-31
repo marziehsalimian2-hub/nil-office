@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatJalali } from "@/lib/jalali";
-import { renderLetterPdf } from "@/lib/pdf/renderLetterPdf";
+import { renderContractPdf } from "@/lib/pdf/renderContractPdf";
 
 const EXT_TO_MIME: Record<string, string> = {
   png: "image/png",
@@ -28,7 +28,7 @@ async function pathToDataUri(
 
 const escHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-/** Plain textarea text -> safe paragraph HTML, for the same body slot the letter renderer expects. */
+/** Plain textarea text -> safe paragraph HTML, for the contract body slot. */
 function textToHtml(text: string | null): string {
   if (!text) return "";
   return text
@@ -42,14 +42,15 @@ function textToHtml(text: string | null): string {
 /**
  * Renders the contract's own description text (not an auto-generated legal
  * clause set — out of scope per the module spec) onto the company
- * letterhead, exactly like an outgoing letter: reuses renderLetterPdf
- * directly rather than a separate pipeline.
+ * letterhead, followed by a two-party signoff table: the counterparty's
+ * side is left blank for their own hand-written signature (they're not a
+ * system user), NIL's side is auto-filled from the chosen signatory.
  */
 export async function buildContractPdf(supabase: SupabaseClient, contractId: string): Promise<Buffer> {
   const { data: contract, error } = await supabase
     .from("contracts")
     .select(
-      "id, title, display_number, external_contract_number, counterparty_company_id, description, signatory_id, signatory_label, finalized_at, created_at",
+      "id, title, display_number, external_contract_number, counterparty_company_id, description, signatory_id, approved_at, finalized_at, created_at",
     )
     .eq("id", contractId)
     .single();
@@ -61,7 +62,7 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
       ? supabase.from("companies").select("legal_name").eq("id", contract.counterparty_company_id).single()
       : Promise.resolve({ data: null }),
     contract.signatory_id
-      ? supabase.from("profiles").select("signature_path").eq("id", contract.signatory_id).single()
+      ? supabase.from("profiles").select("title, signature_path").eq("id", contract.signatory_id).single()
       : Promise.resolve({ data: null }),
   ]);
   const counterparty = companyRes.data;
@@ -73,13 +74,15 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
     pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
-  return renderLetterPdf({
+  return renderContractPdf({
     displayNumber: contract.display_number ?? contract.external_contract_number,
     dateLabel: formatJalali(contract.finalized_at ?? contract.created_at),
     recipientLabel: counterparty?.legal_name ?? null,
     subject: contract.title,
     bodyHtml: textToHtml(contract.description),
-    signatoryLabel: contract.signatory_label,
+    counterpartyLabel: counterparty?.legal_name ?? null,
+    nilSignatoryTitle: signatory?.title ?? null,
+    nilDateLabel: contract.approved_at ? formatJalali(contract.approved_at) : null,
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
