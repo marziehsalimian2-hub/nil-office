@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2 } from "lucide-react";
+import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2, FileDown } from "lucide-react";
 import {
   setContractStatus,
   approveContract,
@@ -37,6 +37,10 @@ export function DetailActions({ id, status, kind }: { id: string; status: Contra
     <div className="space-y-3">
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
+        <a href={`/api/contracts/${id}/pdf`} target="_blank" rel="noopener" className="btn-ghost">
+          <FileDown className="h-4 w-4" /> دانلود برگ خلاصهٔ قرارداد (PDF)
+        </a>
+
         {status === "DRAFT" && (
           <button disabled={pending} className="btn-ghost" onClick={() => run(setContractStatus, { id, status: "UNDER_REVIEW" })}>
             <FileCheck2 className="h-4 w-4" /> ارسال برای بررسی
