@@ -47,6 +47,8 @@ export function EditableContractCard({
     counterparty: string | null;
     relatedCase: { id: string; label: string } | null;
     responsibleName: string | null;
+    signatoryName: string | null;
+    signatoryLabel: string | null;
     externalContractNumber: string | null;
     externalSourceNote: string | null;
     signedDate: string | null;
@@ -62,6 +64,7 @@ export function EditableContractCard({
     counterparty_company_id: string | null;
     case_id: string | null;
     responsible_user: string | null;
+    signatory_id: string | null;
     base_amount: number | null;
     discount_amount: number;
     tax_amount: number;
@@ -154,6 +157,20 @@ export function EditableContractCard({
             </Field>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="امضاکننده" hint="امضای این شخص در برگ خلاصهٔ قرارداد چاپ می‌شود">
+              <select name="signatory_id" className="input" defaultValue={initial.signatory_id ?? ""}>
+                <option value="">— انتخاب امضاکننده —</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="نام/سمت زیر امضا" hint="هر خط جدا زیر امضا و مهر چاپ می‌شود">
+              <textarea name="signatory_label" rows={2} className="input" defaultValue={view.signatoryLabel ?? ""} />
+            </Field>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="تاریخ عقد">
               <JalaliDateInput name="signed_date" defaultISO={view.signedDate} />
@@ -231,6 +248,7 @@ export function EditableContractCard({
         )}
       </Row>
       <Row label="مسئول قرارداد">{view.responsibleName || "—"}</Row>
+      <Row label="امضاکننده">{view.signatoryName || "—"}</Row>
       <Row label="تاریخ عقد">{formatJalali(view.signedDate)}</Row>
       <Row label="تاریخ شروع">{formatJalali(view.effectiveDate)}</Row>
       <Row label="تاریخ پایان">{formatJalali(view.expiryDate)}</Row>

@@ -98,15 +98,31 @@ export function ContractForm({
           </Field>
         </div>
 
-        <Field label="مسئول قرارداد">
-          <select name="responsible_user" className="input" defaultValue="">
-            <option value="">—</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="مسئول قرارداد">
+            <select name="responsible_user" className="input" defaultValue="">
+              <option value="">—</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="امضاکننده" hint="امضای این شخص در برگ خلاصهٔ قرارداد چاپ می‌شود">
+            <select name="signatory_id" className="input" defaultValue="">
+              <option value="">— انتخاب امضاکننده —</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <Field label="نام/سمت زیر امضا" hint="اختیاری — هر خط جدا زیر امضا و مهر چاپ می‌شود؛ برای خط بعدی Enter بزنید">
+          <textarea name="signatory_label" rows={2} className="input" />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-3">
