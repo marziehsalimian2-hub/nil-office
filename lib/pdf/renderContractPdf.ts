@@ -12,6 +12,7 @@ export type ContractPdfInput = {
   bodyHtml: string; // the contract's own description text, already converted to safe paragraph HTML
   counterpartyLabel: string | null; // counterparty company name, right (first) signoff column
   counterpartyRepresentativeName: string | null; // typed once in the app, printed instead of a blank line
+  nilSignatoryName: string | null; // signatory's full name, left (NIL) signoff column
   nilSignatoryTitle: string | null; // signatory's job title, left (NIL) signoff column
   nilDateLabel: string | null; // approval date shown under NIL's signature
   letterheadDataUri: string | null;
@@ -53,7 +54,7 @@ const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
 function buildContractHtml(input: ContractPdfInput): string {
   const {
     recipientLabel, subject, bodyHtml, counterpartyLabel, counterpartyRepresentativeName,
-    nilSignatoryTitle, nilDateLabel, stampDataUri, signatureDataUri,
+    nilSignatoryName, nilSignatoryTitle, nilDateLabel, stampDataUri, signatureDataUri,
   } = input;
 
   return `<!doctype html>
@@ -78,10 +79,12 @@ function buildContractHtml(input: ContractPdfInput): string {
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
 
   .signoff-heading { margin-top: 10mm; margin-bottom: 4mm; font-size: 13px; font-weight: 700; text-align: center; }
-  .signoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; font-size: 12px; }
-  .signoff-col .party-label { margin-bottom: 2mm; font-weight: 700; }
-  .signoff-col .line { margin-bottom: 2mm; }
-  .blank-line { display: block; border-bottom: 0.5pt solid #1a1a1a55; height: 7mm; }
+  /* A flat 2-column grid with each field as its own row (not two independent
+     text columns) so corresponding fields — most importantly the two "تاریخ"
+     rows — line up at the same height on both sides, regardless of the
+     stamp/signature block's extra height on the NIL side. */
+  .signoff-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10mm; row-gap: 3mm; font-size: 12px; align-items: start; }
+  .party-label { font-weight: 700; }
   .stamp-row {
     position: relative;
     width: 42mm;
@@ -113,24 +116,26 @@ function buildContractHtml(input: ContractPdfInput): string {
 
   <div class="signoff-heading">محل امضا و تأیید قرارداد</div>
   <div class="signoff-grid">
-    <div class="signoff-col">
-      <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
-      <div class="line">نام و نام خانوادگی نماینده: ${
-        counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : `<span class="blank-line"></span>`
-      }</div>
-      <div class="line">امضا و اثر انگشت/مهر:<span class="blank-line"></span></div>
-      <div class="line">تاریخ:<span class="blank-line"></span></div>
-    </div>
-    <div class="signoff-col">
-      <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
-      <div class="line">سمت یا عنوان: ${esc(nilSignatoryTitle) || "—"}</div>
-      <div class="line">امضا و مهر:</div>
+    <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
+    <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
+
+    <div>نام و نام خانوادگی نماینده: ${counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : ""}</div>
+    <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
+
+    <div></div>
+    <div>سمت یا عنوان: ${esc(nilSignatoryTitle) || "—"}</div>
+
+    <div>امضا و اثر انگشت/مهر:</div>
+    <div>
+      امضا و مهر:
       <div class="stamp-row">
         ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
         ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
       </div>
-      <div class="line">تاریخ: ${esc(nilDateLabel) || "—"}</div>
     </div>
+
+    <div>تاریخ:</div>
+    <div>تاریخ: ${esc(nilDateLabel) || "—"}</div>
   </div>
 </body>
 </html>`;
