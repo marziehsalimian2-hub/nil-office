@@ -80,10 +80,12 @@ function buildLetterHtml(input: LetterPdfInput): string {
     position: relative;
     display: inline-block;
     width: 42mm;
-    height: 26mm;
-    /* clears space above the row for the signature's upward overflow
-       (see img.signature below) so it never overlaps the label text */
-    margin-top: 8mm;
+    /* tall enough to fully contain the signature's absolute box (bottom:
+       13mm + max-height 20mm = 33mm) so it never overflows the container
+       into the label above — avoids needing a large margin-top as a
+       buffer, which was reading as a big empty gap. */
+    height: 33mm;
+    margin-top: 2mm;
   }
   .stamp-row img.stamp {
     position: absolute;
@@ -142,8 +144,8 @@ function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null):
     direction: rtl;
     text-align: left;
     color: #1a1a1a;
-    font-size: 22px;
-    line-height: 33px;
+    font-size: 15px;
+    line-height: 22px;
   }
 </style>
 </head>
