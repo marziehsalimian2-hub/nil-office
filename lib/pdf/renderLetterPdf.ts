@@ -66,11 +66,18 @@ function buildLetterHtml(input: LetterPdfInput): string {
   .subject b { text-decoration: underline; }
   .body p { margin: 0 0 3mm 0; }
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
+  /* A plain (non-atomic) spacer, kept OUTSIDE the break-avoid block below
+     on purpose: if the signoff has to move to a new page, this empty box
+     is free to be cut off at the page boundary — its remainder (if any)
+     is just blank space at the very top of the next page, not a second
+     full gap stacked on top of the page's own top margin. A margin
+     on .signoff itself does not get discarded when it becomes the first
+     box on a new page, so it produced exactly that double-gap bug. */
+  .signoff-spacer { height: 8mm; }
   .signoff {
     /* flows right after the letter body instead of pinning to the page
        bottom — a short letter gets its signature close to the text, a
        long one lands wherever the text actually ends. */
-    margin-top: 20mm;
     text-align: left;
     font-size: 12px;
     /* tighter than the body's line-height:2 — that was inherited here too,
@@ -121,6 +128,7 @@ function buildLetterHtml(input: LetterPdfInput): string {
   ${recipientLabel ? `<div class="recipient">گیرنده: ${esc(recipientLabel)}</div>` : ""}
   ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
   <div class="body">${bodyHtml}</div>
+  <div class="signoff-spacer"></div>
   <div class="signoff">
     ${
       signatoryLabel
