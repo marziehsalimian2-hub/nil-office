@@ -409,6 +409,8 @@ export interface Contract {
   description: string | null;
   internal_notes: string | null;
   responsible_user: string | null;
+  signatory_id: string | null;
+  signatory_label: string | null;
   created_by: string;
   approved_by: string | null;
   approved_at: string | null;

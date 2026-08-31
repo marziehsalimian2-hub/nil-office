@@ -1,9 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatJalali } from "@/lib/jalali";
-import { formatMoney } from "@/lib/money";
-import { CONTRACT_KIND_LABEL, CONTRACT_STATUS_LABEL, type ContractKind, type ContractStatus } from "@/lib/enums";
-import { renderContractPdf } from "@/lib/pdf/renderContractPdf";
+import { renderLetterPdf } from "@/lib/pdf/renderLetterPdf";
 
 const EXT_TO_MIME: Record<string, string> = {
   png: "image/png",
@@ -28,70 +26,60 @@ async function pathToDataUri(
   return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
+const escHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+/** Plain textarea text -> safe paragraph HTML, for the same body slot the letter renderer expects. */
+function textToHtml(text: string | null): string {
+  if (!text) return "";
+  return text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escHtml(p).replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+}
+
 /**
- * Loads everything needed to render a contract's letterhead summary sheet
- * (not the legal contract text itself — see spec exclusion on automatic
- * contract drafting) and returns the finished PDF bytes.
+ * Renders the contract's own description text (not an auto-generated legal
+ * clause set — out of scope per the module spec) onto the company
+ * letterhead, exactly like an outgoing letter: reuses renderLetterPdf
+ * directly rather than a separate pipeline.
  */
 export async function buildContractPdf(supabase: SupabaseClient, contractId: string): Promise<Buffer> {
   const { data: contract, error } = await supabase
     .from("contracts")
     .select(
-      "id, title, kind, status, display_number, external_contract_number, contract_type_id, counterparty_company_id, case_id, signed_date, effective_date, expiry_date, base_amount, discount_amount, tax_amount, total_amount, currency_code, description, responsible_user, approved_by, approved_at, finalized_at, created_at",
+      "id, title, display_number, external_contract_number, counterparty_company_id, description, signatory_id, signatory_label, finalized_at, created_at",
     )
     .eq("id", contractId)
     .single();
   if (error || !contract) throw new Error("قرارداد یافت نشد.");
 
-  const [{ data: settings }, typeRes, companyRes, caseRes, responsibleRes, approverRes] = await Promise.all([
+  const [{ data: settings }, companyRes, signatoryRes] = await Promise.all([
     supabase.from("app_settings").select("letterhead_path, stamp_path").eq("id", 1).single(),
-    supabase.from("contract_types").select("name").eq("id", contract.contract_type_id).single(),
     contract.counterparty_company_id
       ? supabase.from("companies").select("legal_name").eq("id", contract.counterparty_company_id).single()
       : Promise.resolve({ data: null }),
-    contract.case_id
-      ? supabase.from("cases").select("case_code, title").eq("id", contract.case_id).single()
-      : Promise.resolve({ data: null }),
-    contract.responsible_user
-      ? supabase.from("profiles").select("full_name").eq("id", contract.responsible_user).single()
-      : Promise.resolve({ data: null }),
-    contract.approved_by
-      ? supabase.from("profiles").select("full_name, signature_path").eq("id", contract.approved_by).single()
+    contract.signatory_id
+      ? supabase.from("profiles").select("signature_path").eq("id", contract.signatory_id).single()
       : Promise.resolve({ data: null }),
   ]);
-
-  const type = typeRes.data;
-  const company = companyRes.data;
-  const kase = caseRes.data;
-  const responsible = responsibleRes.data;
-  const approver = approverRes.data;
+  const counterparty = companyRes.data;
+  const signatory = signatoryRes.data;
 
   const [letterheadDataUri, stampDataUri, signatureDataUri] = await Promise.all([
     pathToDataUri(supabase, settings?.letterhead_path),
     pathToDataUri(supabase, settings?.stamp_path),
-    contract.approved_by ? pathToDataUri(supabase, approver?.signature_path) : Promise.resolve(null),
+    pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
-  return renderContractPdf({
+  return renderLetterPdf({
     displayNumber: contract.display_number ?? contract.external_contract_number,
     dateLabel: formatJalali(contract.finalized_at ?? contract.created_at),
-    title: contract.title,
-    typeLabel: type?.name ?? null,
-    kindLabel: CONTRACT_KIND_LABEL[contract.kind as ContractKind],
-    statusLabel: CONTRACT_STATUS_LABEL[contract.status as ContractStatus],
-    counterpartyLabel: company?.legal_name ?? null,
-    caseLabel: kase ? `${kase.case_code ?? ""} — ${kase.title}` : null,
-    signedDateLabel: formatJalali(contract.signed_date),
-    effectiveDateLabel: formatJalali(contract.effective_date),
-    expiryDateLabel: formatJalali(contract.expiry_date),
-    baseAmountLabel: formatMoney(contract.base_amount),
-    discountAmountLabel: formatMoney(contract.discount_amount),
-    taxAmountLabel: formatMoney(contract.tax_amount),
-    totalAmountLabel: formatMoney(contract.total_amount),
-    currencyCode: contract.currency_code,
-    description: contract.description,
-    responsibleLabel: responsible?.full_name ?? null,
-    approverLabel: approver?.full_name ?? null,
+    recipientLabel: counterparty?.legal_name ?? null,
+    subject: contract.title,
+    bodyHtml: textToHtml(contract.description),
+    signatoryLabel: contract.signatory_label,
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,

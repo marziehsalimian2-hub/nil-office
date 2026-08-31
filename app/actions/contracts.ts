@@ -53,6 +53,8 @@ export async function createContractDraft(_p: ActionState, f: FormData): Promise
       description: d.description ?? null,
       internal_notes: d.internal_notes ?? null,
       responsible_user: d.responsible_user ?? null,
+      signatory_id: d.signatory_id ?? null,
+      signatory_label: d.signatory_label ?? null,
       status: "DRAFT",
       created_by: userId,
     })
@@ -97,6 +99,8 @@ export async function updateContractDraft(_p: ActionState, f: FormData): Promise
       description: d.description ?? null,
       internal_notes: d.internal_notes ?? null,
       responsible_user: d.responsible_user ?? null,
+      signatory_id: d.signatory_id ?? null,
+      signatory_label: d.signatory_label ?? null,
     })
     .eq("id", id);
   if (error) return { error: persianError(error.message) };

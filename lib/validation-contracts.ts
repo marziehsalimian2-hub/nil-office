@@ -26,6 +26,8 @@ export const contractSchema = z
     description: optText,
     internal_notes: optText,
     responsible_user: optUuid,
+    signatory_id: optUuid,
+    signatory_label: optText,
   })
   .refine((d) => d.kind !== "HISTORICAL" || !!d.external_contract_number, {
     message: "برای قرارداد سابق، درج شمارهٔ اصلی قرارداد الزامی است.",
