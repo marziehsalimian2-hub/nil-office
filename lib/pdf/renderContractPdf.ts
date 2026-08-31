@@ -78,7 +78,16 @@ function buildContractHtml(input: ContractPdfInput): string {
   .body p { margin: 0 0 3mm 0; }
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
 
-  .signoff-heading { margin-top: 10mm; margin-bottom: 4mm; font-size: 13px; font-weight: 700; text-align: center; }
+  .signoff-block {
+    margin-top: 10mm;
+    /* Without this, when the block doesn't fully fit in the remaining
+       space on a page, Chromium's print pagination can split it — leaving
+       the heading/labels on one page and pushing just the large
+       stamp-row image to the next. Keep the whole thing atomic. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .signoff-heading { margin-bottom: 4mm; font-size: 13px; font-weight: 700; text-align: center; }
   /* A flat 2-column grid with each field as its own row (not two independent
      text columns) so corresponding fields — most importantly the two "تاریخ"
      rows — line up at the same height on both sides, regardless of the
@@ -119,28 +128,30 @@ function buildContractHtml(input: ContractPdfInput): string {
   <div class="subject">موضوع: <b>${esc(subject)}</b></div>
   <div class="body">${bodyHtml}</div>
 
-  <div class="signoff-heading">محل امضا و تأیید قرارداد</div>
-  <div class="signoff-grid">
-    <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
-    <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
+  <div class="signoff-block">
+    <div class="signoff-heading">محل امضا و تأیید قرارداد</div>
+    <div class="signoff-grid">
+      <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
+      <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
 
-    <div>نام و نام خانوادگی نماینده: ${counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : ""}</div>
-    <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
+      <div>نام و نام خانوادگی نماینده: ${counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : ""}</div>
+      <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
 
-    <div></div>
-    <div>سمت یا عنوان: ${esc(nilSignatoryTitle) || "—"}</div>
+      <div></div>
+      <div>سمت یا عنوان: ${esc(nilSignatoryTitle) || "—"}</div>
 
-    <div>امضا و اثر انگشت/مهر:</div>
-    <div>
-      امضا و مهر:
-      <div class="stamp-row">
-        ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
-        ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
+      <div>امضا و اثر انگشت/مهر:</div>
+      <div>
+        امضا و مهر:
+        <div class="stamp-row">
+          ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
+          ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
+        </div>
       </div>
-    </div>
 
-    <div>تاریخ:</div>
-    <div>تاریخ: ${esc(nilDateLabel) || "—"}</div>
+      <div>تاریخ:</div>
+      <div>تاریخ: ${esc(nilDateLabel) || "—"}</div>
+    </div>
   </div>
 </body>
 </html>`;
