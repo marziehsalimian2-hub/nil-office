@@ -78,8 +78,12 @@ function buildContractHtml(input: ContractPdfInput): string {
   .body p { margin: 0 0 3mm 0; }
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
 
+  /* Plain (non-atomic) spacer kept OUTSIDE the break-avoid block below —
+     see renderLetterPdf.ts's .signoff-spacer for why: a margin on the
+     avoid-break block itself does not get discarded when that block
+     becomes the first thing on a new page, producing a double gap. */
+  .signoff-spacer { height: 8mm; }
   .signoff-block {
-    margin-top: 10mm;
     /* Without this, when the block doesn't fully fit in the remaining
        space on a page, Chromium's print pagination can split it — leaving
        the heading/labels on one page and pushing just the large
@@ -128,6 +132,7 @@ function buildContractHtml(input: ContractPdfInput): string {
   <div class="subject">موضوع: <b>${esc(subject)}</b></div>
   <div class="body">${bodyHtml}</div>
 
+  <div class="signoff-spacer"></div>
   <div class="signoff-block">
     <div class="signoff-heading">محل امضا و تأیید قرارداد</div>
     <div class="signoff-grid">
