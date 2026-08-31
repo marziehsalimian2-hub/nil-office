@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card } from "@/components/ui";
 import { JournalActions } from "./JournalActions";
+import { EditableJournalCard } from "./EditableJournalCard";
 import { POSTING_STATUS_LABEL, POSTING_STATUS_TONE, type PostingStatus } from "@/lib/enums";
-import { getDisplayUnit } from "@/app/actions/accounting-options";
-import { formatMoney } from "@/lib/money";
+import { getDisplayUnit, loadAccountingOptions } from "@/app/actions/accounting-options";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
-import type { JournalEntry, JournalEntryLine, Account } from "@/lib/types/database";
+import type { JournalEntry, JournalEntryLine } from "@/lib/types/database";
 export const dynamic = "force-dynamic";
 
 export default async function JournalDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,11 +19,13 @@ export default async function JournalDetailPage({ params }: { params: Promise<{ 
   const e = entry as JournalEntry;
   const { data: lineData } = await supabase.from("journal_entry_lines").select("*").eq("journal_entry_id", id).order("line_no");
   const lines = (lineData ?? []) as JournalEntryLine[];
+
+  const canEdit = e.status === "DRAFT";
+  const opts = await loadAccountingOptions();
   const accIds = [...new Set(lines.map((l) => l.account_id))];
-  const { data: accData } = await supabase.from("accounts").select("id, code, name").in("id", accIds.length ? accIds : ["00000000-0000-0000-0000-000000000000"]);
-  const accMap = new Map((accData as Pick<Account, "id" | "code" | "name">[] ?? []).map((a) => [a.id, a]));
-  const totalD = lines.reduce((s, l) => s + Number(l.debit), 0);
-  const totalC = lines.reduce((s, l) => s + Number(l.credit), 0);
+  const editAccounts = canEdit
+    ? opts.postingAccounts
+    : opts.allAccounts.filter((a) => accIds.includes(a.id));
 
   return (
     <div>
@@ -37,33 +39,29 @@ export default async function JournalDetailPage({ params }: { params: Promise<{ 
             {" "}<Link href={`/accounting/journal/${e.reversal_of}`} className="text-seal underline">مشاهدهٔ سند اصلی</Link></p>
         </Card>
       )}
-      {e.description && <p className="mb-4 text-sm text-ink">{e.description}</p>}
 
-      <div className="card mb-4 overflow-x-auto p-0">
-        <table className="w-full min-w-[640px]">
-          <thead><tr className="table-head">
-            <th className="px-4 py-3 text-right">حساب</th><th className="px-4 py-3 text-right">شرح</th>
-            <th className="px-4 py-3 text-left">بدهکار</th><th className="px-4 py-3 text-left">بستانکار</th>
-          </tr></thead>
-          <tbody>
-            {lines.map((l) => {
-              const a = accMap.get(l.account_id);
-              return (
-                <tr key={l.id} className="table-row">
-                  <td className="px-4 py-3 text-ink"><span className="tnum text-ink-muted" dir="ltr">{a?.code}</span> {a?.name}</td>
-                  <td className="px-4 py-3 text-ink-muted">{l.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-left tnum" dir="ltr">{Number(l.debit) > 0 ? formatMoney(l.debit) : "—"}</td>
-                  <td className="px-4 py-3 text-left tnum" dir="ltr">{Number(l.credit) > 0 ? formatMoney(l.credit) : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot><tr className="border-t-2 border-line bg-paper/60 font-semibold">
-            <td colSpan={2} className="px-4 py-3 text-left text-ink-muted">جمع ({unit === "RIAL" ? "ریال" : "تومان"})</td>
-            <td className="px-4 py-3 text-left tnum" dir="ltr">{formatMoney(totalD)}</td>
-            <td className="px-4 py-3 text-left tnum" dir="ltr">{formatMoney(totalC)}</td>
-          </tr></tfoot>
-        </table>
+      <div className="mb-4 space-y-4">
+        <EditableJournalCard
+          id={e.id}
+          canEdit={canEdit}
+          accounts={editAccounts.map((a) => ({ id: a.id, code: a.code, name: a.name }))}
+          details={opts.details.map((d) => ({ id: d.id, label: d.name }))}
+          companies={opts.companies.map((c) => ({ id: c.id, label: c.legal_name }))}
+          cases={opts.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }))}
+          fiscalYears={opts.fiscalYears.map((f) => ({ id: f.id, label: f.title }))}
+          unit={unit}
+          header={{ fiscal_year_id: e.fiscal_year_id, document_date: e.document_date, reference: e.reference }}
+          description={e.description}
+          initialLines={lines.map((l) => ({
+            account_id: l.account_id,
+            detail_account_id: l.detail_account_id,
+            description: l.description,
+            debit: Number(l.debit),
+            credit: Number(l.credit),
+            company_id: l.company_id,
+            case_id: l.case_id,
+          }))}
+        />
       </div>
 
       <JournalActions id={e.id} status={e.status} />

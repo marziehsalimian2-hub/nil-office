@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type ActionState } from "@/app/actions/accounting";
 import { Field, FormError, SubmitButton } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
+import { MoneyInput } from "@/components/MoneyInput";
 
 type Opt = { id: string; label: string };
 export function CashDocForm({
@@ -29,7 +30,7 @@ export function CashDocForm({
           <Field label={isReceipt ? "دریافت‌کننده از" : "پرداخت به"}><input name="counterparty" className="input" /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="مبلغ" required><input name="amount" required inputMode="numeric" dir="ltr" className="input tnum text-left" /></Field>
+          <Field label="مبلغ" required><MoneyInput name="amount" required /></Field>
           <Field label="روش"><input name="method" className="input" placeholder="کارت‌به‌کارت، چک، نقدی…" /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

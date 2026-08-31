@@ -2,19 +2,26 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
-import { PostDocButton } from "@/components/PostDocButton";
-import { POSTING_STATUS_LABEL, POSTING_STATUS_TONE, type PostingStatus } from "@/lib/enums";
-import { getDisplayUnit } from "@/app/actions/accounting-options";
-import { formatMoney } from "@/lib/money";
-import { formatJalali } from "@/lib/jalali";
+import { CashDocRow } from "@/components/CashDocRow";
+import { getDisplayUnit, loadAccountingOptions } from "@/app/actions/accounting-options";
+import type { Receipt } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReceiptsPage() {
   const supabase = await createClient();
   const unit = await getDisplayUnit();
+  const opts = await loadAccountingOptions();
   const { data } = await supabase.from("receipts").select("*").order("receipt_date", { ascending: false }).limit(100);
-  const rows = (data ?? []) as Array<{ id: string; receipt_date: string; payer: string | null; amount: number; description: string | null; status: PostingStatus }>;
+  const rows = (data ?? []) as Receipt[];
+
+  const banks = opts.banks.map((b) => ({ id: b.id, label: b.account_title }));
+  const accounts = opts.postingAccounts.map((a) => ({ id: a.id, label: `${a.code} — ${a.name}` }));
+  const details = opts.details.map((d) => ({ id: d.id, label: d.name }));
+  const companies = opts.companies.map((c) => ({ id: c.id, label: c.legal_name }));
+  const cases = opts.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }));
+  const fiscalYears = opts.fiscalYears.map((f) => ({ id: f.id, label: f.title }));
+
   return (
     <div>
       <PageHeader title="دریافت‌ها" subtitle="مدیریت اسناد نقدی دریافتی"
@@ -31,14 +38,33 @@ export default async function ReceiptsPage() {
             </tr></thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="table-row cursor-default">
-                  <td className="px-4 py-3 tnum text-ink-muted">{formatJalali(r.receipt_date)}</td>
-                  <td className="px-4 py-3 text-ink">{r.payer ?? "—"}</td>
-                  <td className="px-4 py-3 text-ink-muted">{r.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-left tnum" dir="ltr">{formatMoney(r.amount, unit)}</td>
-                  <td className="px-4 py-3"><span className={`badge ${POSTING_STATUS_TONE[r.status]}`}>{POSTING_STATUS_LABEL[r.status]}</span></td>
-                  <td className="px-4 py-3">{r.status === "DRAFT" && <PostDocButton id={r.id} kind="receipt" />}</td>
-                </tr>
+                <CashDocRow
+                  key={r.id}
+                  kind="receipt"
+                  unit={unit}
+                  banks={banks}
+                  accounts={accounts}
+                  details={details}
+                  companies={companies}
+                  cases={cases}
+                  fiscalYears={fiscalYears}
+                  row={{
+                    id: r.id,
+                    date: r.receipt_date,
+                    counterparty: r.payer,
+                    amount: r.amount,
+                    description: r.description,
+                    status: r.status,
+                    bank_account_id: r.bank_account_id,
+                    counterpart_account_id: r.counterpart_account_id,
+                    detail_account_id: r.detail_account_id,
+                    method: r.method,
+                    reference: r.reference,
+                    company_id: r.company_id,
+                    case_id: r.case_id,
+                    fiscal_year_id: r.fiscal_year_id,
+                  }}
+                />
               ))}
             </tbody>
           </table>

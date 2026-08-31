@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createJournalEntry, type ActionState } from "@/app/actions/accounting";
 import { Field, FormError, SubmitButton } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
+import { MoneyInput } from "@/components/MoneyInput";
 import { formatMoney, type DisplayUnit } from "@/lib/money";
 import { toFaDigits } from "@/lib/jalali";
 
@@ -92,12 +93,12 @@ export function JournalForm({
                 </td>
                 <td className="px-2 py-2"><input className="input !py-1.5" value={l.description} onChange={(e) => set(i, "description", e.target.value)} /></td>
                 <td className="px-2 py-2">
-                  <input inputMode="numeric" dir="ltr" className="input !py-1.5 tnum text-left" value={l.debit}
-                    onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ""); set(i, "debit", v); if (v) set(i, "credit", ""); }} />
+                  <MoneyInput className="!py-1.5" value={l.debit}
+                    onChange={(v) => { set(i, "debit", v); if (v) set(i, "credit", ""); }} />
                 </td>
                 <td className="px-2 py-2">
-                  <input inputMode="numeric" dir="ltr" className="input !py-1.5 tnum text-left" value={l.credit}
-                    onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ""); set(i, "credit", v); if (v) set(i, "debit", ""); }} />
+                  <MoneyInput className="!py-1.5" value={l.credit}
+                    onChange={(v) => { set(i, "credit", v); if (v) set(i, "debit", ""); }} />
                 </td>
                 <td className="px-2 py-2 text-center">
                   {lines.length > 2 && (
