@@ -83,14 +83,19 @@ function buildContractHtml(input: ContractPdfInput): string {
      text columns) so corresponding fields — most importantly the two "تاریخ"
      rows — line up at the same height on both sides, regardless of the
      stamp/signature block's extra height on the NIL side. */
-  .signoff-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10mm; row-gap: 3mm; font-size: 12px; align-items: start; }
+  .signoff-grid {
+    display: grid; grid-template-columns: 1fr 1fr; column-gap: 10mm; row-gap: 3mm;
+    font-size: 12px; align-items: start;
+    /* tighter than the body's line-height:2 — same fix as renderLetterPdf.ts */
+    line-height: 1.3;
+  }
   .party-label { font-weight: 700; }
   .stamp-row {
     position: relative;
     width: 42mm;
     /* tall enough to contain the signature's absolute box without overflow */
     height: 33mm;
-    margin-top: 2mm;
+    margin-top: 0;
   }
   .stamp-row img.stamp {
     position: absolute;
