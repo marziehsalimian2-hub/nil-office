@@ -11,6 +11,7 @@ export type ContractPdfInput = {
   subject: string; // contract title
   bodyHtml: string; // the contract's own description text, already converted to safe paragraph HTML
   counterpartyLabel: string | null; // counterparty company name, right (first) signoff column
+  counterpartyRepresentativeName: string | null; // typed once in the app, printed instead of a blank line
   nilSignatoryTitle: string | null; // signatory's job title, left (NIL) signoff column
   nilDateLabel: string | null; // approval date shown under NIL's signature
   letterheadDataUri: string | null;
@@ -50,7 +51,10 @@ const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
  * same reasoning as renderLetterPdf.ts.
  */
 function buildContractHtml(input: ContractPdfInput): string {
-  const { recipientLabel, subject, bodyHtml, counterpartyLabel, nilSignatoryTitle, nilDateLabel, stampDataUri, signatureDataUri } = input;
+  const {
+    recipientLabel, subject, bodyHtml, counterpartyLabel, counterpartyRepresentativeName,
+    nilSignatoryTitle, nilDateLabel, stampDataUri, signatureDataUri,
+  } = input;
 
   return `<!doctype html>
 <html lang="fa" dir="rtl">
@@ -111,7 +115,9 @@ function buildContractHtml(input: ContractPdfInput): string {
   <div class="signoff-grid">
     <div class="signoff-col">
       <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
-      <div class="line">نام و نام خانوادگی نماینده:<span class="blank-line"></span></div>
+      <div class="line">نام و نام خانوادگی نماینده: ${
+        counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : `<span class="blank-line"></span>`
+      }</div>
       <div class="line">امضا و اثر انگشت/مهر:<span class="blank-line"></span></div>
       <div class="line">تاریخ:<span class="blank-line"></span></div>
     </div>

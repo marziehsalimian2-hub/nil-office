@@ -86,17 +86,21 @@ export function ContractForm({
               ))}
             </select>
           </Field>
-          <Field label="پروندهٔ مرتبط">
-            <select name="case_id" className="input" defaultValue="">
-              <option value="">—</option>
-              {cases.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          <Field label="نام نمایندهٔ طرف قرارداد" hint="روی برگ خلاصهٔ قرارداد چاپ می‌شود">
+            <input name="counterparty_representative_name" className="input" />
           </Field>
         </div>
+
+        <Field label="پروندهٔ مرتبط">
+          <select name="case_id" className="input" defaultValue="">
+            <option value="">—</option>
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="مسئول قرارداد">

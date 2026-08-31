@@ -65,6 +65,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         title: k.title,
         typeName: typeName.get(k.contract_type_id) ?? null,
         counterparty: k.counterparty_company_id ? (companyName.get(k.counterparty_company_id) ?? null) : null,
+        counterpartyRepresentativeName: k.counterparty_representative_name,
         relatedCase: relatedCase ? { id: relatedCase.id, label: `${relatedCase.case_code ?? ""} — ${relatedCase.title}` } : null,
         responsibleName: k.responsible_user ? (profileName.get(k.responsible_user) ?? null) : null,
         signatoryName: k.signatory_id ? (profileName.get(k.signatory_id) ?? null) : null,

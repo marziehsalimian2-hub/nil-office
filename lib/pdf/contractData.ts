@@ -50,7 +50,7 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
   const { data: contract, error } = await supabase
     .from("contracts")
     .select(
-      "id, title, display_number, external_contract_number, counterparty_company_id, description, signatory_id, approved_at, finalized_at, created_at",
+      "id, title, display_number, external_contract_number, counterparty_company_id, counterparty_representative_name, description, signatory_id, approved_at, finalized_at, created_at",
     )
     .eq("id", contractId)
     .single();
@@ -81,6 +81,7 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
     subject: contract.title,
     bodyHtml: textToHtml(contract.description),
     counterpartyLabel: counterparty?.legal_name ?? null,
+    counterpartyRepresentativeName: contract.counterparty_representative_name,
     nilSignatoryTitle: signatory?.title ?? null,
     nilDateLabel: contract.approved_at ? formatJalali(contract.approved_at) : null,
     letterheadDataUri,
