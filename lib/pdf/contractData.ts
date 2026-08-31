@@ -62,7 +62,7 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
       ? supabase.from("companies").select("legal_name").eq("id", contract.counterparty_company_id).single()
       : Promise.resolve({ data: null }),
     contract.signatory_id
-      ? supabase.from("profiles").select("title, signature_path").eq("id", contract.signatory_id).single()
+      ? supabase.from("profiles").select("full_name, title, signature_path").eq("id", contract.signatory_id).single()
       : Promise.resolve({ data: null }),
   ]);
   const counterparty = companyRes.data;
@@ -82,6 +82,7 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
     bodyHtml: textToHtml(contract.description),
     counterpartyLabel: counterparty?.legal_name ?? null,
     counterpartyRepresentativeName: contract.counterparty_representative_name,
+    nilSignatoryName: signatory?.full_name ?? null,
     nilSignatoryTitle: signatory?.title ?? null,
     nilDateLabel: contract.approved_at ? formatJalali(contract.approved_at) : null,
     letterheadDataUri,
