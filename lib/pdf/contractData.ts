@@ -28,15 +28,15 @@ async function pathToDataUri(
 
 const escHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-/** Plain textarea text -> safe paragraph HTML, for the contract body slot. */
+/**
+ * Plain textarea text -> safe HTML for the contract body slot. Every
+ * newline becomes a line break, including leading/trailing blank ones —
+ * pressing Enter at the top to push the text down must actually show up
+ * in the PDF, not get trimmed away.
+ */
 function textToHtml(text: string | null): string {
   if (!text) return "";
-  return text
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${escHtml(p).replace(/\n/g, "<br/>")}</p>`)
-    .join("");
+  return `<p>${escHtml(text).replace(/\n/g, "<br/>")}</p>`;
 }
 
 /**

@@ -77,6 +77,13 @@ function buildLetterHtml(input: LetterPdfInput): string {
        so each signatory-label line carried a lot of built-in whitespace
        below its own text before the stamp-row's margin even started. */
     line-height: 1.3;
+    /* Without this, when the signoff doesn't fully fit in the remaining
+       space on a page, Chromium's print pagination can split it —
+       leaving the name/title text on one page and pushing just the large
+       stamp-row image to the next, landing far away from its own label.
+       Keep the whole block atomic: fits here entirely, or moves entirely. */
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .signatory-label { font-weight: 700; }
   .signatory-label div { margin-top: 1mm; }
