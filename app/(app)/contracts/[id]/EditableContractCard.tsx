@@ -45,6 +45,7 @@ export function EditableContractCard({
     title: string;
     typeName: string | null;
     counterparty: string | null;
+    counterpartyRepresentativeName: string | null;
     relatedCase: { id: string; label: string } | null;
     responsibleName: string | null;
     signatoryName: string | null;
@@ -120,6 +121,14 @@ export function EditableContractCard({
               </select>
             </Field>
           </div>
+
+          <Field label="نام نمایندهٔ طرف قرارداد" hint="روی برگ خلاصهٔ قرارداد چاپ می‌شود">
+            <input
+              name="counterparty_representative_name"
+              className="input"
+              defaultValue={view.counterpartyRepresentativeName ?? ""}
+            />
+          </Field>
 
           {kind === "HISTORICAL" && (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -232,6 +241,7 @@ export function EditableContractCard({
       <Row label="دستهٔ قرارداد">{CONTRACT_KIND_LABEL[kind]}</Row>
       <Row label="نوع قرارداد">{view.typeName || "—"}</Row>
       <Row label="طرف قرارداد">{view.counterparty || "—"}</Row>
+      <Row label="نام نمایندهٔ طرف قرارداد">{view.counterpartyRepresentativeName || "—"}</Row>
       {kind === "HISTORICAL" && (
         <>
           <Row label="شمارهٔ اصلی قرارداد">{view.externalContractNumber || "—"}</Row>

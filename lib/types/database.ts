@@ -396,6 +396,7 @@ export interface Contract {
   external_contract_number: string | null;
   external_source_note: string | null;
   counterparty_company_id: string | null;
+  counterparty_representative_name: string | null;
   case_id: string | null;
   status: ContractStatusT;
   effective_date: string | null;

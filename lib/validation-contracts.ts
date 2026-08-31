@@ -15,6 +15,7 @@ export const contractSchema = z
     external_contract_number: optText,
     external_source_note: optText,
     counterparty_company_id: optUuid,
+    counterparty_representative_name: optText,
     case_id: optUuid,
     effective_date: optIsoDate,
     expiry_date: optIsoDate,
