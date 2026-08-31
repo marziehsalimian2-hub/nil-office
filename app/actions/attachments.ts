@@ -19,6 +19,7 @@ const ENTITY_MAP: Record<string, { path: string; table: string }> = {
   CORRESPONDENCE: { path: "/correspondence", table: "correspondence" },
   DOCUMENT: { path: "/documents", table: "documents" },
   CASE: { path: "/cases", table: "cases" },
+  CONTRACT: { path: "/contracts", table: "contracts" },
 };
 
 /** Upload a file to the private bucket and record its metadata. */

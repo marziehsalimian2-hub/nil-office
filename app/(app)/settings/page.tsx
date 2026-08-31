@@ -4,10 +4,11 @@ import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
+import { ContractRoleSelect } from "./ContractRoleSelect";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
-import { ACCOUNTING_ROLE_LABEL } from "@/lib/enums";
+import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL } from "@/lib/enums";
 import { currentJalaliYear, toFaDigits } from "@/lib/jalali";
 import type { AppSettings, NumberSequence, Profile } from "@/lib/types/database";
 
@@ -130,6 +131,7 @@ export default async function SettingsPage() {
               <thead><tr className="table-head">
                 <th className="px-3 py-2">نام</th><th className="px-3 py-2">عنوان/سمت</th>
                 <th className="px-3 py-2">نقش</th><th className="px-3 py-2">دسترسی مالی</th>
+                <th className="px-3 py-2">دسترسی قراردادها</th>
                 <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
               </tr></thead>
               <tbody>
@@ -142,6 +144,11 @@ export default async function SettingsPage() {
                       {u.role === "ADMIN"
                         ? <span className="text-xs text-ink-muted">{ACCOUNTING_ROLE_LABEL.ADMIN} (کامل)</span>
                         : <AccountingRoleSelect userId={u.id} current={u.accounting_role} />}
+                    </td>
+                    <td className="px-3 py-2">
+                      {u.role === "ADMIN"
+                        ? <span className="text-xs text-ink-muted">{CONTRACT_ROLE_LABEL.ADMIN} (کامل)</span>
+                        : <ContractRoleSelect userId={u.id} current={u.contract_role} />}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">

@@ -127,9 +127,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DRAFTS_EXIST: "اسناد پیش‌نویس در این سال مالی وجود دارد.",
   MISSING_ACCOUNTS: "حساب‌های لازم برای ثبت مشخص نشده‌اند.",
   BANK_ACCOUNT_UNLINKED: "حساب بانکی به یک حساب حسابداری متصل نشده است.",
-  INVALID_STATUS_TRANSITION: "تغییر وضعیت نامه در این مرحله مجاز نیست.",
+  INVALID_STATUS_TRANSITION: "تغییر وضعیت در این مرحله مجاز نیست.",
   INVALID_SCOPE: "دامنهٔ شماره‌گذاری نامعتبر است.",
   INVALID_VALUE: "مقدار واردشده نامعتبر است.",
+  ONLY_NIL_ISSUED_FINALIZE: "فقط قراردادهای صادره توسط نیل قابل ثبت نهایی هستند.",
+  CANNOT_DELETE_NON_DRAFT: "حذف قرارداد پس از خروج از پیش‌نویس مجاز نیست.",
+  EXTERNAL_NUMBER_IMMUTABLE: "شمارهٔ اصلی قرارداد قابل تغییر نیست.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -185,4 +188,57 @@ export const ACCOUNTING_ROLE = ["VIEW","CREATE","POST","ADMIN"] as const;
 export type AccountingRole = (typeof ACCOUNTING_ROLE)[number];
 export const ACCOUNTING_ROLE_LABEL: Record<AccountingRole, string> = {
   VIEW: "مشاهده", CREATE: "ثبت", POST: "ثبت قطعی", ADMIN: "مدیر مالی",
+};
+
+/* ============================ Contracts ================================== */
+
+export const CONTRACT_STATUS = [
+  "DRAFT",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "ACTIVE",
+  "SUSPENDED",
+  "COMPLETED",
+  "EXPIRED",
+  "TERMINATED",
+  "CANCELLED",
+] as const;
+export type ContractStatus = (typeof CONTRACT_STATUS)[number];
+
+export const CONTRACT_STATUS_LABEL: Record<ContractStatus, string> = {
+  DRAFT: "پیش‌نویس",
+  UNDER_REVIEW: "در حال بررسی",
+  APPROVED: "تأییدشده",
+  ACTIVE: "فعال",
+  SUSPENDED: "معلق",
+  COMPLETED: "تکمیل‌شده",
+  EXPIRED: "منقضی‌شده",
+  TERMINATED: "فسخ‌شده",
+  CANCELLED: "ابطال‌شده",
+};
+
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const CONTRACT_STATUS_TONE: Record<ContractStatus, string> = {
+  DRAFT: "status-draft",
+  UNDER_REVIEW: "status-review",
+  APPROVED: "status-final",
+  ACTIVE: "status-received",
+  SUSPENDED: "status-waiting",
+  COMPLETED: "status-closed",
+  EXPIRED: "status-cancelled",
+  TERMINATED: "status-cancelled",
+  CANCELLED: "status-cancelled",
+};
+
+export const CONTRACT_KIND = ["NIL_ISSUED", "HISTORICAL"] as const;
+export type ContractKind = (typeof CONTRACT_KIND)[number];
+export const CONTRACT_KIND_LABEL: Record<ContractKind, string> = {
+  NIL_ISSUED: "صادرشده توسط نیل",
+  HISTORICAL: "قرارداد سابق",
+};
+
+export const CONTRACT_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type ContractRole = (typeof CONTRACT_ROLE)[number];
+export const CONTRACT_ROLE_LABEL: Record<ContractRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید", ADMIN: "مدیر قراردادها",
 };

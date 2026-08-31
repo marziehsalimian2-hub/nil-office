@@ -47,6 +47,13 @@ supabase/migrations/0007_accounting_tables.sql    # جدول‌های حسابد
 supabase/migrations/0008_accounting_functions.sql # ثبت، برگشت، بستن سال، ویوهای گزارش
 supabase/migrations/0009_accounting_rls.sql       # RLS حسابداری + رفع تشدید دسترسی
 supabase/migrations/0010_accounting_seed.sql      # واحد پول، سال مالی و کدینگ اولیه
+supabase/migrations/0011_security_fixes.sql       # اصلاحات امنیتی (numbering، RLS، پیوست‌ها)
+supabase/migrations/0012_final_fixes.sql          # اصلاحات نهایی
+...                                                # مهاجرت‌های ۰۰۱۳ تا ۰۰۱۹ (grantها، اصلاحات، تریگر audit حسابداری)
+supabase/migrations/0020_contract_attach_entity.sql  # افزودن CONTRACT به enum پیوست‌ها
+supabase/migrations/0021_contract_tables.sql         # جدول‌های ماژول قراردادها (فاز ۱)
+supabase/migrations/0022_contract_functions.sql      # شماره‌گذاری اتمیک، وضعیت‌ها، مجوزها، جستجو
+supabase/migrations/0023_contract_rls.sql            # RLS و دسترسی‌های ماژول قراردادها
 ```
 
 ### ۵) ساخت کاربران و مدیر اول
@@ -104,6 +111,16 @@ node supabase/tests/concurrent-post.mjs      # دو سند هم‌زمان → �
 و تستِ یکپارچگیِ کامل (نامتوازن رد، متوازن ثبت، ثبت مجدد بدون شمارهٔ نو، تغییرناپذیری سند ثبت‌شده، سال بسته، حذف پیش‌نویس‌ها از گزارش‌ها، توازن تراز آزمایشی) را در **SQL Editor** اجرا کنید — این اسکریپت با یک ADMIN موجود کار می‌کند و در پایان `ROLLBACK` می‌شود:
 ```
 supabase/tests/accounting_integrity.sql
+```
+
+### تست‌های ماژول قراردادها (فاز ۱)
+```bash
+node supabase/tests/concurrent-finalize-contract.mjs   # دو تأیید هم‌زمان → دو شمارهٔ CTR متفاوت
+node supabase/tests/security-rls-contracts.mjs         # سطوح دسترسی VIEW/CREATE/APPROVE
+```
+و تستِ یکپارچگیِ کامل (قرارداد سابق بدون شمارهٔ اصلی رد می‌شود، پیش‌نویس بدون شماره، تغییر وضعیت نامعتبر رد می‌شود، ثبت مجدد بدون شمارهٔ نو، ابطال فقط پیش از فعال‌سازی، بدون حذف فیزیکی پس از خروج از پیش‌نویس) را در **SQL Editor** اجرا کنید — با یک ADMIN موجود کار می‌کند و در پایان `ROLLBACK` می‌شود:
+```
+supabase/tests/contract_integrity.sql
 ```
 
 ---

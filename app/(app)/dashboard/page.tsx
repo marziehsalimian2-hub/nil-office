@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Send, Inbox, FileText, FolderOpen, Plus } from "lucide-react";
+import { Send, Inbox, FileText, FolderOpen, Plus, FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, StatCard, Card, EmptyState, StatusBadge } from "@/components/ui";
 import { DIRECTION_LABEL, type CorrStatus } from "@/lib/enums";
@@ -35,6 +35,7 @@ export default async function DashboardPage() {
     dueToday,
     overdue,
     upcoming,
+    activeContracts,
   ] = await Promise.all([
     count(
       supabase
@@ -83,6 +84,12 @@ export default async function DashboardPage() {
         .eq("status", "OPEN")
         .gt("due_date", today) as never,
     ),
+    count(
+      supabase
+        .from("contracts")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "ACTIVE") as never,
+    ),
   ]);
 
   const { data: recent } = await supabase
@@ -96,6 +103,7 @@ export default async function DashboardPage() {
     { href: "/correspondence/incoming/new", label: "نامه وارده", icon: Inbox },
     { href: "/documents/new", label: "سند جدید", icon: FileText },
     { href: "/cases/new", label: "پرونده جدید", icon: FolderOpen },
+    { href: "/contracts/new", label: "قرارداد جدید", icon: FileSignature },
   ];
 
   return (
@@ -138,6 +146,13 @@ export default async function DashboardPage() {
             href="/followups"
           />
           <StatCard label="آینده" value={toFaDigits(upcoming)} href="/followups" />
+        </div>
+      </section>
+
+      <section className="mb-6">
+        <h2 className="mb-3 text-sm font-medium text-ink-muted">قراردادها</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard label="قراردادهای فعال" value={toFaDigits(activeContracts)} tone="seal" href="/contracts" />
         </div>
       </section>
 

@@ -30,9 +30,10 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
+export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -40,6 +41,7 @@ export interface Profile {
   title: string | null;
   role: AppRole;
   accounting_role: AccountingRoleT | null;
+  contract_role: ContractRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -358,4 +360,59 @@ export interface PostedLine {
   account_name: string;
   account_type: AccountTypeT;
   nature: AccountNatureT;
+}
+
+/* ============================ Contracts ================================== */
+
+export type ContractStatusT =
+  | "DRAFT"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "TERMINATED"
+  | "CANCELLED";
+export type ContractKindT = "NIL_ISSUED" | "HISTORICAL";
+
+export interface ContractType {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Contract {
+  id: string;
+  contract_type_id: string;
+  title: string;
+  kind: ContractKindT;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
+  external_contract_number: string | null;
+  external_source_note: string | null;
+  counterparty_company_id: string | null;
+  case_id: string | null;
+  status: ContractStatusT;
+  effective_date: string | null;
+  expiry_date: string | null;
+  signed_date: string | null;
+  base_amount: number | null;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  currency_code: string;
+  description: string | null;
+  internal_notes: string | null;
+  responsible_user: string | null;
+  created_by: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  finalized_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

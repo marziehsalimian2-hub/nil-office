@@ -8,13 +8,14 @@ import type { SearchResult } from "@/lib/types/database";
 export const dynamic = "force-dynamic";
 
 const GROUP_LABEL: Record<string, string> = {
-  correspondence: "مکاتبات", case: "پرونده‌ها", company: "شرکت‌ها", document: "اسناد",
+  correspondence: "مکاتبات", case: "پرونده‌ها", company: "شرکت‌ها", document: "اسناد", contract: "قراردادها",
 };
 const HREF: Record<string, (id: string) => string> = {
   correspondence: (id) => `/correspondence/${id}`,
   case: (id) => `/cases/${id}`,
   company: () => `/companies`,
   document: (id) => `/documents/${id}`,
+  contract: (id) => `/contracts/${id}`,
 };
 
 export default async function ArchivePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
