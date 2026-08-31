@@ -63,8 +63,8 @@ export function OutgoingForm({
           </Field>
         </div>
 
-        <Field label="نام/سمت زیر امضا" hint="اختیاری — همین متن دقیقاً کنار امضا و مهر روی PDF چاپ می‌شود">
-          <input name="signatory_label" className="input" placeholder="مثلاً مرضیه سلیمیان، مدیرعامل" />
+        <Field label="نام/سمت زیر امضا" hint="اختیاری — هر خط جدا زیر امضا و مهر چاپ می‌شود؛ برای خط بعدی Enter بزنید">
+          <textarea name="signatory_label" rows={2} className="input" placeholder={"دکتر مرضیه سلیمیان\nمدیرعامل شرکت"} />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-3">

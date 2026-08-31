@@ -74,12 +74,16 @@ function buildLetterHtml(input: LetterPdfInput): string {
     text-align: left;
     font-size: 12px;
   }
-  .signatory-label { font-weight: 700; margin-top: 2mm; }
+  .signatory-label { font-weight: 700; }
+  .signatory-label div { margin-top: 1mm; }
   .stamp-row {
     position: relative;
     display: inline-block;
     width: 42mm;
     height: 26mm;
+    /* clears space above the row for the signature's upward overflow
+       (see img.signature below) so it never overlaps the label text */
+    margin-top: 8mm;
   }
   .stamp-row img.stamp {
     position: absolute;
@@ -105,7 +109,14 @@ function buildLetterHtml(input: LetterPdfInput): string {
   ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
   <div class="body">${bodyHtml}</div>
   <div class="signoff">
-    ${signatoryLabel ? `<div class="signatory-label">${esc(signatoryLabel)}</div>` : ""}
+    ${
+      signatoryLabel
+        ? `<div class="signatory-label">${signatoryLabel
+            .split("\n")
+            .map((line) => `<div>${esc(line)}</div>`)
+            .join("")}</div>`
+        : ""
+    }
     <div class="stamp-row">
       ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
       ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
