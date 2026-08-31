@@ -78,23 +78,25 @@ function buildLetterHtml(input: LetterPdfInput): string {
   .stamp-row {
     position: relative;
     display: inline-block;
-    width: 45mm;
-    height: 25mm;
-  }
-  .stamp-row img.signature {
-    position: absolute;
-    bottom: 8mm;
-    right: 0;
-    max-width: 40mm;
-    max-height: 15mm;
+    width: 42mm;
+    height: 26mm;
   }
   .stamp-row img.stamp {
     position: absolute;
     bottom: 0;
     left: 0;
-    max-width: 30mm;
-    max-height: 30mm;
+    max-width: 28mm;
+    max-height: 28mm;
     opacity: 0.9;
+  }
+  .stamp-row img.signature {
+    /* drawn after .stamp in the DOM (see below) so it stacks on top
+       where the two overlap */
+    position: absolute;
+    bottom: 13mm;
+    right: 0;
+    max-width: 48mm;
+    max-height: 20mm;
   }
 </style>
 </head>
@@ -105,8 +107,8 @@ function buildLetterHtml(input: LetterPdfInput): string {
   <div class="signoff">
     ${signatoryLabel ? `<div class="signatory-label">${esc(signatoryLabel)}</div>` : ""}
     <div class="stamp-row">
-      ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
       ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
+      ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
     </div>
   </div>
 </body>
