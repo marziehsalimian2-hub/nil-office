@@ -54,6 +54,9 @@ supabase/migrations/0020_contract_attach_entity.sql  # افزودن CONTRACT ب�
 supabase/migrations/0021_contract_tables.sql         # جدول‌های ماژول قراردادها (فاز ۱)
 supabase/migrations/0022_contract_functions.sql      # شماره‌گذاری اتمیک، وضعیت‌ها، مجوزها، جستجو
 supabase/migrations/0023_contract_rls.sql            # RLS و دسترسی‌های ماژول قراردادها
+...                                                    # مهاجرت‌های ۰۰۲۴ تا ۰۰۲۶ (امضاکننده، رفع باگ ابطال، نمایندهٔ طرف قرارداد)
+supabase/migrations/0027_contract_financial_links.sql    # افزودن contract_id به دریافت/پرداخت/سند حسابداری (فاز ۳)
+supabase/migrations/0028_contract_financial_functions.sql # RPCهای امن نمایش فعالیت مالی قرارداد
 ```
 
 ### ۵) ساخت کاربران و مدیر اول
@@ -122,6 +125,12 @@ node supabase/tests/security-rls-contracts.mjs         # سطوح دسترسی V
 ```
 supabase/tests/contract_integrity.sql
 ```
+
+### تست‌های اتصال مالی قرارداد (فاز ۳)
+```bash
+node supabase/tests/security-rls-contract-financials.mjs
+```
+تأیید می‌کند: کاربر فقط-قرارداد نمی‌تواند مستقیم جدول `receipts`/`payments` را بخواند، ولی از طریق RPC امن فعالیت مالی «تأییدشدهٔ» قراردادش را می‌بیند؛ سند «پیش‌نویس» نشان داده نمی‌شود؛ کاربر فقط-حسابداری (بدون دسترسی قراردادها) از همین RPC چیزی نمی‌بیند؛ محاسبهٔ مانده درست است.
 
 ---
 

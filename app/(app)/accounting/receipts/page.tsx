@@ -20,6 +20,7 @@ export default async function ReceiptsPage() {
   const details = opts.details.map((d) => ({ id: d.id, label: d.name }));
   const companies = opts.companies.map((c) => ({ id: c.id, label: c.legal_name }));
   const cases = opts.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }));
+  const contracts = opts.contracts.map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title }));
   const fiscalYears = opts.fiscalYears.map((f) => ({ id: f.id, label: f.title }));
 
   return (
@@ -47,6 +48,7 @@ export default async function ReceiptsPage() {
                   details={details}
                   companies={companies}
                   cases={cases}
+                  contracts={contracts}
                   fiscalYears={fiscalYears}
                   row={{
                     id: r.id,
@@ -62,6 +64,7 @@ export default async function ReceiptsPage() {
                     reference: r.reference,
                     company_id: r.company_id,
                     case_id: r.case_id,
+                    contract_id: r.contract_id,
                     fiscal_year_id: r.fiscal_year_id,
                   }}
                 />

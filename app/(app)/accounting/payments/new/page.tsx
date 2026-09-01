@@ -17,6 +17,7 @@ export default async function NewPaymentPage() {
         details={o.details.map((d) => ({ id: d.id, label: d.name }))}
         companies={o.companies.map((c) => ({ id: c.id, label: c.legal_name }))}
         cases={o.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }))}
+        contracts={o.contracts.map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title }))}
         fiscalYears={openFy} />
     </div>
   );
