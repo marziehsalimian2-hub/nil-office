@@ -59,7 +59,7 @@ function buildLetterHtml(input: LetterPdfInput): string {
     direction: rtl;
     color: #1a1a1a;
     font-size: 13px;
-    line-height: 2;
+    line-height: 1.3;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
