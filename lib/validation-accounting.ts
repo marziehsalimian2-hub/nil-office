@@ -74,6 +74,7 @@ export const cashDocSchema = z.object({
   description: optText,
   company_id: optUuid,
   case_id: optUuid,
+  contract_id: optUuid,
   fiscal_year_id: z.string().uuid("سال مالی را انتخاب کنید."),
 });
 

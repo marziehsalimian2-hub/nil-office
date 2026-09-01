@@ -8,12 +8,23 @@ import { EditableContractCard } from "./EditableContractCard";
 import { DetailActions } from "./DetailActions";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
+import { getDisplayUnit } from "@/app/actions/accounting-options";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatMoney } from "@/lib/money";
 import { formatBytes } from "@/lib/utils";
-import type { Contract, ContractType, Company, Case, Profile, Attachment } from "@/lib/types/database";
+import { POSTING_STATUS_LABEL, POSTING_STATUS_TONE, type PostingStatus } from "@/lib/enums";
+import type {
+  Contract, ContractType, Company, Case, Profile, Attachment,
+  ContractFinancialActivityRow, ContractFinancialSummary,
+} from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
+
+const ACTIVITY_SOURCE_LABEL: Record<ContractFinancialActivityRow["source"], string> = {
+  RECEIPT: "دریافت",
+  PAYMENT: "پرداخت",
+  JOURNAL_LINE: "سند حسابداری",
+};
 
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,14 +34,24 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   if (!contract) notFound();
   const k = contract as Contract;
 
-  const [{ data: types }, { data: companies }, { data: cases }, { data: profiles }, { data: attachments }] =
+  const [{ data: types }, { data: companies }, { data: cases }, { data: profiles }, { data: attachments }, { data: activity }, { data: summaryRows }, unit] =
     await Promise.all([
       supabase.from("contract_types").select("id, name").eq("is_active", true).order("name"),
       supabase.from("companies").select("id, legal_name").order("legal_name"),
       supabase.from("cases").select("id, case_code, title").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name").eq("is_active", true),
       supabase.from("attachments").select("*").eq("entity_type", "CONTRACT").eq("entity_id", id).order("created_at", { ascending: false }),
+      supabase.rpc("get_contract_financial_activity", { p_contract_id: id }),
+      supabase.rpc("get_contract_financial_summary", { p_contract_id: id }),
+      getDisplayUnit(),
     ]);
+
+  const financialActivity = (activity ?? []) as ContractFinancialActivityRow[];
+  const financialSummary = ((summaryRows as ContractFinancialSummary[] | null)?.[0] ?? {
+    received_amount: 0,
+    paid_amount: 0,
+    outstanding_amount: k.total_amount,
+  }) as ContractFinancialSummary;
 
   const typeName = new Map(((types ?? []) as Pick<ContractType, "id" | "name">[]).map((t) => [t.id, t.name]));
   const companyName = new Map(((companies ?? []) as Pick<Company, "id" | "legal_name">[]).map((c) => [c.id, c.legal_name]));
@@ -115,9 +136,63 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           <span className="tnum text-seal">{formatMoney(k.total_amount)} {k.currency_code}</span>
         </div>
       </div>
-      <p className="mt-4 text-xs text-ink-muted">
-        دریافت‌ها و پرداخت‌های واقعیِ این قرارداد از بخش حسابداری (پس از اتصال در فازهای بعدی) نمایش داده خواهد شد؛ این اعداد صرفاً مفاد توافق‌شدهٔ قرارداد هستند.
-      </p>
+    </Card>
+  );
+
+  const financialActivityTab = (
+    <Card>
+      <p className="mb-3 text-sm font-medium text-ink">فعالیت مالی ثبت‌شده</p>
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <div className="rounded-lg bg-paper p-3 text-center">
+          <p className="text-xs text-ink-muted">دریافتی</p>
+          <p className="tnum mt-1 text-sm font-semibold text-status-received">{formatMoney(financialSummary.received_amount, unit)}</p>
+        </div>
+        <div className="rounded-lg bg-paper p-3 text-center">
+          <p className="text-xs text-ink-muted">پرداختی</p>
+          <p className="tnum mt-1 text-sm font-semibold text-ink">{formatMoney(financialSummary.paid_amount, unit)}</p>
+        </div>
+        <div className="rounded-lg bg-paper p-3 text-center">
+          <p className="text-xs text-ink-muted">مانده</p>
+          <p className="tnum mt-1 text-sm font-semibold text-seal">{formatMoney(financialSummary.outstanding_amount, unit)}</p>
+        </div>
+      </div>
+
+      {financialActivity.length === 0 ? (
+        <p className="text-sm text-ink-muted">هنوز فعالیت مالی ثبت‌شده‌ای برای این قرارداد ثبت نشده است.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px]">
+            <thead>
+              <tr className="table-head">
+                <th className="px-3 py-2">تاریخ</th>
+                <th className="px-3 py-2">نوع</th>
+                <th className="px-3 py-2">شرح</th>
+                <th className="px-3 py-2">شماره سند</th>
+                <th className="px-3 py-2 text-left">مبلغ</th>
+                <th className="px-3 py-2">وضعیت</th>
+              </tr>
+            </thead>
+            <tbody>
+              {financialActivity.map((row) => (
+                <tr key={`${row.source}-${row.id}`} className="table-row">
+                  <td className="px-3 py-2 tnum text-ink-muted">{formatJalali(row.document_date)}</td>
+                  <td className="px-3 py-2 text-ink">{ACTIVITY_SOURCE_LABEL[row.source]}</td>
+                  <td className="px-3 py-2 text-ink-muted">{row.description ?? "—"}</td>
+                  <td className="px-3 py-2 tnum text-ink-muted" dir="ltr">{row.document_number ? toFaDigits(row.document_number) : "—"}</td>
+                  <td className={`px-3 py-2 text-left tnum ${row.direction === "IN" ? "text-status-received" : "text-ink"}`}>
+                    {row.direction === "IN" ? "+" : "-"}{formatMoney(row.amount, unit)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`badge ${POSTING_STATUS_TONE[row.status as PostingStatus]}`}>
+                      {POSTING_STATUS_LABEL[row.status as PostingStatus]}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Card>
   );
 
@@ -167,7 +242,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           <Tabs
             tabs={[
               { label: "نمای کلی", content: overviewTab },
-              { label: "مالی", content: financialTab },
+              { label: "مالی", content: <div className="space-y-6">{financialTab}{financialActivityTab}</div> },
               { label: "اسناد و فایل‌ها", content: attachmentsTab },
             ]}
           />

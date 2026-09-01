@@ -238,6 +238,7 @@ async function createCashDoc(table: "receipts" | "payments", f: FormData): Promi
     description: d.description ?? null,
     company_id: d.company_id ?? null,
     case_id: d.case_id ?? null,
+    contract_id: d.contract_id ?? null,
     fiscal_year_id: d.fiscal_year_id,
     status: "DRAFT",
     created_by: userId,
@@ -283,6 +284,7 @@ async function updateCashDoc(table: "receipts" | "payments", f: FormData): Promi
     description: d.description ?? null,
     company_id: d.company_id ?? null,
     case_id: d.case_id ?? null,
+    contract_id: d.contract_id ?? null,
     fiscal_year_id: d.fiscal_year_id,
   };
   const { error } = await supabase.from(table).update(row).eq("id", id);

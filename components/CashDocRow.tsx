@@ -27,6 +27,7 @@ type Row = {
   reference: string | null;
   company_id: string | null;
   case_id: string | null;
+  contract_id: string | null;
   fiscal_year_id: string | null;
 };
 
@@ -39,6 +40,7 @@ export function CashDocRow({
   details,
   companies,
   cases,
+  contracts,
   fiscalYears,
 }: {
   kind: "receipt" | "payment";
@@ -49,6 +51,7 @@ export function CashDocRow({
   details: Opt[];
   companies: Opt[];
   cases: Opt[];
+  contracts: Opt[];
   fiscalYears: Opt[];
 }) {
   const router = useRouter();
@@ -132,6 +135,12 @@ export function CashDocRow({
                 </select>
               </Field>
             </div>
+            <Field label="قرارداد مرتبط">
+              <select name="contract_id" className="input" defaultValue={row.contract_id ?? ""}>
+                <option value="">—</option>
+                {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
+              </select>
+            </Field>
             <Field label="شرح"><input name="description" className="input" defaultValue={row.description ?? ""} /></Field>
             <div className="flex gap-3">
               <button type="submit" disabled={pending} className="btn-primary !py-1.5 text-sm">{pending ? "در حال ذخیره…" : "ذخیره تغییرات"}</button>

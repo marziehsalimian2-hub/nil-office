@@ -8,11 +8,11 @@ import { MoneyInput } from "@/components/MoneyInput";
 
 type Opt = { id: string; label: string };
 export function CashDocForm({
-  kind, action, banks, accounts, details, companies, cases, fiscalYears,
+  kind, action, banks, accounts, details, companies, cases, contracts, fiscalYears,
 }: {
   kind: "receipt" | "payment";
   action: (p: ActionState, f: FormData) => Promise<ActionState>;
-  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[]; fiscalYears: Opt[];
+  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[]; contracts: Opt[]; fiscalYears: Opt[];
 }) {
   const [state, run] = useActionState<ActionState, FormData>(action, null);
   const isReceipt = kind === "receipt";
@@ -67,6 +67,11 @@ export function CashDocForm({
             </select>
           </Field>
         </div>
+        <Field label="قرارداد مرتبط">
+          <select name="contract_id" className="input" defaultValue=""><option value="">—</option>
+            {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
+          </select>
+        </Field>
         <Field label="شرح"><input name="description" className="input" /></Field>
       </div>
       <div className="flex gap-3">

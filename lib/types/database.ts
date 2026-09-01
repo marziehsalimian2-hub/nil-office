@@ -266,6 +266,7 @@ export interface JournalEntryLine {
   credit: number;
   company_id: string | null;
   case_id: string | null;
+  contract_id: string | null;
   currency_code: string | null;
   foreign_amount: number | null;
   exchange_rate: number | null;
@@ -302,6 +303,7 @@ export interface Receipt {
   description: string | null;
   company_id: string | null;
   case_id: string | null;
+  contract_id: string | null;
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
@@ -324,6 +326,7 @@ export interface Payment {
   description: string | null;
   company_id: string | null;
   case_id: string | null;
+  contract_id: string | null;
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
@@ -418,4 +421,23 @@ export interface Contract {
   finalized_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ContractFinancialActivityRow {
+  source: "RECEIPT" | "PAYMENT" | "JOURNAL_LINE";
+  id: string;
+  document_date: string;
+  document_number: string | null;
+  description: string | null;
+  amount: number;
+  direction: "IN" | "OUT";
+  status: PostingStatusT;
+  currency_code: string | null;
+  journal_entry_id: string | null;
+}
+
+export interface ContractFinancialSummary {
+  received_amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
 }
