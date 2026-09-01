@@ -36,20 +36,32 @@ stable
 security definer
 set search_path = public
 as $$
-  select 'RECEIPT', r.id, r.receipt_date, je.document_number, r.description, r.amount, 'IN', r.status, r.currency_code, r.journal_entry_id
+  -- Column aliases on the first branch are required: Postgres names a
+  -- UNION's output columns after the FIRST select's expressions, and
+  -- r.receipt_date/p.payment_date would otherwise be inferred as
+  -- "receipt_date"/"payment_date" instead of "document_date", breaking
+  -- the ORDER BY below (and the RETURNS TABLE column mapping is
+  -- positional, so the alias here only affects readability/ORDER BY,
+  -- not correctness of what the caller receives).
+  select
+    'RECEIPT' as source, r.id, r.receipt_date as document_date, je.document_number,
+    r.description, r.amount, 'IN' as direction, r.status, r.currency_code, r.journal_entry_id
     from public.receipts r
     left join public.journal_entries je on je.id = r.journal_entry_id
    where r.contract_id = p_contract_id and r.status = 'POSTED' and public.has_contract_access()
   union all
-  select 'PAYMENT', p.id, p.payment_date, je.document_number, p.description, p.amount, 'OUT', p.status, p.currency_code, p.journal_entry_id
+  select
+    'PAYMENT' as source, p.id, p.payment_date as document_date, je.document_number,
+    p.description, p.amount, 'OUT' as direction, p.status, p.currency_code, p.journal_entry_id
     from public.payments p
     left join public.journal_entries je on je.id = p.journal_entry_id
    where p.contract_id = p_contract_id and p.status = 'POSTED' and public.has_contract_access()
   union all
-  select 'JOURNAL_LINE', l.id, e.document_date, e.document_number, l.description,
-         greatest(l.debit, l.credit),
-         case when l.debit > 0 then 'IN' else 'OUT' end,
-         e.status, l.currency_code, e.id
+  select
+    'JOURNAL_LINE' as source, l.id, e.document_date, e.document_number, l.description,
+    greatest(l.debit, l.credit) as amount,
+    case when l.debit > 0 then 'IN' else 'OUT' end as direction,
+    e.status, l.currency_code, e.id as journal_entry_id
     from public.journal_entry_lines l
     join public.journal_entries e on e.id = l.journal_entry_id
    where l.contract_id = p_contract_id and e.status = 'POSTED' and public.has_contract_access()
