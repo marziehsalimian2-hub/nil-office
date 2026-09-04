@@ -82,6 +82,7 @@ export async function createSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_contact_person_snapshot: d.customer_contact_person_snapshot ?? null,
       customer_email_snapshot: d.customer_email_snapshot ?? null,
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
+      signatory_id: d.signatory_id ?? null,
       created_by: userId,
     })
     .select("id")
@@ -149,6 +150,7 @@ export async function updateSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_contact_person_snapshot: d.customer_contact_person_snapshot ?? null,
       customer_email_snapshot: d.customer_email_snapshot ?? null,
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
+      signatory_id: d.signatory_id ?? null,
     })
     .eq("id", id);
   if (error) return { error: persianError(error.message) };

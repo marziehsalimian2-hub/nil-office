@@ -12,10 +12,11 @@ export default async function NewInvoicePage({
 }) {
   const { type } = await searchParams;
   const supabase = await createClient();
-  const [{ data: companies }, { data: contracts }, { data: cases }] = await Promise.all([
+  const [{ data: companies }, { data: contracts }, { data: cases }, { data: profiles }] = await Promise.all([
     supabase.from("companies").select("id, legal_name, english_name, contact_person, email, phone, address").order("legal_name"),
     supabase.from("contracts").select("id, title, display_number, external_contract_number").order("created_at", { ascending: false }),
     supabase.from("cases").select("id, case_code, title").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id, full_name").eq("is_active", true),
   ]);
 
   return (
@@ -26,6 +27,7 @@ export default async function NewInvoicePage({
         companies={companies ?? []}
         contracts={(contracts ?? []).map((c) => ({ id: c.id, label: `${c.display_number ?? c.external_contract_number ?? ""} — ${c.title}` }))}
         cases={(cases ?? []).map((c) => ({ id: c.id, label: `${c.case_code ?? ""} ${c.title}`.trim() }))}
+        profiles={(profiles ?? []).map((p) => ({ id: p.id, label: p.full_name ?? "—" }))}
       />
     </div>
   );
