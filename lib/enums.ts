@@ -143,6 +143,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NO_LOST_STAGE: "برای این پایپ‌لاین، مرحلهٔ «ازدست‌رفته» تعریف نشده است.",
   STAGE_PIPELINE_MISMATCH: "مرحلهٔ انتخاب‌شده متعلق به این پایپ‌لاین نیست.",
   USE_CLOSE_ACTION: "برای رسیدن به این مرحله از دکمهٔ «موفق»/«ازدست‌رفته» استفاده کنید.",
+  TRADE_ONLY: "جزئیات معامله فقط برای فرصت‌های نوع «تجاری/بازرگانی» قابل ثبت است.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -455,4 +456,34 @@ export const CRM_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
 export type CrmRole = (typeof CRM_ROLE)[number];
 export const CRM_ROLE_LABEL: Record<CrmRole, string> = {
   VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید/بستن فرصت", ADMIN: "مدیر CRM",
+};
+
+/* ============================ CRM Phase 2 ================================= */
+
+export const CRM_TRADE_FREQUENCY = ["ONE_TIME", "MONTHLY"] as const;
+export type CrmTradeFrequency = (typeof CRM_TRADE_FREQUENCY)[number];
+export const CRM_TRADE_FREQUENCY_LABEL: Record<CrmTradeFrequency, string> = {
+  ONE_TIME: "یک‌باره",
+  MONTHLY: "ماهانه",
+};
+
+export const CRM_OPPORTUNITY_PARTY_ROLE = [
+  "BUYER", "SELLER", "SUPPLIER", "BROKER", "AGENT", "END_BUYER", "END_SELLER", "LOGISTICS", "OTHER",
+] as const;
+export type CrmOpportunityPartyRole = (typeof CRM_OPPORTUNITY_PARTY_ROLE)[number];
+export const CRM_OPPORTUNITY_PARTY_ROLE_LABEL: Record<CrmOpportunityPartyRole, string> = {
+  BUYER: "خریدار",
+  SELLER: "فروشنده",
+  SUPPLIER: "تأمین‌کننده",
+  BROKER: "واسطه",
+  AGENT: "نماینده",
+  END_BUYER: "خریدار نهایی",
+  END_SELLER: "فروشندهٔ نهایی",
+  LOGISTICS: "حمل‌ونقل",
+  OTHER: "سایر",
+};
+
+export const CRM_QUOTATION_DIRECTION_LABEL: Record<"SENT" | "RECEIVED", string> = {
+  SENT: "ارسالی",
+  RECEIVED: "دریافتی",
 };

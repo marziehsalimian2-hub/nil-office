@@ -8,6 +8,8 @@ import {
   CRM_LOST_REASON,
   CRM_ACTIVITY_TYPE,
   CRM_ROLE,
+  CRM_TRADE_FREQUENCY,
+  CRM_OPPORTUNITY_PARTY_ROLE,
   CURRENCY,
 } from "@/lib/enums";
 
@@ -100,4 +102,54 @@ export const pipelineStageSchema = z.object({
 export const crmRoleSchema = z.object({
   user_id: z.string().uuid(),
   crm_role: z.enum(CRM_ROLE).nullish(),
+});
+
+export const tradeDetailsSchema = z.object({
+  opportunity_id: z.string().uuid(),
+  product_name: optText,
+  grade_specification: optText,
+  origin_country: optText,
+  destination_country: optText,
+  destination_port: optText,
+  quantity: optAmount,
+  unit: optText,
+  packaging: optText,
+  incoterm: optText,
+  delivery_terms: optText,
+  target_price: optAmount,
+  offered_price: optAmount,
+  currency_code: z.enum(CURRENCY).optional(),
+  payment_terms: optText,
+  buyer_company_id: optUuid,
+  seller_company_id: optUuid,
+  buyer_contact_id: optUuid,
+  seller_contact_id: optUuid,
+  monthly_or_one_time: z.enum(CRM_TRADE_FREQUENCY).optional(),
+  specification_notes: optText,
+});
+
+export const partySchema = z.object({
+  opportunity_id: z.string().uuid(),
+  company_id: z.string().uuid("انتخاب شرکت الزامی است."),
+  contact_id: optUuid,
+  role: z.enum(CRM_OPPORTUNITY_PARTY_ROLE),
+  notes: optText,
+});
+
+export const quotationSchema = z.object({
+  opportunity_id: z.string().uuid(),
+  direction: z.enum(["SENT", "RECEIVED"]).default("SENT"),
+  buyer_company_id: optUuid,
+  seller_company_id: optUuid,
+  product_name: optText,
+  quantity: optAmount,
+  unit: optText,
+  unit_price: optAmount,
+  currency_code: z.enum(CURRENCY).optional(),
+  incoterm: optText,
+  origin_country: optText,
+  destination_country: optText,
+  validity_date: optIsoDate,
+  payment_terms: optText,
+  notes: optText,
 });

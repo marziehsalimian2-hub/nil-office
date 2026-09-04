@@ -721,3 +721,79 @@ export interface CrmActivity {
   created_at: string;
   updated_at: string;
 }
+
+/* ============================ CRM Phase 2 ================================ */
+
+export type CrmTradeFrequencyT = "ONE_TIME" | "MONTHLY";
+
+export interface CrmOpportunityTradeDetails {
+  id: string;
+  opportunity_id: string;
+  product_name: string | null;
+  grade_specification: string | null;
+  origin_country: string | null;
+  destination_country: string | null;
+  destination_port: string | null;
+  quantity: number | null;
+  unit: string | null;
+  packaging: string | null;
+  incoterm: string | null;
+  delivery_terms: string | null;
+  target_price: number | null;
+  offered_price: number | null;
+  currency_code: string | null;
+  payment_terms: string | null;
+  buyer_company_id: string | null;
+  seller_company_id: string | null;
+  buyer_contact_id: string | null;
+  seller_contact_id: string | null;
+  monthly_or_one_time: CrmTradeFrequencyT | null;
+  specification_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CrmOpportunityPartyRoleT =
+  | "BUYER"
+  | "SELLER"
+  | "SUPPLIER"
+  | "BROKER"
+  | "AGENT"
+  | "END_BUYER"
+  | "END_SELLER"
+  | "LOGISTICS"
+  | "OTHER";
+
+export interface CrmOpportunityParty {
+  id: string;
+  opportunity_id: string;
+  company_id: string;
+  contact_id: string | null;
+  role: CrmOpportunityPartyRoleT;
+  notes: string | null;
+  created_at: string;
+}
+
+export type CrmQuotationDirectionT = "SENT" | "RECEIVED";
+
+export interface CrmQuotation {
+  id: string;
+  opportunity_id: string;
+  direction: CrmQuotationDirectionT;
+  buyer_company_id: string | null;
+  seller_company_id: string | null;
+  product_name: string | null;
+  quantity: number | null;
+  unit: string | null;
+  unit_price: number | null;
+  currency_code: string | null;
+  incoterm: string | null;
+  origin_country: string | null;
+  destination_country: string | null;
+  validity_date: string | null;
+  payment_terms: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
