@@ -2,6 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card } from "@/components/ui";
 import { SignatureUpload } from "@/components/SignatureUpload";
+import { UserNameTitleEdit } from "@/app/(app)/settings/UserNameTitleEdit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +22,9 @@ export default async function ProfilePage() {
     <div>
       <PageHeader title="پروفایل من" subtitle="اطلاعات حساب و امضای شما" />
       <Card className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="field-label">نام</p>
-            <p className="text-sm text-ink">{profile.full_name || "—"}</p>
-          </div>
-          <div>
-            <p className="field-label">سمت</p>
-            <p className="text-sm text-ink">{profile.title || "—"}</p>
-          </div>
+        <div>
+          <p className="field-label">نام و سمت</p>
+          <UserNameTitleEdit userId={profile.id} fullName={profile.full_name} title={profile.title} />
         </div>
 
         <div>

@@ -5,6 +5,7 @@ import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
 import { ContractRoleSelect } from "./ContractRoleSelect";
+import { UserNameTitleEdit } from "./UserNameTitleEdit";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
@@ -129,7 +130,7 @@ export default async function SettingsPage() {
             <p className="mb-3 text-sm font-medium text-ink">کاربران</p>
             <table className="w-full">
               <thead><tr className="table-head">
-                <th className="px-3 py-2">نام</th><th className="px-3 py-2">عنوان/سمت</th>
+                <th className="px-3 py-2">نام و سمت</th>
                 <th className="px-3 py-2">نقش</th><th className="px-3 py-2">دسترسی مالی</th>
                 <th className="px-3 py-2">دسترسی قراردادها</th>
                 <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
@@ -137,8 +138,9 @@ export default async function SettingsPage() {
               <tbody>
                 {people.map((u) => (
                   <tr key={u.id} className="table-row">
-                    <td className="px-3 py-2 text-ink">{u.full_name || "—"}</td>
-                    <td className="px-3 py-2 text-ink-muted" dir="ltr">{u.title || "—"}</td>
+                    <td className="px-3 py-2">
+                      <UserNameTitleEdit userId={u.id} fullName={u.full_name} title={u.title} />
+                    </td>
                     <td className="px-3 py-2 text-ink-muted">{ROLE_LABEL[u.role] ?? u.role}</td>
                     <td className="px-3 py-2">
                       {u.role === "ADMIN"

@@ -75,7 +75,7 @@ function buildContractHtml(input: ContractPdfInput): string {
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
   .subject b { text-decoration: underline; }
-  .body p { margin: 0 0 3mm 0; }
+  .body p { margin: 0 0 3mm 0; text-align: justify; text-align-last: right; }
   .body ul, .body ol { margin: 0 0 3mm 0; padding-inline-start: 6mm; }
 
   /* Plain (non-atomic) spacer kept OUTSIDE the break-avoid block below —
