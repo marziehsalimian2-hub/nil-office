@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
+import { CrmStatusBadge } from "@/components/CrmStatusBadge";
 import type { Company } from "@/lib/types/database";
 export const dynamic = "force-dynamic";
 export default async function CompaniesPage() {
@@ -21,15 +22,19 @@ export default async function CompaniesPage() {
             <thead><tr className="table-head">
               <th className="px-4 py-3">نام شرکت</th><th className="px-4 py-3">نام انگلیسی</th>
               <th className="px-4 py-3">کشور</th><th className="px-4 py-3">رابط</th><th className="px-4 py-3">تلفن</th>
+              <th className="px-4 py-3">وضعیت</th>
             </tr></thead>
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id} className="table-row">
-                  <td className="px-4 py-3 font-medium text-ink">{c.legal_name}</td>
+                  <td className="px-4 py-3 font-medium text-ink">
+                    <Link href={`/companies/${c.id}`} className="hover:underline">{c.legal_name}</Link>
+                  </td>
                   <td className="px-4 py-3 text-ink-muted" dir="ltr">{c.english_name || "—"}</td>
                   <td className="px-4 py-3 text-ink-muted">{c.country || "—"}</td>
                   <td className="px-4 py-3 text-ink-muted">{c.contact_person || "—"}</td>
                   <td className="px-4 py-3 text-ink-muted tnum" dir="ltr">{c.phone || "—"}</td>
+                  <td className="px-4 py-3"><CrmStatusBadge status={c.crm_status} /></td>
                 </tr>
               ))}
             </tbody>

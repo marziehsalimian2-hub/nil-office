@@ -30,10 +30,11 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type CrmRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -43,11 +44,14 @@ export interface Profile {
   accounting_role: AccountingRoleT | null;
   contract_role: ContractRoleT | null;
   invoice_role: InvoiceRoleT | null;
+  crm_role: CrmRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type CrmCompanyStatusT = "PROSPECT" | "ACTIVE" | "INACTIVE" | "BLOCKED" | "ARCHIVED";
 
 export interface Company {
   id: string;
@@ -59,6 +63,8 @@ export interface Company {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  crm_status: CrmCompanyStatusT;
+  owner_user_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -92,6 +98,7 @@ export interface Correspondence {
   recipient_company_id: string | null;
   recipient_name: string | null;
   case_id: string | null;
+  opportunity_id: string | null;
   created_by: string;
   signatory_id: string | null;
   signatory_label: string | null;
@@ -154,6 +161,8 @@ export interface Followup {
   assigned_to: string | null;
   correspondence_id: string | null;
   case_id: string | null;
+  company_id: string | null;
+  opportunity_id: string | null;
   status: FollowupStatusT;
   note: string | null;
   completed_at: string | null;
@@ -405,6 +414,7 @@ export interface Contract {
   counterparty_company_id: string | null;
   counterparty_representative_name: string | null;
   case_id: string | null;
+  opportunity_id: string | null;
   status: ContractStatusT;
   effective_date: string | null;
   expiry_date: string | null;
@@ -474,6 +484,7 @@ export interface SalesDocument {
   company_id: string | null;
   contract_id: string | null;
   case_id: string | null;
+  opportunity_id: string | null;
   converted_from_id: string | null;
   converted_to_id: string | null;
   converted_at: string | null;
@@ -539,4 +550,174 @@ export interface SalesDocumentFinancialActivityRow {
 export interface SalesDocumentFinancialSummary {
   received_amount: number;
   remaining_amount: number;
+}
+
+/* ============================ CRM =========================== */
+
+export type CrmCompanyRoleT =
+  | "CUSTOMER"
+  | "PROSPECT"
+  | "LEAD"
+  | "BUYER"
+  | "SELLER"
+  | "SUPPLIER"
+  | "PARTNER"
+  | "AGENT"
+  | "BROKER"
+  | "SERVICE_PROVIDER"
+  | "OTHER";
+
+export interface CrmCompanyRole {
+  id: string;
+  company_id: string;
+  role: CrmCompanyRoleT;
+  created_at: string;
+}
+
+export type CrmContactRoleT =
+  | "OWNER"
+  | "CEO"
+  | "MANAGING_DIRECTOR"
+  | "COMMERCIAL_MANAGER"
+  | "SALES"
+  | "PROCUREMENT"
+  | "FINANCE"
+  | "LEGAL"
+  | "TECHNICAL"
+  | "REPRESENTATIVE"
+  | "BROKER"
+  | "OTHER";
+
+export interface CompanyContact {
+  id: string;
+  company_id: string;
+  first_name: string;
+  last_name: string | null;
+  job_title: string | null;
+  department: string | null;
+  contact_role: CrmContactRoleT | null;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  whatsapp: string | null;
+  telegram: string | null;
+  country: string | null;
+  city: string | null;
+  is_primary: boolean;
+  is_decision_maker: boolean;
+  is_active: boolean;
+  preferred_language: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmPipeline {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface CrmPipelineStage {
+  id: string;
+  pipeline_id: string;
+  name: string;
+  sort_order: number;
+  is_won: boolean;
+  is_lost: boolean;
+  created_at: string;
+}
+
+export type CrmOpportunityTypeT = "TRADE" | "SERVICE" | "PROJECT" | "PARTNERSHIP" | "AGENCY" | "OTHER";
+export type CrmOpportunityPriorityT = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+export type CrmLostReasonT =
+  | "PRICE"
+  | "NO_RESPONSE"
+  | "COMPETITOR"
+  | "PAYMENT_TERMS"
+  | "DELIVERY"
+  | "COMPLIANCE"
+  | "PRODUCT_UNAVAILABLE"
+  | "CUSTOMER_CANCELLED"
+  | "OTHER";
+
+export interface CrmOpportunity {
+  id: string;
+  sequence_number: number;
+  opportunity_number: string;
+  year: number;
+  title: string;
+  company_id: string;
+  primary_contact_id: string | null;
+  case_id: string | null;
+  contract_id: string | null;
+  opportunity_type: CrmOpportunityTypeT;
+  pipeline_id: string;
+  stage_id: string;
+  owner_user_id: string | null;
+  currency_code: string;
+  estimated_value: number | null;
+  probability: number | null;
+  expected_close_date: string | null;
+  source: string | null;
+  priority: CrmOpportunityPriorityT;
+  description: string | null;
+  internal_notes: string | null;
+  lost_reason: CrmLostReasonT | null;
+  lost_reason_note: string | null;
+  won_at: string | null;
+  lost_at: string | null;
+  next_action: string | null;
+  next_action_date: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmOpportunityStageHistory {
+  id: string;
+  opportunity_id: string;
+  from_stage_id: string | null;
+  to_stage_id: string;
+  changed_by: string | null;
+  changed_at: string;
+  note: string | null;
+}
+
+export type CrmActivityTypeT =
+  | "CALL"
+  | "EMAIL"
+  | "WHATSAPP"
+  | "TELEGRAM"
+  | "MEETING"
+  | "VIDEO_CALL"
+  | "NOTE"
+  | "NEGOTIATION"
+  | "QUOTATION_SENT"
+  | "QUOTATION_RECEIVED"
+  | "DOCUMENT_SENT"
+  | "DOCUMENT_RECEIVED"
+  | "OTHER";
+export type CrmActivityDirectionT = "INBOUND" | "OUTBOUND" | "INTERNAL";
+
+export interface CrmActivity {
+  id: string;
+  company_id: string;
+  contact_id: string | null;
+  opportunity_id: string | null;
+  case_id: string | null;
+  activity_type: CrmActivityTypeT;
+  activity_date: string;
+  subject: string;
+  summary: string | null;
+  direction: CrmActivityDirectionT;
+  responsible_user_id: string | null;
+  created_by: string | null;
+  next_action: string | null;
+  next_action_date: string | null;
+  created_at: string;
+  updated_at: string;
 }

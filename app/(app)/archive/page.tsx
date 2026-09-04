@@ -9,15 +9,17 @@ export const dynamic = "force-dynamic";
 
 const GROUP_LABEL: Record<string, string> = {
   correspondence: "مکاتبات", case: "پرونده‌ها", company: "شرکت‌ها", document: "اسناد", contract: "قراردادها",
-  sales_document: "فاکتور/پیش‌فاکتور",
+  sales_document: "فاکتور/پیش‌فاکتور", company_contact: "افراد رابط", opportunity: "فرصت‌های تجاری",
 };
-const HREF: Record<string, (id: string) => string> = {
+const HREF: Record<string, (id: string, extra: string | null) => string> = {
   correspondence: (id) => `/correspondence/${id}`,
   case: (id) => `/cases/${id}`,
-  company: () => `/companies`,
+  company: (id) => `/companies/${id}`,
   document: (id) => `/documents/${id}`,
   contract: (id) => `/contracts/${id}`,
   sales_document: (id) => `/invoices/${id}`,
+  company_contact: (_id, extra) => `/companies/${extra}`,
+  opportunity: (id) => `/opportunities/${id}`,
 };
 
 export default async function ArchivePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
@@ -55,7 +57,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
               <ul className="divide-y divide-paper-line/60">
                 {items.map((r) => (
                   <li key={`${type}-${r.id}`} className="py-2.5 text-sm">
-                    <Link href={(HREF[type] ?? (() => "#"))(r.id)} className="flex items-center gap-3 hover:text-seal">
+                    <Link href={(HREF[type] ?? (() => "#"))(r.id, r.extra)} className="flex items-center gap-3 hover:text-seal">
                       <span className="flex-1 text-ink">{r.title}</span>
                       {r.subtitle && <span className="tnum text-xs text-ink-muted">{toFaDigits(r.subtitle)}</span>}
                       <span className="text-xs text-ink-muted tnum">{formatJalali(r.created_at)}</span>
