@@ -10,6 +10,9 @@ import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { DetailActions } from "./DetailActions";
 import { ActivitiesTab } from "../../companies/[id]/ActivitiesTab";
+import { TradeDetailsCard } from "./TradeDetailsCard";
+import { PartiesTab } from "./PartiesTab";
+import { QuotationsTab } from "./QuotationsTab";
 import {
   CRM_OPPORTUNITY_TYPE_LABEL, CRM_OPPORTUNITY_PRIORITY_LABEL, CRM_LOST_REASON_LABEL,
   type CrmOpportunityType, type CrmOpportunityPriority, type CrmLostReason,
@@ -22,6 +25,7 @@ import { formatBytes } from "@/lib/utils";
 import type {
   CrmOpportunity, CrmOpportunityStageHistory, CrmActivity, Attachment,
   Correspondence, SalesDocument, Followup, CompanyContact,
+  CrmOpportunityTradeDetails, CrmOpportunityParty, CrmQuotation,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +62,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     { data: stageHistory },
     { data: contracts },
     { data: linkedContract },
+    { data: tradeDetails },
+    { data: parties },
+    { data: quotations },
+    { data: allCompanies },
+    { data: allContacts },
   ] = await Promise.all([
     supabase.from("crm_pipeline_stages").select("id, name, is_won, is_lost").eq("pipeline_id", o.pipeline_id).order("sort_order"),
     supabase.from("companies").select("id, legal_name").eq("id", o.company_id).single(),
@@ -75,6 +84,17 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       .order("changed_at", { ascending: false }),
     supabase.from("contracts").select("id, title, display_number, external_contract_number").is("opportunity_id", null).order("created_at", { ascending: false }).limit(50),
     o.contract_id ? supabase.from("contracts").select("id, title, display_number, external_contract_number").eq("id", o.contract_id).single() : Promise.resolve({ data: null }),
+    o.opportunity_type === "TRADE"
+      ? supabase.from("crm_opportunity_trade_details").select("*").eq("opportunity_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("crm_opportunity_parties")
+      .select("id, company_id, contact_id, role, notes, companies(legal_name), company_contacts(first_name, last_name)")
+      .eq("opportunity_id", id)
+      .order("created_at"),
+    supabase.from("crm_quotations").select("*").eq("opportunity_id", id).order("created_at", { ascending: false }),
+    supabase.from("companies").select("id, legal_name").order("legal_name"),
+    supabase.from("company_contacts").select("id, company_id, first_name, last_name").eq("is_active", true),
   ]);
 
   const stageList = (stages ?? []) as { id: string; name: string; is_won: boolean; is_lost: boolean }[];
@@ -91,6 +111,31 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   );
 
   type HistoryRow = { id: string; changed_at: string; note: string | null; from: { name: string } | { name: string }[] | null; to: { name: string } | { name: string }[] | null };
+  type PartyJoinRow = {
+    id: string; company_id: string; contact_id: string | null; role: string; notes: string | null;
+    companies: { legal_name: string } | { legal_name: string }[] | null;
+    company_contacts: { first_name: string; last_name: string | null } | { first_name: string; last_name: string | null }[] | null;
+  };
+
+  const companyOpts = ((allCompanies ?? []) as { id: string; legal_name: string }[]).map((c) => ({ id: c.id, label: c.legal_name }));
+  const contactOpts = ((allContacts ?? []) as { id: string; company_id: string; first_name: string; last_name: string | null }[]).map((c) => ({
+    id: c.id,
+    company_id: c.company_id,
+    label: `${c.first_name} ${c.last_name ?? ""}`.trim(),
+  }));
+  const partyRows = ((parties ?? []) as PartyJoinRow[]).map((p) => {
+    const co = Array.isArray(p.companies) ? p.companies[0] : p.companies;
+    const ct = Array.isArray(p.company_contacts) ? p.company_contacts[0] : p.company_contacts;
+    return {
+      id: p.id,
+      company_id: p.company_id,
+      companyName: co?.legal_name ?? "—",
+      contact_id: p.contact_id,
+      contactName: ct ? `${ct.first_name} ${ct.last_name ?? ""}`.trim() : null,
+      role: p.role,
+      notes: p.notes,
+    };
+  });
 
   const overviewTab = (
     <div className="space-y-6">
@@ -121,7 +166,24 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </div>
         )}
       </Card>
+
+      {o.opportunity_type === "TRADE" && (
+        <TradeDetailsCard
+          opportunityId={id}
+          companies={companyOpts}
+          contacts={contactOpts}
+          details={tradeDetails as CrmOpportunityTradeDetails | null}
+        />
+      )}
     </div>
+  );
+
+  const partiesTab = (
+    <PartiesTab opportunityId={id} companies={companyOpts} contacts={contactOpts} parties={partyRows} />
+  );
+
+  const quotationsTab = (
+    <QuotationsTab opportunityId={id} companies={companyOpts} quotations={(quotations ?? []) as CrmQuotation[]} />
   );
 
   const activitiesTab = (
@@ -282,6 +344,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <Tabs
             tabs={[
               { label: "نمای کلی", content: overviewTab },
+              { label: "طرف‌های معامله", content: partiesTab },
+              { label: "پیشنهادها", content: quotationsTab },
               { label: "فعالیت‌ها", content: activitiesTab },
               { label: "مکاتبات", content: correspondenceTab },
               { label: "اسناد", content: documentsTab },
