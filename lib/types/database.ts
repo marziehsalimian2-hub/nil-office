@@ -497,6 +497,7 @@ export interface SalesDocument {
   customer_contact_person_snapshot: string | null;
   customer_email_snapshot: string | null;
   customer_phone_snapshot: string | null;
+  signatory_id: string | null;
   created_by: string;
   approved_by: string | null;
   approved_at: string | null;

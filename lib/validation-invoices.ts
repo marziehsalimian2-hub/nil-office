@@ -27,6 +27,7 @@ export const salesDocumentSchema = z.object({
   customer_contact_person_snapshot: optText,
   customer_email_snapshot: optText,
   customer_phone_snapshot: optText,
+  signatory_id: optUuid,
 });
 
 export const salesDocumentItemSchema = z.object({

@@ -39,7 +39,7 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
     .from("sales_documents")
     .select(
       `id, type, display_number, contract_id, currency_code, subtotal, discount_amount, tax_amount, total_amount,
-       payment_terms, notes, issued_by, created_by, created_at, issued_at,
+       payment_terms, notes, issued_by, created_by, created_at, issued_at, signatory_id,
        customer_legal_name_snapshot, customer_english_name_snapshot, customer_registration_number_snapshot,
        customer_national_id_snapshot, customer_economic_code_snapshot, customer_address_snapshot,
        customer_contact_person_snapshot, customer_phone_snapshot`,
@@ -58,8 +58,12 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
     doc.contract_id
       ? supabase.from("contracts").select("display_number, external_contract_number, title").eq("id", doc.contract_id).single()
       : Promise.resolve({ data: null }),
-    (doc.issued_by ?? doc.created_by)
-      ? supabase.from("profiles").select("full_name, title, signature_path").eq("id", doc.issued_by ?? doc.created_by).single()
+    (doc.signatory_id ?? doc.issued_by ?? doc.created_by)
+      ? supabase
+          .from("profiles")
+          .select("full_name, title, signature_path")
+          .eq("id", doc.signatory_id ?? doc.issued_by ?? doc.created_by)
+          .single()
       : Promise.resolve({ data: null }),
   ]);
 

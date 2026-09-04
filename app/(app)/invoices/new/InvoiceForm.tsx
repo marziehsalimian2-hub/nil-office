@@ -37,6 +37,7 @@ export function InvoiceForm({
   companies,
   contracts,
   cases,
+  profiles,
   initial,
 }: {
   docId?: string;
@@ -44,11 +45,13 @@ export function InvoiceForm({
   companies: CompanyOpt[];
   contracts: Opt[];
   cases: Opt[];
+  profiles: Opt[];
   initial?: {
     type: SalesDocumentType;
     company_id: string | null;
     contract_id: string | null;
     case_id: string | null;
+    signatory_id: string | null;
     issue_date: string | null;
     due_date: string | null;
     validity_date: string | null;
@@ -184,6 +187,14 @@ export function InvoiceForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="امضاکننده" hint="امضای این شخص در برگ خلاصهٔ سند چاپ می‌شود">
+            <select name="signatory_id" className="input" defaultValue={initial?.signatory_id ?? ""}>
+              <option value="">— انتخاب امضاکننده —</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="تاریخ صدور"><JalaliDateInput name="issue_date" defaultISO={initial?.issue_date} /></Field>
           {type === "INVOICE" ? (
             <Field label="سررسید پرداخت"><JalaliDateInput name="due_date" defaultISO={initial?.due_date} /></Field>
