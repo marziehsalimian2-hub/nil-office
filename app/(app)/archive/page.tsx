@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const GROUP_LABEL: Record<string, string> = {
   correspondence: "مکاتبات", case: "پرونده‌ها", company: "شرکت‌ها", document: "اسناد", contract: "قراردادها",
+  sales_document: "فاکتور/پیش‌فاکتور",
 };
 const HREF: Record<string, (id: string) => string> = {
   correspondence: (id) => `/correspondence/${id}`,
@@ -16,6 +17,7 @@ const HREF: Record<string, (id: string) => string> = {
   company: () => `/companies`,
   document: (id) => `/documents/${id}`,
   contract: (id) => `/contracts/${id}`,
+  sales_document: (id) => `/invoices/${id}`,
 };
 
 export default async function ArchivePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

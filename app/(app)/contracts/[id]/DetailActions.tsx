@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2, FileDown } from "lucide-react";
+import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2, FileDown, Receipt } from "lucide-react";
 import {
   setContractStatus,
   approveContract,
@@ -10,12 +10,23 @@ import {
   cancelContract,
   type ActionState,
 } from "@/app/actions/contracts";
+import { createSalesDocumentFromContract } from "@/app/actions/invoices";
 import { FormError } from "@/components/form";
 import type { ContractKind, ContractStatus } from "@/lib/enums";
 
 type Action = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
-export function DetailActions({ id, status, kind }: { id: string; status: ContractStatus; kind: ContractKind }) {
+export function DetailActions({
+  id,
+  status,
+  kind,
+  hasInvoiceAccess,
+}: {
+  id: string;
+  status: ContractStatus;
+  kind: ContractKind;
+  hasInvoiceAccess: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -40,6 +51,17 @@ export function DetailActions({ id, status, kind }: { id: string; status: Contra
         <a href={`/api/contracts/${id}/pdf`} target="_blank" rel="noopener" className="btn-ghost">
           <FileDown className="h-4 w-4" /> دانلود برگ خلاصهٔ قرارداد (PDF)
         </a>
+
+        {hasInvoiceAccess && (
+          <>
+            <button disabled={pending} className="btn-ghost" onClick={() => run(createSalesDocumentFromContract, { contract_id: id, doc_type: "PROFORMA" })}>
+              <Receipt className="h-4 w-4" /> صدور پیش‌فاکتور
+            </button>
+            <button disabled={pending} className="btn-ghost" onClick={() => run(createSalesDocumentFromContract, { contract_id: id, doc_type: "INVOICE" })}>
+              <Receipt className="h-4 w-4" /> صدور فاکتور
+            </button>
+          </>
+        )}
 
         {status === "DRAFT" && (
           <button disabled={pending} className="btn-ghost" onClick={() => run(setContractStatus, { id, status: "UNDER_REVIEW" })}>

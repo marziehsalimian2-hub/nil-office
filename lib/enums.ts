@@ -131,8 +131,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_SCOPE: "دامنهٔ شماره‌گذاری نامعتبر است.",
   INVALID_VALUE: "مقدار واردشده نامعتبر است.",
   ONLY_NIL_ISSUED_FINALIZE: "فقط قراردادهای صادره توسط نیل قابل ثبت نهایی هستند.",
-  CANNOT_DELETE_NON_DRAFT: "حذف قرارداد پس از خروج از پیش‌نویس مجاز نیست.",
+  CANNOT_DELETE_NON_DRAFT: "حذف این رکورد پس از خروج از پیش‌نویس مجاز نیست.",
   EXTERNAL_NUMBER_IMMUTABLE: "شمارهٔ اصلی قرارداد قابل تغییر نیست.",
+  CUSTOMER_REQUIRED: "برای صدور، انتخاب طرف حساب (مشتری) الزامی است.",
+  ONLY_PROFORMA_CONVERTIBLE: "فقط پیش‌فاکتور قابل تبدیل به فاکتور است.",
+  ALREADY_CONVERTED: "این پیش‌فاکتور قبلاً به فاکتور تبدیل شده است.",
+  USE_RPC_TO_CONVERT: "تبدیل به فاکتور فقط از مسیر مجاز امکان‌پذیر است.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -241,4 +245,82 @@ export const CONTRACT_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
 export type ContractRole = (typeof CONTRACT_ROLE)[number];
 export const CONTRACT_ROLE_LABEL: Record<ContractRole, string> = {
   VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید", ADMIN: "مدیر قراردادها",
+};
+
+/* ============================ Invoices/Proforma ========================== */
+
+export const SALES_DOCUMENT_TYPE = ["PROFORMA", "INVOICE"] as const;
+export type SalesDocumentType = (typeof SALES_DOCUMENT_TYPE)[number];
+export const SALES_DOCUMENT_TYPE_LABEL: Record<SalesDocumentType, string> = {
+  PROFORMA: "پیش‌فاکتور",
+  INVOICE: "فاکتور",
+};
+
+export const SALES_DOCUMENT_STATUS = [
+  "DRAFT",
+  "REVIEW",
+  "APPROVED",
+  "ISSUED",
+  "ACCEPTED",
+  "CONVERTED",
+  "EXPIRED",
+  "PARTIALLY_SETTLED",
+  "SETTLED",
+  "OVERDUE",
+  "CANCELLED",
+] as const;
+export type SalesDocumentStatus = (typeof SALES_DOCUMENT_STATUS)[number];
+
+export const SALES_DOCUMENT_STATUS_LABEL: Record<SalesDocumentStatus, string> = {
+  DRAFT: "پیش‌نویس",
+  REVIEW: "در حال بررسی",
+  APPROVED: "تأییدشده",
+  ISSUED: "صادرشده",
+  ACCEPTED: "پذیرفته‌شده",
+  CONVERTED: "تبدیل‌شده به فاکتور",
+  EXPIRED: "منقضی‌شده",
+  PARTIALLY_SETTLED: "تسویهٔ جزئی",
+  SETTLED: "تسویه‌شده",
+  OVERDUE: "معوق",
+  CANCELLED: "ابطال‌شده",
+};
+
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const SALES_DOCUMENT_STATUS_TONE: Record<SalesDocumentStatus, string> = {
+  DRAFT: "status-draft",
+  REVIEW: "status-review",
+  APPROVED: "status-final",
+  ISSUED: "status-received",
+  ACCEPTED: "status-received",
+  CONVERTED: "status-closed",
+  EXPIRED: "status-cancelled",
+  PARTIALLY_SETTLED: "status-waiting",
+  SETTLED: "status-closed",
+  OVERDUE: "status-cancelled",
+  CANCELLED: "status-cancelled",
+};
+
+export const SALES_DOCUMENT_ITEM_TYPE = ["GOODS", "SERVICE"] as const;
+export type SalesDocumentItemType = (typeof SALES_DOCUMENT_ITEM_TYPE)[number];
+export const SALES_DOCUMENT_ITEM_TYPE_LABEL: Record<SalesDocumentItemType, string> = {
+  GOODS: "کالا",
+  SERVICE: "خدمات",
+};
+
+export const INVOICE_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type InvoiceRole = (typeof INVOICE_ROLE)[number];
+export const INVOICE_ROLE_LABEL: Record<InvoiceRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید/صدور", ADMIN: "مدیر فاکتورها",
+};
+
+export const CURRENCY = ["IRR", "TOMAN", "USD", "EUR", "AED", "TRY", "CNY"] as const;
+export type Currency = (typeof CURRENCY)[number];
+export const CURRENCY_LABEL: Record<Currency, string> = {
+  IRR: "ریال",
+  TOMAN: "تومان",
+  USD: "دلار آمریکا",
+  EUR: "یورو",
+  AED: "درهم امارات",
+  TRY: "لیر ترکیه",
+  CNY: "یوان چین",
 };

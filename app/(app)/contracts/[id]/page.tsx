@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Download, Trash2, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
 import { ContractStatusBadge } from "@/components/ContractStatusBadge";
 import { Tabs } from "@/components/Tabs";
@@ -29,6 +30,8 @@ const ACTIVITY_SOURCE_LABEL: Record<ContractFinancialActivityRow["source"], stri
 export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const profile = await requireProfile();
+  const hasInvoiceAccess = profile.role === "ADMIN" || profile.invoice_role != null;
 
   const { data: contract } = await supabase.from("contracts").select("*").eq("id", id).single();
   if (!contract) notFound();
@@ -251,7 +254,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         <div className="space-y-6">
           <Card>
             <p className="mb-3 text-sm font-medium text-ink">اقدامات</p>
-            <DetailActions id={k.id} status={k.status} kind={k.kind} />
+            <DetailActions id={k.id} status={k.status} kind={k.kind} hasInvoiceAccess={hasInvoiceAccess} />
           </Card>
 
           <Card>

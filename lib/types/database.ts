@@ -30,7 +30,7 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
@@ -42,6 +42,7 @@ export interface Profile {
   role: AppRole;
   accounting_role: AccountingRoleT | null;
   contract_role: ContractRoleT | null;
+  invoice_role: InvoiceRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -267,6 +268,7 @@ export interface JournalEntryLine {
   company_id: string | null;
   case_id: string | null;
   contract_id: string | null;
+  sales_document_id: string | null;
   currency_code: string | null;
   foreign_amount: number | null;
   exchange_rate: number | null;
@@ -304,6 +306,7 @@ export interface Receipt {
   company_id: string | null;
   case_id: string | null;
   contract_id: string | null;
+  sales_document_id: string | null;
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
@@ -327,6 +330,7 @@ export interface Payment {
   company_id: string | null;
   case_id: string | null;
   contract_id: string | null;
+  sales_document_id: string | null;
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
@@ -440,4 +444,98 @@ export interface ContractFinancialSummary {
   received_amount: number;
   paid_amount: number;
   outstanding_amount: number;
+}
+
+/* ============================ Invoices/Proforma =========================== */
+
+export type SalesDocumentTypeT = "PROFORMA" | "INVOICE";
+export type SalesDocumentStatusT =
+  | "DRAFT"
+  | "REVIEW"
+  | "APPROVED"
+  | "ISSUED"
+  | "ACCEPTED"
+  | "CONVERTED"
+  | "EXPIRED"
+  | "PARTIALLY_SETTLED"
+  | "SETTLED"
+  | "OVERDUE"
+  | "CANCELLED";
+export type SalesDocumentItemTypeT = "GOODS" | "SERVICE";
+export type InvoiceRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+
+export interface SalesDocument {
+  id: string;
+  type: SalesDocumentTypeT;
+  status: SalesDocumentStatusT;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
+  company_id: string | null;
+  contract_id: string | null;
+  case_id: string | null;
+  converted_from_id: string | null;
+  converted_to_id: string | null;
+  converted_at: string | null;
+  issue_date: string | null;
+  due_date: string | null;
+  validity_date: string | null;
+  currency_code: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  payment_terms: string | null;
+  notes: string | null;
+  customer_legal_name_snapshot: string;
+  customer_english_name_snapshot: string | null;
+  customer_registration_number_snapshot: string | null;
+  customer_national_id_snapshot: string | null;
+  customer_economic_code_snapshot: string | null;
+  customer_address_snapshot: string | null;
+  customer_postal_code_snapshot: string | null;
+  customer_contact_person_snapshot: string | null;
+  customer_email_snapshot: string | null;
+  customer_phone_snapshot: string | null;
+  created_by: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  issued_by: string | null;
+  issued_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalesDocumentItem {
+  id: string;
+  sales_document_id: string;
+  line_no: number;
+  item_type: SalesDocumentItemTypeT;
+  description: string;
+  unit: string | null;
+  quantity: number;
+  unit_price: number;
+  discount_amount: number;
+  tax_amount: number;
+  line_total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalesDocumentFinancialActivityRow {
+  source: "RECEIPT" | "PAYMENT" | "JOURNAL_LINE";
+  id: string;
+  document_date: string;
+  document_number: string | null;
+  description: string | null;
+  amount: number;
+  direction: "IN" | "OUT";
+  status: PostingStatusT;
+  currency_code: string | null;
+  journal_entry_id: string | null;
+}
+
+export interface SalesDocumentFinancialSummary {
+  received_amount: number;
+  remaining_amount: number;
 }
