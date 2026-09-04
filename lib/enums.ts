@@ -137,6 +137,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ONLY_PROFORMA_CONVERTIBLE: "فقط پیش‌فاکتور قابل تبدیل به فاکتور است.",
   ALREADY_CONVERTED: "این پیش‌فاکتور قبلاً به فاکتور تبدیل شده است.",
   USE_RPC_TO_CONVERT: "تبدیل به فاکتور فقط از مسیر مجاز امکان‌پذیر است.",
+  ALREADY_CLOSED: "این فرصت قبلاً بسته شده است (موفق یا ازدست‌رفته).",
+  LOST_REASON_REQUIRED: "برای ثبت ازدست‌رفته، انتخاب دلیل الزامی است.",
+  NO_WON_STAGE: "برای این پایپ‌لاین، مرحلهٔ «موفق» تعریف نشده است.",
+  NO_LOST_STAGE: "برای این پایپ‌لاین، مرحلهٔ «ازدست‌رفته» تعریف نشده است.",
+  STAGE_PIPELINE_MISMATCH: "مرحلهٔ انتخاب‌شده متعلق به این پایپ‌لاین نیست.",
+  USE_CLOSE_ACTION: "برای رسیدن به این مرحله از دکمهٔ «موفق»/«ازدست‌رفته» استفاده کنید.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -323,4 +329,130 @@ export const CURRENCY_LABEL: Record<Currency, string> = {
   AED: "درهم امارات",
   TRY: "لیر ترکیه",
   CNY: "یوان چین",
+};
+
+/* ============================ CRM ========================================= */
+
+export const CRM_COMPANY_STATUS = ["PROSPECT", "ACTIVE", "INACTIVE", "BLOCKED", "ARCHIVED"] as const;
+export type CrmCompanyStatus = (typeof CRM_COMPANY_STATUS)[number];
+export const CRM_COMPANY_STATUS_LABEL: Record<CrmCompanyStatus, string> = {
+  PROSPECT: "مشتری بالقوه",
+  ACTIVE: "فعال",
+  INACTIVE: "غیرفعال",
+  BLOCKED: "مسدود",
+  ARCHIVED: "بایگانی‌شده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const CRM_COMPANY_STATUS_TONE: Record<CrmCompanyStatus, string> = {
+  PROSPECT: "status-waiting",
+  ACTIVE: "status-received",
+  INACTIVE: "status-draft",
+  BLOCKED: "status-cancelled",
+  ARCHIVED: "status-closed",
+};
+
+export const CRM_COMPANY_ROLE = [
+  "CUSTOMER", "PROSPECT", "LEAD", "BUYER", "SELLER", "SUPPLIER",
+  "PARTNER", "AGENT", "BROKER", "SERVICE_PROVIDER", "OTHER",
+] as const;
+export type CrmCompanyRole = (typeof CRM_COMPANY_ROLE)[number];
+export const CRM_COMPANY_ROLE_LABEL: Record<CrmCompanyRole, string> = {
+  CUSTOMER: "مشتری",
+  PROSPECT: "مشتری بالقوه",
+  LEAD: "سرنخ",
+  BUYER: "خریدار",
+  SELLER: "فروشنده",
+  SUPPLIER: "تأمین‌کننده",
+  PARTNER: "شریک تجاری",
+  AGENT: "نماینده",
+  BROKER: "واسطه",
+  SERVICE_PROVIDER: "ارائه‌دهندهٔ خدمات",
+  OTHER: "سایر",
+};
+
+export const CRM_CONTACT_ROLE = [
+  "OWNER", "CEO", "MANAGING_DIRECTOR", "COMMERCIAL_MANAGER", "SALES",
+  "PROCUREMENT", "FINANCE", "LEGAL", "TECHNICAL", "REPRESENTATIVE", "BROKER", "OTHER",
+] as const;
+export type CrmContactRole = (typeof CRM_CONTACT_ROLE)[number];
+export const CRM_CONTACT_ROLE_LABEL: Record<CrmContactRole, string> = {
+  OWNER: "مالک",
+  CEO: "مدیرعامل",
+  MANAGING_DIRECTOR: "مدیر اجرایی",
+  COMMERCIAL_MANAGER: "مدیر بازرگانی",
+  SALES: "فروش",
+  PROCUREMENT: "خرید",
+  FINANCE: "مالی",
+  LEGAL: "حقوقی",
+  TECHNICAL: "فنی",
+  REPRESENTATIVE: "نماینده",
+  BROKER: "واسطه",
+  OTHER: "سایر",
+};
+
+export const CRM_OPPORTUNITY_TYPE = ["TRADE", "SERVICE", "PROJECT", "PARTNERSHIP", "AGENCY", "OTHER"] as const;
+export type CrmOpportunityType = (typeof CRM_OPPORTUNITY_TYPE)[number];
+export const CRM_OPPORTUNITY_TYPE_LABEL: Record<CrmOpportunityType, string> = {
+  TRADE: "تجاری/بازرگانی",
+  SERVICE: "خدماتی",
+  PROJECT: "پروژه",
+  PARTNERSHIP: "مشارکت",
+  AGENCY: "نمایندگی",
+  OTHER: "سایر",
+};
+
+export const CRM_OPPORTUNITY_PRIORITY = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
+export type CrmOpportunityPriority = (typeof CRM_OPPORTUNITY_PRIORITY)[number];
+export const CRM_OPPORTUNITY_PRIORITY_LABEL: Record<CrmOpportunityPriority, string> = {
+  LOW: "کم", NORMAL: "عادی", HIGH: "بالا", URGENT: "فوری",
+};
+
+export const CRM_LOST_REASON = [
+  "PRICE", "NO_RESPONSE", "COMPETITOR", "PAYMENT_TERMS", "DELIVERY",
+  "COMPLIANCE", "PRODUCT_UNAVAILABLE", "CUSTOMER_CANCELLED", "OTHER",
+] as const;
+export type CrmLostReason = (typeof CRM_LOST_REASON)[number];
+export const CRM_LOST_REASON_LABEL: Record<CrmLostReason, string> = {
+  PRICE: "قیمت",
+  NO_RESPONSE: "بی‌پاسخی مشتری",
+  COMPETITOR: "رقیب",
+  PAYMENT_TERMS: "شرایط پرداخت",
+  DELIVERY: "تحویل",
+  COMPLIANCE: "الزامات قانونی/تطبیقی",
+  PRODUCT_UNAVAILABLE: "عدم موجودی کالا",
+  CUSTOMER_CANCELLED: "انصراف مشتری",
+  OTHER: "سایر",
+};
+
+export const CRM_ACTIVITY_TYPE = [
+  "CALL", "EMAIL", "WHATSAPP", "TELEGRAM", "MEETING", "VIDEO_CALL", "NOTE",
+  "NEGOTIATION", "QUOTATION_SENT", "QUOTATION_RECEIVED", "DOCUMENT_SENT", "DOCUMENT_RECEIVED", "OTHER",
+] as const;
+export type CrmActivityType = (typeof CRM_ACTIVITY_TYPE)[number];
+export const CRM_ACTIVITY_TYPE_LABEL: Record<CrmActivityType, string> = {
+  CALL: "تماس تلفنی",
+  EMAIL: "ایمیل",
+  WHATSAPP: "واتساپ",
+  TELEGRAM: "تلگرام",
+  MEETING: "جلسه",
+  VIDEO_CALL: "تماس تصویری",
+  NOTE: "یادداشت",
+  NEGOTIATION: "مذاکره",
+  QUOTATION_SENT: "ارسال پیشنهاد قیمت",
+  QUOTATION_RECEIVED: "دریافت پیشنهاد قیمت",
+  DOCUMENT_SENT: "ارسال سند",
+  DOCUMENT_RECEIVED: "دریافت سند",
+  OTHER: "سایر",
+};
+
+export const CRM_ACTIVITY_DIRECTION_LABEL: Record<"INBOUND" | "OUTBOUND" | "INTERNAL", string> = {
+  INBOUND: "دریافتی",
+  OUTBOUND: "ارسالی",
+  INTERNAL: "داخلی",
+};
+
+export const CRM_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type CrmRole = (typeof CRM_ROLE)[number];
+export const CRM_ROLE_LABEL: Record<CrmRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید/بستن فرصت", ADMIN: "مدیر CRM",
 };

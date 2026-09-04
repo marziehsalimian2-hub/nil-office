@@ -28,12 +28,14 @@ export async function createCompany(_p: ActionState, f: FormData): Promise<Actio
   const parsed = companySchema.safeParse(entries(f));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const { supabase, userId } = await ctx();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("companies")
-    .insert({ ...parsed.data, created_by: userId });
+    .insert({ ...parsed.data, created_by: userId })
+    .select("id")
+    .single();
   if (error) return { error: persianError(error.message) };
   revalidatePath("/companies");
-  redirect("/companies");
+  redirect(`/companies/${data.id}`);
 }
 
 export async function createCase(_p: ActionState, f: FormData): Promise<ActionState> {

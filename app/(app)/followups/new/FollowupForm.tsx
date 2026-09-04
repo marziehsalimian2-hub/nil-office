@@ -5,11 +5,23 @@ import { createFollowup, type ActionState } from "@/app/actions/entities";
 import { Field, FormError, SubmitButton } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
 type Opt = { id: string; label: string };
-export function FollowupForm({ cases, profiles }: { cases: Opt[]; profiles: Opt[] }) {
+export function FollowupForm({
+  cases,
+  profiles,
+  companyId,
+  opportunityId,
+}: {
+  cases: Opt[];
+  profiles: Opt[];
+  companyId?: string;
+  opportunityId?: string;
+}) {
   const [state, action] = useActionState<ActionState, FormData>(createFollowup, null);
   return (
     <form action={action} className="space-y-5">
       <FormError message={state?.error} />
+      {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
+      {opportunityId ? <input type="hidden" name="opportunity_id" value={opportunityId} /> : null}
       <div className="card space-y-4 p-5">
         <Field label="عنوان پیگیری" required><input name="title" required className="input" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">

@@ -98,6 +98,8 @@ export const followupSchema = z.object({
   assigned_to: optionalUuid,
   correspondence_id: optionalUuid,
   case_id: optionalUuid,
+  company_id: optionalUuid,
+  opportunity_id: optionalUuid,
   status: z.enum(FOLLOWUP_STATUS).default("OPEN"),
   note: optionalText,
 });

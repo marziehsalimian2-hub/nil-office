@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Send, Inbox, FileText, FolderOpen, Plus, FileSignature, Receipt } from "lucide-react";
+import { Send, Inbox, FileText, FolderOpen, Plus, FileSignature, Receipt, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, StatCard, Card, EmptyState, StatusBadge } from "@/components/ui";
 import { DIRECTION_LABEL, type CorrStatus } from "@/lib/enums";
@@ -105,6 +105,7 @@ export default async function DashboardPage() {
     { href: "/cases/new", label: "پرونده جدید", icon: FolderOpen },
     { href: "/contracts/new", label: "قرارداد جدید", icon: FileSignature },
     { href: "/invoices/new", label: "فاکتور/پیش‌فاکتور جدید", icon: Receipt },
+    { href: "/opportunities/new", label: "فرصت تجاری جدید", icon: Target },
   ];
 
   return (

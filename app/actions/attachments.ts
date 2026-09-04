@@ -21,6 +21,8 @@ const ENTITY_MAP: Record<string, { path: string; table: string }> = {
   CASE: { path: "/cases", table: "cases" },
   CONTRACT: { path: "/contracts", table: "contracts" },
   SALES_DOCUMENT: { path: "/invoices", table: "sales_documents" },
+  COMPANY: { path: "/companies", table: "companies" },
+  OPPORTUNITY: { path: "/opportunities", table: "crm_opportunities" },
 };
 
 /** Upload a file to the private bucket and record its metadata. */
