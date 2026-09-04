@@ -21,6 +21,7 @@ import {
   CalendarRange,
   Wallet,
   FileSignature,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ const nav = [
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
   { href: "/contracts", label: "قراردادها", icon: FileSignature },
+  { href: "/invoices", label: "فاکتورها", icon: Receipt },
   { href: "/archive", label: "آرشیو و جستجو", icon: Search },
   { href: "/settings", label: "تنظیمات", icon: Settings },
 ];
