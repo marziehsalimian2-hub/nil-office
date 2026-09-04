@@ -14,7 +14,6 @@ export type ContractPdfInput = {
   counterpartyRepresentativeName: string | null; // typed once in the app, printed instead of a blank line
   nilSignatoryName: string | null; // signatory's full name, left (NIL) signoff column
   nilSignatoryTitle: string | null; // signatory's job title, left (NIL) signoff column
-  nilDateLabel: string | null; // approval date shown under NIL's signature
   letterheadDataUri: string | null;
   stampDataUri: string | null;
   signatureDataUri: string | null;
@@ -54,7 +53,7 @@ const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
 function buildContractHtml(input: ContractPdfInput): string {
   const {
     recipientLabel, subject, bodyHtml, counterpartyLabel, counterpartyRepresentativeName,
-    nilSignatoryName, nilSignatoryTitle, nilDateLabel, stampDataUri, signatureDataUri,
+    nilSignatoryName, nilSignatoryTitle, stampDataUri, signatureDataUri,
   } = input;
 
   return `<!doctype html>
@@ -153,9 +152,6 @@ function buildContractHtml(input: ContractPdfInput): string {
           ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}
         </div>
       </div>
-
-      <div>تاریخ:</div>
-      <div>تاریخ: ${esc(nilDateLabel) || "—"}</div>
     </div>
   </div>
 </body>
