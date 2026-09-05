@@ -13,6 +13,7 @@ import { DetailActions } from "./DetailActions";
 import { PhasesTab } from "./PhasesTab";
 import { MilestonesTab } from "./MilestonesTab";
 import { TeamTab } from "./TeamTab";
+import { DeliverablesTab } from "./DeliverablesTab";
 import {
   PROJECT_TYPE_LABEL, type ProjectType, PM_PRIORITY_LABEL, type PmPriority,
   CORR_STATUS_LABEL, CORR_STATUS_TONE, type CorrStatus,
@@ -22,7 +23,7 @@ import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatMoney } from "@/lib/money";
 import { formatBytes } from "@/lib/utils";
 import type {
-  Project, ProjectPhase, ProjectMilestone, Attachment,
+  Project, ProjectPhase, ProjectMilestone, ProjectDeliverable, Attachment,
   Correspondence, SalesDocument, Followup, Task, Company,
 } from "@/lib/types/database";
 
@@ -42,6 +43,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const profile = await requireProfile();
   const hasInvoiceAccess = profile.role === "ADMIN" || profile.invoice_role != null;
+  const hasApproveAccess = profile.role === "ADMIN" || ["APPROVE", "ADMIN"].includes(profile.project_role ?? "");
 
   const { data: proj } = await supabase.from("projects").select("*").eq("id", id).single();
   if (!proj) notFound();
@@ -54,6 +56,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     { data: linkedContract },
     { data: phases },
     { data: milestones },
+    { data: deliverables },
     { data: memberRows },
     { data: profiles },
     { data: tasks },
@@ -68,6 +71,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     p.contract_id ? supabase.from("contracts").select("id, title, display_number, external_contract_number, status, total_amount, currency_code").eq("id", p.contract_id).single() : Promise.resolve({ data: null }),
     supabase.from("project_phases").select("*").eq("project_id", id).order("sequence"),
     supabase.from("project_milestones").select("*").eq("project_id", id).order("due_date"),
+    supabase.from("project_deliverables").select("*").eq("project_id", id).order("created_at", { ascending: false }),
     supabase.from("project_members").select("id, user_id, role, profiles(full_name)").eq("project_id", id).order("joined_at"),
     supabase.from("profiles").select("id, full_name").eq("is_active", true),
     supabase.from("tasks").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(30),
@@ -153,6 +157,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </ul>
       )}
     </Card>
+  );
+
+  const deliverablesTab = (
+    <DeliverablesTab
+      projectId={id}
+      phases={((phases ?? []) as ProjectPhase[]).map((ph) => ({ id: ph.id, label: ph.name }))}
+      profiles={(profiles ?? []).map((pr) => ({ id: pr.id, label: pr.full_name ?? "—" }))}
+      deliverables={(deliverables ?? []) as ProjectDeliverable[]}
+      hasApproveAccess={hasApproveAccess}
+    />
   );
 
   const teamTab = (
@@ -290,6 +304,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               { label: "فازها", content: phasesTab },
               { label: "مایلستون‌ها", content: milestonesTab },
               { label: "کارها", content: tasksTab },
+              { label: "تحویل‌دادنی‌ها", content: deliverablesTab },
               { label: "تیم", content: teamTab },
               { label: "قرارداد", content: contractTab },
               { label: "مالی", content: financialTab },

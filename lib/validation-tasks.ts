@@ -30,3 +30,18 @@ export const taskSchema = z.object({
   parent_task_id: optUuid,
   blocked_reason: optText,
 });
+
+export const dependencySchema = z.object({
+  task_id: z.string().uuid(),
+  depends_on_task_id: z.string().uuid("انتخاب کار الزامی است."),
+});
+
+export const commentSchema = z.object({
+  task_id: z.string().uuid(),
+  body: z.string().trim().min(1, "متن پیام الزامی است."),
+});
+
+export const checklistItemSchema = z.object({
+  task_id: z.string().uuid(),
+  label: z.string().trim().min(1, "عنوان آیتم الزامی است."),
+});

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PROJECT_TYPE, PM_PRIORITY, PHASE_STATUS, PROJECT_MILESTONE_STATUS, PROJECT_MEMBER_ROLE, PROJECT_ROLE } from "@/lib/enums";
+import { PROJECT_TYPE, PM_PRIORITY, PHASE_STATUS, PROJECT_MILESTONE_STATUS, PROJECT_MEMBER_ROLE, PROJECT_ROLE, DELIVERABLE_STATUS } from "@/lib/enums";
 
 const optText = z.string().trim().optional().transform((v) => (v === "" ? undefined : v));
 const optUuid = z.string().uuid().optional().or(z.literal("").transform(() => undefined));
@@ -64,4 +64,19 @@ export const memberSchema = z.object({
 export const projectRoleSchema = z.object({
   user_id: z.string().uuid(),
   project_role: z.enum(PROJECT_ROLE).nullish(),
+});
+
+export const deliverableSchema = z.object({
+  project_id: z.string().uuid(),
+  phase_id: optUuid,
+  milestone_id: optUuid,
+  title: z.string().trim().min(1, "عنوان تحویل‌دادنی الزامی است."),
+  description: optText,
+  due_date: optIsoDate,
+  status: z.enum(DELIVERABLE_STATUS).default("PLANNED"),
+  responsible_user_id: optUuid,
+});
+
+export const rejectDeliverableSchema = z.object({
+  reason: z.string().trim().min(1, "درج دلیل الزامی است."),
 });
