@@ -972,3 +972,13 @@ export interface TaskChecklistItem {
   completed_at: string | null;
   created_at: string;
 }
+
+/* ============================ Projects & Tasks Phase 3 ==================== */
+
+export interface ProjectProgressSummary {
+  project_id: string;
+  computed_progress_percent: number;
+  has_overdue_milestone: boolean;
+  has_blocked_task: boolean;
+  overdue_task_count: number;
+}
