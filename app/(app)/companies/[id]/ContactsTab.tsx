@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Star, Trash2, Pencil } from "lucide-react";
 import { createContact, updateContact, deleteContact } from "@/app/actions/crm-contacts";
+import { checkSimilarContacts, type SimilarContact } from "@/app/actions/crm-duplicates";
 import { Field, FormError } from "@/components/form";
 import { Card } from "@/components/ui";
+import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { CRM_CONTACT_ROLE, CRM_CONTACT_ROLE_LABEL } from "@/lib/enums";
 import type { CompanyContact } from "@/lib/types/database";
 
@@ -21,6 +23,25 @@ function ContactForm({
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [email, setEmail] = useState(contact?.email ?? "");
+  const [mobile, setMobile] = useState(contact?.mobile ?? "");
+  const [similar, setSimilar] = useState<SimilarContact[]>([]);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (contact) return; // no duplicate check while editing an existing contact
+    if (timer.current) clearTimeout(timer.current);
+    if (!email.trim() && !mobile.trim()) {
+      setSimilar([]);
+      return;
+    }
+    timer.current = setTimeout(() => {
+      checkSimilarContacts(companyId, email, mobile).then(setSimilar);
+    }, 500);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [email, mobile, companyId, contact]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,10 +76,13 @@ function ContactForm({
         </Field>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="ایمیل"><input name="email" dir="ltr" defaultValue={contact?.email ?? ""} className="input text-left" /></Field>
+        <Field label="ایمیل"><input name="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} className="input text-left" /></Field>
         <Field label="تلفن"><input name="phone" dir="ltr" defaultValue={contact?.phone ?? ""} className="input text-left" /></Field>
-        <Field label="موبایل"><input name="mobile" dir="ltr" defaultValue={contact?.mobile ?? ""} className="input text-left" /></Field>
+        <Field label="موبایل"><input name="mobile" dir="ltr" value={mobile} onChange={(e) => setMobile(e.target.value)} className="input text-left" /></Field>
       </div>
+      <DuplicateWarning
+        items={similar.map((c) => ({ id: c.id, label: `${c.first_name} ${c.last_name ?? ""}`.trim(), sublabel: c.email ?? c.mobile }))}
+      />
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="واتساپ"><input name="whatsapp" dir="ltr" defaultValue={contact?.whatsapp ?? ""} className="input text-left" /></Field>
         <Field label="تلگرام"><input name="telegram" dir="ltr" defaultValue={contact?.telegram ?? ""} className="input text-left" /></Field>
