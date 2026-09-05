@@ -23,6 +23,8 @@ import {
   FileSignature,
   Receipt,
   Target,
+  FolderKanban,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,8 @@ const nav = [
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
   { href: "/opportunities", label: "فرصت‌های تجاری", icon: Target },
+  { href: "/projects", label: "پروژه‌ها", icon: FolderKanban },
+  { href: "/tasks/mine", label: "کارها", icon: ListChecks },
   { href: "/contracts", label: "قراردادها", icon: FileSignature },
   { href: "/invoices", label: "فاکتورها", icon: Receipt },
   { href: "/archive", label: "آرشیو و جستجو", icon: Search },

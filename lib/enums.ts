@@ -144,6 +144,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   STAGE_PIPELINE_MISMATCH: "مرحلهٔ انتخاب‌شده متعلق به این پایپ‌لاین نیست.",
   USE_CLOSE_ACTION: "برای رسیدن به این مرحله از دکمهٔ «موفق»/«ازدست‌رفته» استفاده کنید.",
   TRADE_ONLY: "جزئیات معامله فقط برای فرصت‌های نوع «تجاری/بازرگانی» قابل ثبت است.",
+  TASK_SELF_PARENT: "یک کار نمی‌تواند زیرمجموعهٔ خودش باشد.",
+  SUBTASK_DEPTH_EXCEEDED: "زیرکار نمی‌تواند خودش زیرکار داشته باشد (حداکثر یک سطح).",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -486,4 +488,103 @@ export const CRM_OPPORTUNITY_PARTY_ROLE_LABEL: Record<CrmOpportunityPartyRole, s
 export const CRM_QUOTATION_DIRECTION_LABEL: Record<"SENT" | "RECEIVED", string> = {
   SENT: "ارسالی",
   RECEIVED: "دریافتی",
+};
+
+/* ============================ Projects & Tasks ============================ */
+
+export const PROJECT_TYPE = [
+  "SOFTWARE", "CONSULTING", "SERVICE", "INTERNAL", "TRADE", "RESEARCH", "IMPLEMENTATION", "SUPPORT", "OTHER",
+] as const;
+export type ProjectType = (typeof PROJECT_TYPE)[number];
+export const PROJECT_TYPE_LABEL: Record<ProjectType, string> = {
+  SOFTWARE: "نرم‌افزاری",
+  CONSULTING: "مشاوره",
+  SERVICE: "خدماتی",
+  INTERNAL: "داخلی",
+  TRADE: "تجاری/بازرگانی",
+  RESEARCH: "تحقیقاتی",
+  IMPLEMENTATION: "پیاده‌سازی",
+  SUPPORT: "پشتیبانی",
+  OTHER: "سایر",
+};
+
+export const PROJECT_STATUS = ["DRAFT", "PLANNED", "ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED", "ARCHIVED"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUS)[number];
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  DRAFT: "پیش‌نویس",
+  PLANNED: "برنامه‌ریزی‌شده",
+  ACTIVE: "فعال",
+  ON_HOLD: "متوقف‌شده",
+  COMPLETED: "تکمیل‌شده",
+  CANCELLED: "لغوشده",
+  ARCHIVED: "بایگانی‌شده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const PROJECT_STATUS_TONE: Record<ProjectStatus, string> = {
+  DRAFT: "status-draft",
+  PLANNED: "status-review",
+  ACTIVE: "status-received",
+  ON_HOLD: "status-waiting",
+  COMPLETED: "status-closed",
+  CANCELLED: "status-cancelled",
+  ARCHIVED: "status-closed",
+};
+
+export const PM_PRIORITY = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
+export type PmPriority = (typeof PM_PRIORITY)[number];
+export const PM_PRIORITY_LABEL: Record<PmPriority, string> = {
+  LOW: "کم", NORMAL: "عادی", HIGH: "بالا", URGENT: "فوری",
+};
+
+export const PHASE_STATUS = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
+export type PhaseStatus = (typeof PHASE_STATUS)[number];
+export const PHASE_STATUS_LABEL: Record<PhaseStatus, string> = {
+  NOT_STARTED: "شروع‌نشده",
+  IN_PROGRESS: "در حال انجام",
+  COMPLETED: "تکمیل‌شده",
+  CANCELLED: "لغوشده",
+};
+
+export const PROJECT_MILESTONE_STATUS = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
+export type ProjectMilestoneStatus = (typeof PROJECT_MILESTONE_STATUS)[number];
+export const PROJECT_MILESTONE_STATUS_LABEL: Record<ProjectMilestoneStatus, string> = {
+  PLANNED: "برنامه‌ریزی‌شده",
+  IN_PROGRESS: "در حال انجام",
+  COMPLETED: "تکمیل‌شده",
+  CANCELLED: "لغوشده",
+};
+
+export const PROJECT_MEMBER_ROLE = ["PROJECT_MANAGER", "MEMBER", "REVIEWER", "OBSERVER"] as const;
+export type ProjectMemberRole = (typeof PROJECT_MEMBER_ROLE)[number];
+export const PROJECT_MEMBER_ROLE_LABEL: Record<ProjectMemberRole, string> = {
+  PROJECT_MANAGER: "مدیر پروژه",
+  MEMBER: "عضو",
+  REVIEWER: "بازبین",
+  OBSERVER: "ناظر",
+};
+
+export const TASK_STATUS = ["TODO", "IN_PROGRESS", "BLOCKED", "WAITING", "DONE", "CANCELLED"] as const;
+export type TaskStatus = (typeof TASK_STATUS)[number];
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
+  TODO: "برای انجام",
+  IN_PROGRESS: "در حال انجام",
+  BLOCKED: "مسدود",
+  WAITING: "در انتظار",
+  DONE: "انجام‌شده",
+  CANCELLED: "لغوشده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const TASK_STATUS_TONE: Record<TaskStatus, string> = {
+  TODO: "status-draft",
+  IN_PROGRESS: "status-review",
+  BLOCKED: "status-cancelled",
+  WAITING: "status-waiting",
+  DONE: "status-closed",
+  CANCELLED: "status-cancelled",
+};
+
+export const PROJECT_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type ProjectRole = (typeof PROJECT_ROLE)[number];
+export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید/صدور شماره", ADMIN: "مدیر پروژه‌ها",
 };

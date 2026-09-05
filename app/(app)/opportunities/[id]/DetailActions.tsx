@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, XCircle, ArrowRightCircle, FileCheck2, Receipt, Link2 } from "lucide-react";
+import { Trophy, XCircle, ArrowRightCircle, FileCheck2, Receipt, Link2, FolderKanban } from "lucide-react";
 import {
   moveOpportunityStage,
   closeOpportunityWon,
@@ -12,6 +12,7 @@ import {
   createProformaFromOpportunity,
   type ActionState,
 } from "@/app/actions/crm-opportunities";
+import { createProjectFromOpportunity } from "@/app/actions/projects";
 import { FormError, Field } from "@/components/form";
 import { CRM_LOST_REASON, CRM_LOST_REASON_LABEL } from "@/lib/enums";
 
@@ -25,6 +26,7 @@ export function DetailActions({
   currentStageId,
   isClosed,
   hasInvoiceAccess,
+  hasProjectAccess,
   hasContract,
   otherContracts,
 }: {
@@ -33,6 +35,7 @@ export function DetailActions({
   currentStageId: string;
   isClosed: boolean;
   hasInvoiceAccess: boolean;
+  hasProjectAccess: boolean;
   hasContract: boolean;
   otherContracts: ContractOpt[];
 }) {
@@ -132,6 +135,12 @@ export function DetailActions({
               <Receipt className="h-4 w-4" /> صدور پیش‌فاکتور
             </button>
           </>
+        )}
+
+        {hasProjectAccess && (
+          <button disabled={pending} className="btn-ghost" onClick={() => run(createProjectFromOpportunity, { opportunity_id: id })}>
+            <FolderKanban className="h-4 w-4" /> ایجاد پروژه
+          </button>
         )}
       </div>
 

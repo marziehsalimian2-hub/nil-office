@@ -30,11 +30,12 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type CrmRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type ProjectRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -45,6 +46,7 @@ export interface Profile {
   contract_role: ContractRoleT | null;
   invoice_role: InvoiceRoleT | null;
   crm_role: CrmRoleT | null;
+  project_role: ProjectRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -99,6 +101,7 @@ export interface Correspondence {
   recipient_name: string | null;
   case_id: string | null;
   opportunity_id: string | null;
+  project_id: string | null;
   created_by: string;
   signatory_id: string | null;
   signatory_label: string | null;
@@ -133,6 +136,8 @@ export interface DocumentRow {
   document_type: DocumentTypeT;
   case_id: string | null;
   company_id: string | null;
+  project_id: string | null;
+  task_id: string | null;
   document_date: string | null;
   received_date: string | null;
   version: string | null;
@@ -163,6 +168,8 @@ export interface Followup {
   case_id: string | null;
   company_id: string | null;
   opportunity_id: string | null;
+  project_id: string | null;
+  task_id: string | null;
   status: FollowupStatusT;
   note: string | null;
   completed_at: string | null;
@@ -485,6 +492,7 @@ export interface SalesDocument {
   contract_id: string | null;
   case_id: string | null;
   opportunity_id: string | null;
+  project_id: string | null;
   converted_from_id: string | null;
   converted_to_id: string | null;
   converted_at: string | null;
@@ -796,4 +804,121 @@ export interface CrmQuotation {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/* ============================ Projects & Tasks ============================ */
+
+export type ProjectTypeT =
+  | "SOFTWARE"
+  | "CONSULTING"
+  | "SERVICE"
+  | "INTERNAL"
+  | "TRADE"
+  | "RESEARCH"
+  | "IMPLEMENTATION"
+  | "SUPPORT"
+  | "OTHER";
+
+export type ProjectStatusT = "DRAFT" | "PLANNED" | "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+export type PmPriorityT = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+export type PhaseStatusT = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type ProjectMilestoneStatusT = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type ProjectMemberRoleT = "PROJECT_MANAGER" | "MEMBER" | "REVIEWER" | "OBSERVER";
+export type TaskStatusT = "TODO" | "IN_PROGRESS" | "BLOCKED" | "WAITING" | "DONE" | "CANCELLED";
+
+export interface Project {
+  id: string;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
+  title: string;
+  description: string | null;
+  project_type: ProjectTypeT;
+  company_id: string | null;
+  case_id: string | null;
+  crm_opportunity_id: string | null;
+  contract_id: string | null;
+  project_manager_id: string;
+  owner_user_id: string | null;
+  status: ProjectStatusT;
+  priority: PmPriorityT;
+  planned_start_date: string | null;
+  planned_end_date: string | null;
+  actual_start_date: string | null;
+  actual_end_date: string | null;
+  progress_percent: number;
+  budget_amount: number | null;
+  budget_currency: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface ProjectPhase {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string | null;
+  sequence: number;
+  status: PhaseStatusT;
+  planned_start_date: string | null;
+  planned_end_date: string | null;
+  actual_start_date: string | null;
+  actual_end_date: string | null;
+  progress_percent: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMilestone {
+  id: string;
+  project_id: string;
+  phase_id: string | null;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  status: ProjectMilestoneStatusT;
+  priority: PmPriorityT;
+  responsible_user_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: ProjectMemberRoleT;
+  joined_at: string;
+  left_at: string | null;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  project_id: string | null;
+  phase_id: string | null;
+  milestone_id: string | null;
+  company_id: string | null;
+  case_id: string | null;
+  crm_opportunity_id: string | null;
+  contract_id: string | null;
+  assigned_to: string | null;
+  created_by: string;
+  status: TaskStatusT;
+  priority: PmPriorityT;
+  start_date: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  estimated_minutes: number | null;
+  actual_minutes: number | null;
+  parent_task_id: string | null;
+  blocked_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
 }
