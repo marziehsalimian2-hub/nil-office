@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Kanban, ListChecks } from "lucide-react";
+import { Plus, Kanban, ListChecks, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
@@ -65,6 +65,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           <div className="flex gap-2">
             <Link href="/tasks/mine" className="btn-ghost"><ListChecks className="h-4 w-4" /> کارهای من</Link>
             <Link href="/tasks/board" className="btn-ghost"><Kanban className="h-4 w-4" /> نمای کانبان</Link>
+            <Link href="/tasks/workload" className="btn-ghost"><Users className="h-4 w-4" /> حجم کاری تیم</Link>
             <Link href="/tasks/new" className="btn-seal"><Plus className="h-4 w-4" /> کار جدید</Link>
           </div>
         }

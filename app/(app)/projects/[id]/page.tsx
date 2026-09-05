@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
 import { ProjectStatusBadge } from "@/components/ProjectStatusBadge";
+import { ProjectHealthBadge } from "@/components/ProjectHealthBadge";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
+import { computeProjectHealth } from "@/lib/project-health";
 import { Tabs } from "@/components/Tabs";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
@@ -24,7 +26,7 @@ import { formatMoney } from "@/lib/money";
 import { formatBytes } from "@/lib/utils";
 import type {
   Project, ProjectPhase, ProjectMilestone, ProjectDeliverable, Attachment,
-  Correspondence, SalesDocument, Followup, Task, Company,
+  Correspondence, SalesDocument, Followup, Task, Company, ProjectProgressSummary,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +83,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     supabase.from("attachments").select("*").eq("entity_type", "PROJECT").eq("entity_id", id).order("created_at", { ascending: false }),
   ]);
 
+  const { data: summaryRows } = await supabase.rpc("get_project_progress_summary");
+  const summary = ((summaryRows ?? []) as ProjectProgressSummary[]).find((s) => s.project_id === id) ?? null;
+  const health = summary ? computeProjectHealth(p, summary) : null;
+  const displayedProgress = summary ? summary.computed_progress_percent : p.progress_percent;
+
   const atts = (attachments ?? []) as Attachment[];
   const signed = new Map<string, string>();
   await Promise.all(
@@ -106,7 +113,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <Row label="اولویت">{PM_PRIORITY_LABEL[p.priority as PmPriority]}</Row>
         <Row label="مدیر پروژه">{manager?.full_name ?? "—"}</Row>
         <Row label="مالک داخلی">{owner?.full_name ?? "—"}</Row>
-        <Row label="پیشرفت">{toFaDigits(p.progress_percent)}٪</Row>
+        <Row label="سلامت پروژه">{health ? <ProjectHealthBadge health={health} /> : "—"}</Row>
+        <Row label="پیشرفت">
+          {toFaDigits(displayedProgress)}٪
+          {(tasks ?? []).length > 0 && <span className="mr-1 text-xs text-ink-muted">(محاسبه‌شده از کارها)</span>}
+        </Row>
         <Row label="تاریخ شروع برنامه‌ریزی‌شده">{formatJalali(p.planned_start_date)}</Row>
         <Row label="تاریخ پایان برنامه‌ریزی‌شده">{formatJalali(p.planned_end_date)}</Row>
         {p.actual_start_date && <Row label="تاریخ شروع واقعی">{formatJalali(p.actual_start_date)}</Row>}
