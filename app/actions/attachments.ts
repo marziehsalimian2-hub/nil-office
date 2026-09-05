@@ -23,6 +23,8 @@ const ENTITY_MAP: Record<string, { path: string; table: string }> = {
   SALES_DOCUMENT: { path: "/invoices", table: "sales_documents" },
   COMPANY: { path: "/companies", table: "companies" },
   OPPORTUNITY: { path: "/opportunities", table: "crm_opportunities" },
+  PROJECT: { path: "/projects", table: "projects" },
+  TASK: { path: "/tasks", table: "tasks" },
 };
 
 /** Upload a file to the private bucket and record its metadata. */

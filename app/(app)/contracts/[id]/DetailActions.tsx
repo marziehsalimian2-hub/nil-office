@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2, FileDown, Receipt } from "lucide-react";
+import { CheckCircle2, FileCheck2, XCircle, PlayCircle, PauseCircle, StopCircle, Undo2, FileDown, Receipt, FolderKanban } from "lucide-react";
 import {
   setContractStatus,
   approveContract,
@@ -11,6 +11,7 @@ import {
   type ActionState,
 } from "@/app/actions/contracts";
 import { createSalesDocumentFromContract } from "@/app/actions/invoices";
+import { createProjectFromContract } from "@/app/actions/projects";
 import { FormError } from "@/components/form";
 import type { ContractKind, ContractStatus } from "@/lib/enums";
 
@@ -21,11 +22,13 @@ export function DetailActions({
   status,
   kind,
   hasInvoiceAccess,
+  hasProjectAccess,
 }: {
   id: string;
   status: ContractStatus;
   kind: ContractKind;
   hasInvoiceAccess: boolean;
+  hasProjectAccess: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string>();
@@ -61,6 +64,12 @@ export function DetailActions({
               <Receipt className="h-4 w-4" /> صدور فاکتور
             </button>
           </>
+        )}
+
+        {hasProjectAccess && (
+          <button disabled={pending} className="btn-ghost" onClick={() => run(createProjectFromContract, { contract_id: id })}>
+            <FolderKanban className="h-4 w-4" /> ایجاد پروژه
+          </button>
         )}
 
         {status === "DRAFT" && (

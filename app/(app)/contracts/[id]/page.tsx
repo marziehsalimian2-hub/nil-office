@@ -32,6 +32,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const profile = await requireProfile();
   const hasInvoiceAccess = profile.role === "ADMIN" || profile.invoice_role != null;
+  const hasProjectAccess = profile.role === "ADMIN" || profile.project_role != null;
 
   const { data: contract } = await supabase.from("contracts").select("*").eq("id", id).single();
   if (!contract) notFound();
@@ -254,7 +255,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         <div className="space-y-6">
           <Card>
             <p className="mb-3 text-sm font-medium text-ink">اقدامات</p>
-            <DetailActions id={k.id} status={k.status} kind={k.kind} hasInvoiceAccess={hasInvoiceAccess} />
+            <DetailActions id={k.id} status={k.status} kind={k.kind} hasInvoiceAccess={hasInvoiceAccess} hasProjectAccess={hasProjectAccess} />
           </Card>
 
           <Card>

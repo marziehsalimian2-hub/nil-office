@@ -7,11 +7,12 @@ import { AccountingRoleSelect } from "./AccountingRoleSelect";
 import { ContractRoleSelect } from "./ContractRoleSelect";
 import { InvoiceRoleSelect } from "./InvoiceRoleSelect";
 import { CrmRoleSelect } from "./CrmRoleSelect";
+import { ProjectRoleSelect } from "./ProjectRoleSelect";
 import { UserNameTitleEdit } from "./UserNameTitleEdit";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
-import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL, INVOICE_ROLE_LABEL, CRM_ROLE_LABEL } from "@/lib/enums";
+import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL, INVOICE_ROLE_LABEL, CRM_ROLE_LABEL, PROJECT_ROLE_LABEL } from "@/lib/enums";
 import { currentJalaliYear, toFaDigits } from "@/lib/jalali";
 import type { AppSettings, NumberSequence, Profile } from "@/lib/types/database";
 
@@ -137,6 +138,7 @@ export default async function SettingsPage() {
                 <th className="px-3 py-2">دسترسی قراردادها</th>
                 <th className="px-3 py-2">دسترسی فاکتورها</th>
                 <th className="px-3 py-2">دسترسی CRM</th>
+                <th className="px-3 py-2">دسترسی پروژه‌ها</th>
                 <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
               </tr></thead>
               <tbody>
@@ -165,6 +167,11 @@ export default async function SettingsPage() {
                       {u.role === "ADMIN"
                         ? <span className="text-xs text-ink-muted">{CRM_ROLE_LABEL.ADMIN} (کامل)</span>
                         : <CrmRoleSelect userId={u.id} current={u.crm_role} />}
+                    </td>
+                    <td className="px-3 py-2">
+                      {u.role === "ADMIN"
+                        ? <span className="text-xs text-ink-muted">{PROJECT_ROLE_LABEL.ADMIN} (کامل)</span>
+                        : <ProjectRoleSelect userId={u.id} current={u.project_role} />}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">

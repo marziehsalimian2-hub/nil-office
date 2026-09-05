@@ -5,9 +5,9 @@ export const dynamic = "force-dynamic";
 export default async function NewFollowupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ company_id?: string; opportunity_id?: string }>;
+  searchParams: Promise<{ company_id?: string; opportunity_id?: string; project_id?: string; task_id?: string }>;
 }) {
-  const { company_id, opportunity_id } = await searchParams;
+  const { company_id, opportunity_id, project_id, task_id } = await searchParams;
   const { cases, profiles } = await loadFormOptions();
   return (
     <div>
@@ -17,6 +17,8 @@ export default async function NewFollowupPage({
         profiles={profiles.map((p) => ({ id: p.id, label: p.full_name ?? "—" }))}
         companyId={company_id}
         opportunityId={opportunity_id}
+        projectId={project_id}
+        taskId={task_id}
       />
     </div>
   );

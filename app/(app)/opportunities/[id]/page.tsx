@@ -44,6 +44,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const supabase = await createClient();
   const profile = await requireProfile();
   const hasInvoiceAccess = profile.role === "ADMIN" || profile.invoice_role != null;
+  const hasProjectAccess = profile.role === "ADMIN" || profile.project_role != null;
 
   const { data: opp } = await supabase.from("crm_opportunities").select("*").eq("id", id).single();
   if (!opp) notFound();
@@ -366,6 +367,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
               currentStageId={o.stage_id}
               isClosed={isClosed}
               hasInvoiceAccess={hasInvoiceAccess}
+              hasProjectAccess={hasProjectAccess}
               hasContract={!!o.contract_id}
               otherContracts={(contracts ?? []).map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title }))}
             />

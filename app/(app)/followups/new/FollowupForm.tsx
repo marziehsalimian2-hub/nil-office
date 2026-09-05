@@ -10,11 +10,15 @@ export function FollowupForm({
   profiles,
   companyId,
   opportunityId,
+  projectId,
+  taskId,
 }: {
   cases: Opt[];
   profiles: Opt[];
   companyId?: string;
   opportunityId?: string;
+  projectId?: string;
+  taskId?: string;
 }) {
   const [state, action] = useActionState<ActionState, FormData>(createFollowup, null);
   return (
@@ -22,6 +26,8 @@ export function FollowupForm({
       <FormError message={state?.error} />
       {companyId ? <input type="hidden" name="company_id" value={companyId} /> : null}
       {opportunityId ? <input type="hidden" name="opportunity_id" value={opportunityId} /> : null}
+      {projectId ? <input type="hidden" name="project_id" value={projectId} /> : null}
+      {taskId ? <input type="hidden" name="task_id" value={taskId} /> : null}
       <div className="card space-y-4 p-5">
         <Field label="عنوان پیگیری" required><input name="title" required className="input" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
