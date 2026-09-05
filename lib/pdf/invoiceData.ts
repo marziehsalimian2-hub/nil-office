@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatMoney } from "@/lib/money";
-import { SALES_DOCUMENT_TYPE_LABEL, SALES_DOCUMENT_ITEM_TYPE_LABEL, type SalesDocumentType, type SalesDocumentItemType } from "@/lib/enums";
+import { SALES_DOCUMENT_TYPE_LABEL, SALES_DOCUMENT_ITEM_TYPE_LABEL, CURRENCY_LABEL, type SalesDocumentType, type SalesDocumentItemType, type Currency } from "@/lib/enums";
 import { renderInvoicePdf } from "@/lib/pdf/renderInvoicePdf";
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -76,8 +76,10 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
     pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
+  const currencyLabel = CURRENCY_LABEL[doc.currency_code as Currency] ?? doc.currency_code;
+
   return renderInvoicePdf({
-    displayNumber: doc.display_number,
+    displayNumber: doc.display_number ? toFaDigits(doc.display_number) : null,
     dateLabel: formatJalali(doc.issued_at ?? doc.created_at),
     docTypeLabel: SALES_DOCUMENT_TYPE_LABEL[doc.type as SalesDocumentType],
     title: doc.display_number ? toFaDigits(doc.display_number) : "پیش‌نویس",
@@ -104,11 +106,11 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
       lineTotalLabel: formatMoney(it.line_total),
     })),
 
-    currencyLabel: doc.currency_code,
+    currencyLabel,
     subtotalLabel: formatMoney(doc.subtotal),
     discountLabel: formatMoney(doc.discount_amount),
     taxLabel: formatMoney(doc.tax_amount),
-    totalLabel: `${formatMoney(doc.total_amount)} ${doc.currency_code}`,
+    totalLabel: `${formatMoney(doc.total_amount)} ${currencyLabel}`,
 
     paymentTerms: doc.payment_terms,
     notes: doc.notes,

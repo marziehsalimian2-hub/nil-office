@@ -208,7 +208,7 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
     <div class="signoff-heading">محل امضا و تأیید</div>
     <div class="signoff-grid">
       <div class="party-label">مشتری</div>
-      <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
+      <div class="party-label">${esc(NIL_LEGAL_NAME)}</div>
 
       <div>نام و نام خانوادگی:</div>
       <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
