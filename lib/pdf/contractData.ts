@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatJalali } from "@/lib/jalali";
+import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { renderContractPdf } from "@/lib/pdf/renderContractPdf";
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -74,8 +74,10 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
     pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
+  const rawDisplayNumber = contract.display_number ?? contract.external_contract_number;
+
   return renderContractPdf({
-    displayNumber: contract.display_number ?? contract.external_contract_number,
+    displayNumber: rawDisplayNumber ? toFaDigits(rawDisplayNumber) : null,
     dateLabel: formatJalali(contract.finalized_at ?? contract.created_at),
     recipientLabel: counterparty?.legal_name ?? null,
     subject: contract.title,

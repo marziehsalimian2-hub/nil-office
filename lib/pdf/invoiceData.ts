@@ -86,10 +86,12 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
 
     customerLegalName: doc.customer_legal_name_snapshot,
     customerEnglishName: doc.customer_english_name_snapshot,
-    customerRegistrationNumber: doc.customer_registration_number_snapshot,
-    customerNationalId: doc.customer_national_id_snapshot,
-    customerEconomicCode: doc.customer_economic_code_snapshot,
-    customerAddress: doc.customer_address_snapshot,
+    // Free-typed identifiers/address — convert digits to Persian for
+    // display; phone stays as-typed (dir="ltr", dialing convention).
+    customerRegistrationNumber: doc.customer_registration_number_snapshot ? toFaDigits(doc.customer_registration_number_snapshot) : null,
+    customerNationalId: doc.customer_national_id_snapshot ? toFaDigits(doc.customer_national_id_snapshot) : null,
+    customerEconomicCode: doc.customer_economic_code_snapshot ? toFaDigits(doc.customer_economic_code_snapshot) : null,
+    customerAddress: doc.customer_address_snapshot ? toFaDigits(doc.customer_address_snapshot) : null,
     customerContactPerson: doc.customer_contact_person_snapshot,
     customerPhone: doc.customer_phone_snapshot,
 

@@ -64,6 +64,9 @@ function fontBase64(): string {
 const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
+const FA_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+const faDigits = (s: string | number) => String(s).replace(/\d/g, (d) => FA_DIGITS[Number(d)]);
+
 const FONT_FACE = `@font-face {
   font-family: "Vazirmatn";
   src: url(data:font/woff2;base64,${fontBase64()}) format("woff2");
@@ -92,7 +95,7 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
     .map(
       (it, i) => `
     <tr>
-      <td class="c">${i + 1}</td>
+      <td class="c">${faDigits(i + 1)}</td>
       <td class="r">${esc(it.description)}</td>
       <td class="c">${esc(it.itemTypeLabel)}</td>
       <td class="c">${esc(it.quantityLabel)}</td>

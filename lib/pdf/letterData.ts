@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatJalali } from "@/lib/jalali";
+import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { renderLetterPdf } from "@/lib/pdf/renderLetterPdf";
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -64,7 +64,7 @@ export async function buildLetterPdfForCorrespondence(
   ]);
 
   return renderLetterPdf({
-    displayNumber: letter.display_number,
+    displayNumber: letter.display_number ? toFaDigits(letter.display_number) : null,
     dateLabel: formatJalali(letter.finalized_at ?? letter.created_at),
     recipientLabel: recipientCompany?.legal_name ?? letter.recipient_name ?? null,
     subject: letter.subject,

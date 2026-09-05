@@ -136,7 +136,7 @@ function buildContractHtml(input: ContractPdfInput): string {
     <div class="signoff-heading">محل امضا و تأیید قرارداد</div>
     <div class="signoff-grid">
       <div class="party-label">متقاضی/نماینده${counterpartyLabel ? `: ${esc(counterpartyLabel)}` : ""}</div>
-      <div class="party-label">مشاور: ${esc(NIL_LEGAL_NAME)}</div>
+      <div class="party-label">${esc(NIL_LEGAL_NAME)}</div>
 
       <div>نام و نام خانوادگی نماینده: ${counterpartyRepresentativeName ? esc(counterpartyRepresentativeName) : ""}</div>
       <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
