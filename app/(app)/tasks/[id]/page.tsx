@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Download, Trash2, Paperclip, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -6,10 +6,13 @@ import { PageHeader, Card } from "@/components/ui";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
-import { PM_PRIORITY_LABEL, type PmPriority } from "@/lib/enums";
+import { DependenciesSection } from "./DependenciesSection";
+import { CommentsSection } from "./CommentsSection";
+import { ChecklistSection } from "./ChecklistSection";
+import { PM_PRIORITY_LABEL, type PmPriority, type TaskStatus } from "@/lib/enums";
 import { formatJalali } from "@/lib/jalali";
 import { formatBytes } from "@/lib/utils";
-import type { Task, Attachment } from "@/lib/types/database";
+import type { Task, Attachment, TaskComment, TaskChecklistItem } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +28,39 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: task } = await supabase.from("tasks").select("*").eq("id", id).single();
   if (!task) notFound();
   const t = task as Task;
 
-  const [{ data: project }, { data: assignee }, { data: creator }, { data: subtasks }, { data: attachments }] = await Promise.all([
+  const [
+    { data: project },
+    { data: assignee },
+    { data: creator },
+    { data: subtasks },
+    { data: attachments },
+    { data: blockedByRows },
+    { data: blockingRows },
+    { data: allTasks },
+    { data: comments },
+    { data: profiles },
+    { data: checklist },
+  ] = await Promise.all([
     t.project_id ? supabase.from("projects").select("id, title, display_number").eq("id", t.project_id).single() : Promise.resolve({ data: null }),
     t.assigned_to ? supabase.from("profiles").select("full_name").eq("id", t.assigned_to).single() : Promise.resolve({ data: null }),
     supabase.from("profiles").select("full_name").eq("id", t.created_by).single(),
     supabase.from("tasks").select("id, title, status").eq("parent_task_id", id).order("created_at"),
     supabase.from("attachments").select("*").eq("entity_type", "TASK").eq("entity_id", id).order("created_at", { ascending: false }),
+    supabase.from("task_dependencies").select("id, tasks!depends_on_task_id(id, title, status)").eq("task_id", id),
+    supabase.from("task_dependencies").select("id, tasks!task_id(id, title, status)").eq("depends_on_task_id", id),
+    supabase.from("tasks").select("id, title").neq("id", id).order("created_at", { ascending: false }).limit(200),
+    supabase.from("task_comments").select("*").eq("task_id", id).order("created_at"),
+    supabase.from("profiles").select("id, full_name"),
+    supabase.from("task_checklist_items").select("*").eq("task_id", id).order("sort_order").order("created_at"),
   ]);
 
   const atts = (attachments ?? []) as Attachment[];
@@ -46,6 +71,21 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       if (data?.signedUrl) signed.set(a.id, data.signedUrl);
     }),
   );
+
+  type DepJoinRow = { id: string; tasks: { id: string; title: string; status: TaskStatus } | { id: string; title: string; status: TaskStatus }[] | null };
+  const blockedBy = ((blockedByRows ?? []) as DepJoinRow[])
+    .map((d) => ({ id: d.id, task: Array.isArray(d.tasks) ? d.tasks[0] : d.tasks }))
+    .filter((d): d is { id: string; task: { id: string; title: string; status: TaskStatus } } => !!d.task);
+  const blocking = ((blockingRows ?? []) as DepJoinRow[])
+    .map((d) => ({ id: d.id, task: Array.isArray(d.tasks) ? d.tasks[0] : d.tasks }))
+    .filter((d): d is { id: string; task: { id: string; title: string; status: TaskStatus } } => !!d.task);
+
+  const dependedOnIds = new Set(blockedBy.map((d) => d.task.id));
+  const candidateTasks = ((allTasks ?? []) as { id: string; title: string }[])
+    .filter((c) => !dependedOnIds.has(c.id))
+    .map((c) => ({ id: c.id, label: c.title }));
+
+  const authorNames = new Map(((profiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name ?? "—"]));
 
   return (
     <div>
@@ -82,6 +122,10 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             )}
           </Card>
 
+          <ChecklistSection taskId={id} items={(checklist ?? []) as TaskChecklistItem[]} />
+
+          <DependenciesSection taskId={id} blockedBy={blockedBy} blocking={blocking} candidateTasks={candidateTasks} />
+
           <Card>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium text-ink">زیرکارها</p>
@@ -102,6 +146,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               </ul>
             )}
           </Card>
+
+          <CommentsSection taskId={id} comments={(comments ?? []) as TaskComment[]} currentUserId={user.id} authorNames={authorNames} />
 
           <Card>
             <p className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">

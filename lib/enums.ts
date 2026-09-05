@@ -146,6 +146,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TRADE_ONLY: "جزئیات معامله فقط برای فرصت‌های نوع «تجاری/بازرگانی» قابل ثبت است.",
   TASK_SELF_PARENT: "یک کار نمی‌تواند زیرمجموعهٔ خودش باشد.",
   SUBTASK_DEPTH_EXCEEDED: "زیرکار نمی‌تواند خودش زیرکار داشته باشد (حداکثر یک سطح).",
+  USE_ACCEPT_OR_REJECT_ACTION: "برای پذیرش/رد، از دکمهٔ مربوطه استفاده کنید.",
+  ALREADY_ACCEPTED: "این تحویل‌دادنی قبلاً پذیرفته شده است.",
+  ACCEPTED_IS_TERMINAL: "تحویل‌دادنیِ پذیرفته‌شده قابل تغییر نیست.",
+  REJECTION_REASON_REQUIRED: "برای رد کردن، درج دلیل الزامی است.",
+  REVERSE_DEPENDENCY_EXISTS: "این دو کار قبلاً در جهت معکوس به هم وابسته شده‌اند.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -587,4 +592,26 @@ export const PROJECT_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
 export type ProjectRole = (typeof PROJECT_ROLE)[number];
 export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
   VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید/صدور شماره", ADMIN: "مدیر پروژه‌ها",
+};
+
+/* ============================ Projects & Tasks Phase 2 ==================== */
+
+export const DELIVERABLE_STATUS = ["PLANNED", "IN_PROGRESS", "READY_FOR_REVIEW", "ACCEPTED", "REJECTED", "CANCELLED"] as const;
+export type DeliverableStatus = (typeof DELIVERABLE_STATUS)[number];
+export const DELIVERABLE_STATUS_LABEL: Record<DeliverableStatus, string> = {
+  PLANNED: "برنامه‌ریزی‌شده",
+  IN_PROGRESS: "در حال انجام",
+  READY_FOR_REVIEW: "آمادهٔ بررسی",
+  ACCEPTED: "پذیرفته‌شده",
+  REJECTED: "ردشده",
+  CANCELLED: "لغوشده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const DELIVERABLE_STATUS_TONE: Record<DeliverableStatus, string> = {
+  PLANNED: "status-draft",
+  IN_PROGRESS: "status-review",
+  READY_FOR_REVIEW: "status-waiting",
+  ACCEPTED: "status-closed",
+  REJECTED: "status-cancelled",
+  CANCELLED: "status-cancelled",
 };

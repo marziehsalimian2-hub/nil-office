@@ -922,3 +922,53 @@ export interface Task {
   updated_at: string;
   archived_at: string | null;
 }
+
+/* ============================ Projects & Tasks Phase 2 ==================== */
+
+export type DeliverableStatusT = "PLANNED" | "IN_PROGRESS" | "READY_FOR_REVIEW" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+
+export interface ProjectDeliverable {
+  id: string;
+  project_id: string;
+  phase_id: string | null;
+  milestone_id: string | null;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: DeliverableStatusT;
+  responsible_user_id: string | null;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  rejection_reason: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskDependency {
+  id: string;
+  task_id: string;
+  depends_on_task_id: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  author_user_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface TaskChecklistItem {
+  id: string;
+  task_id: string;
+  label: string;
+  is_done: boolean;
+  sort_order: number;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
