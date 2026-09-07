@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SALES_DOCUMENT_TYPE, SALES_DOCUMENT_ITEM_TYPE, CURRENCY, INVOICE_ROLE } from "@/lib/enums";
+import { SALES_DOCUMENT_TYPE, SALES_DOCUMENT_ITEM_TYPE, CURRENCY, INVOICE_ROLE, LANGUAGE } from "@/lib/enums";
 
 const optText = z.string().trim().optional().transform((v) => (v === "" ? undefined : v));
 const optUuid = z.string().uuid().optional().or(z.literal("").transform(() => undefined));
@@ -29,6 +29,7 @@ export const salesDocumentSchema = z.object({
   customer_phone_snapshot: optText,
   signatory_id: optUuid,
   bank_account_id: optUuid,
+  language: z.enum(LANGUAGE).default("FA"),
 });
 
 export const salesDocumentItemSchema = z.object({

@@ -16,6 +16,7 @@ export type InvoiceItemInput = {
 };
 
 export type InvoicePdfInput = {
+  language: "FA" | "EN";
   displayNumber: string | null;
   dateLabel: string; // already-formatted Jalali date label for the header overlay
   docTypeLabel: string; // "پیش‌فاکتور" | "فاکتور"
@@ -78,7 +79,72 @@ const FONT_FACE = `@font-face {
   font-weight: 100 900;
 }`;
 
-const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
+const NIL_LEGAL_NAME: Record<"FA" | "EN", string> = {
+  FA: "شرکت مدیریت راهبردی نیل",
+  EN: "NIL Strategic Management Development Co.",
+};
+
+// Static labels for the two supported document languages. The structural
+// HTML (item table, totals block, signoff grid) stays identical either
+// way — only these strings, digit script (handled upstream in
+// invoiceData.ts), and dir/text-align (set from `language` below) change.
+// Kept as one small table rather than a second template file so this
+// session's hard-won pagination fixes (break-inside:avoid, the
+// spacer-div technique) never have to be kept in sync in two places.
+const LABELS = {
+  FA: {
+    dir: "rtl" as const,
+    customer: "نام مشتری:",
+    englishName: "نام لاتین:",
+    registrationNumber: "شماره ثبت:",
+    nationalId: "شناسه/کد ملی:",
+    economicCode: "کد اقتصادی:",
+    address: "نشانی:",
+    contactPerson: "نماینده/تماس:",
+    phone: "تلفن:",
+    relatedContract: "مرتبط با قرارداد:",
+    col: { no: "ردیف", description: "شرح", type: "نوع", qty: "تعداد", unit: "واحد", unitPrice: "قیمت واحد", discount: "تخفیف", tax: "مالیات", total: "جمع" },
+    subtotal: "جمع جزء",
+    finalTotal: "مبلغ نهایی",
+    paymentTerms: "شرایط پرداخت:",
+    bankInfoHeading: "اطلاعات واریز",
+    bank: "بانک:",
+    bankAccountTitle: "به نام:",
+    bankAccountNumber: "شماره حساب:",
+    bankIban: "شماره شبا:",
+    signoffHeading: "محل امضا و تأیید",
+    customerParty: "مشتری",
+    nameLabel: "نام و نام خانوادگی:",
+    titleLabel: "سمت یا عنوان:",
+    signatureLabel: "امضا و مهر:",
+  },
+  EN: {
+    dir: "ltr" as const,
+    customer: "Customer:",
+    englishName: "English Name:",
+    registrationNumber: "Registration No.:",
+    nationalId: "National ID:",
+    economicCode: "Economic Code:",
+    address: "Address:",
+    contactPerson: "Contact Person:",
+    phone: "Phone:",
+    relatedContract: "Related Contract:",
+    col: { no: "No.", description: "Description", type: "Type", qty: "Qty", unit: "Unit", unitPrice: "Unit Price", discount: "Discount", tax: "Tax", total: "Total" },
+    subtotal: "Subtotal",
+    finalTotal: "Total Amount",
+    paymentTerms: "Payment Terms:",
+    bankInfoHeading: "Payment Details",
+    bank: "Bank:",
+    bankAccountTitle: "Account Title:",
+    bankAccountNumber: "Account Number:",
+    bankIban: "IBAN:",
+    signoffHeading: "Signature & Approval",
+    customerParty: "Customer",
+    nameLabel: "Name:",
+    titleLabel: "Title:",
+    signatureLabel: "Signature & Stamp:",
+  },
+};
 
 /**
  * Item table + totals + signature — no letterhead image, no date/number
@@ -90,19 +156,20 @@ const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
  */
 function buildInvoiceHtml(input: InvoicePdfInput): string {
   const {
-    docTypeLabel, title, customerLegalName, customerEnglishName, customerRegistrationNumber,
+    language, docTypeLabel, title, customerLegalName, customerEnglishName, customerRegistrationNumber,
     customerNationalId, customerEconomicCode, customerAddress, customerContactPerson, customerPhone,
     contractLabel, items, currencyLabel, subtotalLabel, discountLabel, taxLabel, totalLabel,
     paymentTerms, notes, nilSignatoryName, nilSignatoryTitle, stampDataUri, signatureDataUri,
     bankName, bankAccountTitle, bankAccountNumber, bankIban,
   } = input;
+  const L = LABELS[language];
   const hasBankInfo = bankName || bankAccountTitle || bankAccountNumber || bankIban;
 
   const itemRows = items
     .map(
       (it, i) => `
     <tr>
-      <td class="c">${faDigits(i + 1)}</td>
+      <td class="c">${language === "EN" ? i + 1 : faDigits(i + 1)}</td>
       <td class="r">${esc(it.description)}</td>
       <td class="c">${esc(it.itemTypeLabel)}</td>
       <td class="c">${esc(it.quantityLabel)}</td>
@@ -116,7 +183,7 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
     .join("");
 
   return `<!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="${language === "EN" ? "en" : "fa"}" dir="${L.dir}">
 <head>
 <meta charset="utf-8" />
 <style>
@@ -125,7 +192,7 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Vazirmatn", sans-serif;
-    direction: rtl;
+    direction: ${L.dir};
     color: #1a1a1a;
     font-size: 12px;
     line-height: 1.6;
@@ -183,23 +250,23 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
   </div>
 
   <div class="customer-box">
-    <div class="row"><span class="label">نام مشتری:</span><span>${esc(customerLegalName)}</span></div>
-    ${customerEnglishName ? `<div class="row"><span class="label">نام لاتین:</span><span>${esc(customerEnglishName)}</span></div>` : ""}
-    ${customerRegistrationNumber ? `<div class="row"><span class="label">شماره ثبت:</span><span>${esc(customerRegistrationNumber)}</span></div>` : ""}
-    ${customerNationalId ? `<div class="row"><span class="label">شناسه/کد ملی:</span><span>${esc(customerNationalId)}</span></div>` : ""}
-    ${customerEconomicCode ? `<div class="row"><span class="label">کد اقتصادی:</span><span>${esc(customerEconomicCode)}</span></div>` : ""}
-    ${customerAddress ? `<div class="row"><span class="label">نشانی:</span><span>${esc(customerAddress)}</span></div>` : ""}
-    ${customerContactPerson ? `<div class="row"><span class="label">نماینده/تماس:</span><span>${esc(customerContactPerson)}</span></div>` : ""}
-    ${customerPhone ? `<div class="row"><span class="label">تلفن:</span><span dir="ltr">${esc(customerPhone)}</span></div>` : ""}
+    <div class="row"><span class="label">${L.customer}</span><span>${esc(customerLegalName)}</span></div>
+    ${customerEnglishName ? `<div class="row"><span class="label">${L.englishName}</span><span>${esc(customerEnglishName)}</span></div>` : ""}
+    ${customerRegistrationNumber ? `<div class="row"><span class="label">${L.registrationNumber}</span><span>${esc(customerRegistrationNumber)}</span></div>` : ""}
+    ${customerNationalId ? `<div class="row"><span class="label">${L.nationalId}</span><span>${esc(customerNationalId)}</span></div>` : ""}
+    ${customerEconomicCode ? `<div class="row"><span class="label">${L.economicCode}</span><span>${esc(customerEconomicCode)}</span></div>` : ""}
+    ${customerAddress ? `<div class="row"><span class="label">${L.address}</span><span>${esc(customerAddress)}</span></div>` : ""}
+    ${customerContactPerson ? `<div class="row"><span class="label">${L.contactPerson}</span><span>${esc(customerContactPerson)}</span></div>` : ""}
+    ${customerPhone ? `<div class="row"><span class="label">${L.phone}</span><span dir="ltr">${esc(customerPhone)}</span></div>` : ""}
   </div>
 
-  ${contractLabel ? `<div class="contract-ref">مرتبط با قرارداد: ${esc(contractLabel)}</div>` : ""}
+  ${contractLabel ? `<div class="contract-ref">${L.relatedContract} ${esc(contractLabel)}</div>` : ""}
 
   <table class="items">
     <thead>
       <tr>
-        <th>ردیف</th><th>شرح</th><th>نوع</th><th>تعداد</th><th>واحد</th>
-        <th>قیمت واحد</th><th>تخفیف</th><th>مالیات</th><th>جمع</th>
+        <th>${L.col.no}</th><th>${L.col.description}</th><th>${L.col.type}</th><th>${L.col.qty}</th><th>${L.col.unit}</th>
+        <th>${L.col.unitPrice}</th><th>${L.col.discount}</th><th>${L.col.tax}</th><th>${L.col.total}</th>
       </tr>
     </thead>
     <tbody>${itemRows}</tbody>
@@ -208,40 +275,40 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
   <div class="totals-spacer"></div>
   <div class="totals-block">
     <table>
-      <tr><td class="label">جمع جزء (${esc(currencyLabel)})</td><td class="value">${esc(subtotalLabel)}</td></tr>
-      <tr><td class="label">تخفیف</td><td class="value">${esc(discountLabel)}</td></tr>
-      <tr><td class="label">مالیات/ارزش‌افزوده</td><td class="value">${esc(taxLabel)}</td></tr>
-      <tr class="final"><td class="label">مبلغ نهایی</td><td class="value">${esc(totalLabel)}</td></tr>
+      <tr><td class="label">${L.subtotal} (${esc(currencyLabel)})</td><td class="value">${esc(subtotalLabel)}</td></tr>
+      <tr><td class="label">${L.col.discount}</td><td class="value">${esc(discountLabel)}</td></tr>
+      <tr><td class="label">${L.col.tax}</td><td class="value">${esc(taxLabel)}</td></tr>
+      <tr class="final"><td class="label">${L.finalTotal}</td><td class="value">${esc(totalLabel)}</td></tr>
     </table>
   </div>
 
-  ${paymentTerms ? `<div class="terms"><b>شرایط پرداخت:</b> ${esc(paymentTerms)}</div>` : ""}
+  ${paymentTerms ? `<div class="terms"><b>${L.paymentTerms}</b> ${esc(paymentTerms)}</div>` : ""}
   ${notes ? `<div class="terms">${esc(notes)}</div>` : ""}
 
   ${hasBankInfo ? `<div class="bank-info">
-    <div class="heading">اطلاعات واریز</div>
-    ${bankName ? `<div class="row"><span class="label">بانک:</span><span>${esc(bankName)}</span></div>` : ""}
-    ${bankAccountTitle ? `<div class="row"><span class="label">به نام:</span><span>${esc(bankAccountTitle)}</span></div>` : ""}
-    ${bankAccountNumber ? `<div class="row"><span class="label">شماره حساب:</span><span dir="ltr">${esc(bankAccountNumber)}</span></div>` : ""}
-    ${bankIban ? `<div class="row"><span class="label">شماره شبا:</span><span dir="ltr">${esc(bankIban)}</span></div>` : ""}
+    <div class="heading">${L.bankInfoHeading}</div>
+    ${bankName ? `<div class="row"><span class="label">${L.bank}</span><span>${esc(bankName)}</span></div>` : ""}
+    ${bankAccountTitle ? `<div class="row"><span class="label">${L.bankAccountTitle}</span><span>${esc(bankAccountTitle)}</span></div>` : ""}
+    ${bankAccountNumber ? `<div class="row"><span class="label">${L.bankAccountNumber}</span><span dir="ltr">${esc(bankAccountNumber)}</span></div>` : ""}
+    ${bankIban ? `<div class="row"><span class="label">${L.bankIban}</span><span dir="ltr">${esc(bankIban)}</span></div>` : ""}
   </div>` : ""}
 
   <div class="signoff-spacer"></div>
   <div class="signoff-block">
-    <div class="signoff-heading">محل امضا و تأیید</div>
+    <div class="signoff-heading">${L.signoffHeading}</div>
     <div class="signoff-grid">
-      <div class="party-label">مشتری</div>
-      <div class="party-label">${esc(NIL_LEGAL_NAME)}</div>
+      <div class="party-label">${L.customerParty}</div>
+      <div class="party-label">${esc(NIL_LEGAL_NAME[language])}</div>
 
-      <div>نام و نام خانوادگی:</div>
-      <div>نام و نام خانوادگی: ${esc(nilSignatoryName) || "—"}</div>
+      <div>${L.nameLabel}</div>
+      <div>${L.nameLabel} ${esc(nilSignatoryName) || "—"}</div>
 
       <div></div>
-      <div>سمت یا عنوان: ${esc(nilSignatoryTitle) || "—"}</div>
+      <div>${L.titleLabel} ${esc(nilSignatoryTitle) || "—"}</div>
 
-      <div>امضا و مهر:</div>
+      <div>${L.signatureLabel}</div>
       <div>
-        امضا و مهر:
+        ${L.signatureLabel}
         <div class="stamp-row">
           ${stampDataUri ? `<img class="stamp" src="${stampDataUri}" />` : ""}
           ${signatureDataUri ? `<img class="signature" src="${signatureDataUri}" />` : ""}

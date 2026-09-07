@@ -84,6 +84,7 @@ export async function createSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
       signatory_id: d.signatory_id ?? null,
       bank_account_id: d.bank_account_id ?? null,
+      language: d.language,
       created_by: userId,
     })
     .select("id")
@@ -153,6 +154,7 @@ export async function updateSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
       signatory_id: d.signatory_id ?? null,
       bank_account_id: d.bank_account_id ?? null,
+      language: d.language,
     })
     .eq("id", id);
   if (error) return { error: persianError(error.message) };

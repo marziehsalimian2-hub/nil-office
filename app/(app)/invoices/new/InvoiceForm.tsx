@@ -11,6 +11,7 @@ import {
   SALES_DOCUMENT_TYPE, SALES_DOCUMENT_TYPE_LABEL,
   SALES_DOCUMENT_ITEM_TYPE, SALES_DOCUMENT_ITEM_TYPE_LABEL,
   CURRENCY, CURRENCY_LABEL,
+  LANGUAGE, LANGUAGE_LABEL,
   type SalesDocumentType,
 } from "@/lib/enums";
 
@@ -55,6 +56,7 @@ export function InvoiceForm({
     case_id: string | null;
     signatory_id: string | null;
     bank_account_id: string | null;
+    language: string;
     issue_date: string | null;
     due_date: string | null;
     validity_date: string | null;
@@ -173,6 +175,12 @@ export function InvoiceForm({
             </select>
           </Field>
         </div>
+
+        <Field label="زبان سند" hint="زبان چاپ‌شده روی PDF نهایی">
+          <select name="language" className="input" defaultValue={initial?.language ?? "FA"}>
+            {LANGUAGE.map((l) => (<option key={l} value={l}>{LANGUAGE_LABEL[l]}</option>))}
+          </select>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="قرارداد مرتبط">
