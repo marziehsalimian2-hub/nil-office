@@ -36,6 +36,7 @@ export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type CrmRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ProjectRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type TradeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -47,6 +48,7 @@ export interface Profile {
   invoice_role: InvoiceRoleT | null;
   crm_role: CrmRoleT | null;
   project_role: ProjectRoleT | null;
+  trade_role: TradeRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -992,3 +994,133 @@ export interface ProjectProgressSummary {
   has_blocked_task: boolean;
   overdue_task_count: number;
 }
+
+/* ============================ Trade Portal ================================ */
+
+export type TradeOfferStatusT = "DRAFT" | "ACTIVE" | "EXPIRED" | "CLOSED" | "CANCELLED";
+export type TradeResponseTypeT = "INTERESTED" | "NOT_INTERESTED" | "REQUEST_MORE_TIME";
+export type TradeDocumentTypeT = "LOI" | "ICPO";
+export type TradeDeadlineTypeT = "INTEREST" | "DOCUMENT";
+export type TradeEventActorTypeT = "ADMIN" | "BUYER" | "SYSTEM";
+
+export interface TradeOffer {
+  id: string;
+  sequence_number: number;
+  offer_code: string;
+  year: number;
+  title: string;
+  product_name: string;
+  product_type: string | null;
+  quantity: string;
+  unit: string;
+  price: string;
+  currency_code: string;
+  price_basis: string;
+  origin: string | null;
+  delivery_location: string | null;
+  delivery_terms: string | null;
+  payment_terms: string | null;
+  description: string | null;
+  terms_and_conditions: string | null;
+  interest_deadline: string;
+  document_deadline: string;
+  timezone: string;
+  status: TradeOfferStatusT;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  closed_at: string | null;
+  cancelled_at: string | null;
+}
+
+export interface TradeOfferBuyer {
+  id: string;
+  offer_id: string;
+  company_id: string;
+  token_hash: string;
+  token_expires_at: string;
+  revoked_at: string | null;
+  last_viewed_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TradeOfferResponse {
+  id: string;
+  offer_id: string;
+  buyer_assignment_id: string;
+  response_type: TradeResponseTypeT;
+  explanation: string | null;
+  created_at: string;
+}
+
+export interface TradeOfferDocument {
+  id: string;
+  offer_id: string;
+  buyer_assignment_id: string;
+  document_type: TradeDocumentTypeT;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_at: string;
+}
+
+export interface TradeOfferDeadlineHistory {
+  id: string;
+  offer_id: string;
+  deadline_type: TradeDeadlineTypeT;
+  old_value: string;
+  new_value: string;
+  changed_by: string;
+  changed_at: string;
+  reason: string | null;
+}
+
+export interface TradeOfferEvent {
+  id: string;
+  offer_id: string;
+  buyer_assignment_id: string | null;
+  event_type: string;
+  actor_type: TradeEventActorTypeT;
+  actor_user_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/** The jsonb shape returned by the trade_get_buyer_view() RPC. */
+export type TradeBuyerViewResult =
+  | {
+      ok: true;
+      state: "ACTIVE" | "EXPIRED" | "CLOSED" | "CANCELLED";
+      offer: {
+        offer_code: string;
+        title: string;
+        product_name: string;
+        product_type: string | null;
+        quantity: string;
+        unit: string;
+        price: string;
+        currency_code: string;
+        price_basis: string;
+        origin: string | null;
+        delivery_location: string | null;
+        delivery_terms: string | null;
+        payment_terms: string | null;
+        description: string | null;
+        terms_and_conditions: string | null;
+        interest_deadline: string;
+        document_deadline: string;
+        timezone: string;
+        interest_open: boolean;
+        document_open: boolean;
+      };
+      assignment: {
+        viewed_before: boolean;
+        latest_response_type: TradeResponseTypeT | null;
+        latest_response_at: string | null;
+      };
+    }
+  | { ok: false; error: "INVALID_LINK" | "ACCESS_REVOKED" | "ACCESS_EXPIRED" | "OFFER_NOT_PUBLISHED" };

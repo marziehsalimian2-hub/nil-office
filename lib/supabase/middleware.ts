@@ -35,11 +35,19 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/_next") ||
     path.startsWith("/favicon") ||
     path === "/manifest.webmanifest";
+  // Buyer Portal — anonymous by design, reached only via an unguessable
+  // token in the URL (/offer/[token]). Deliberately NOT under /trade/*
+  // — that prefix already belongs to the authenticated admin section
+  // (app/(app)/trade/...; route groups add no URL segment, so /trade/*
+  // there and a top-level /trade/[token] would collide). Its own route
+  // handlers do all authorization from the token itself; nothing here
+  // should ever bounce an anonymous buyer to /login.
+  const isTradePortal = path.startsWith("/offer/");
   // Set by requireProfile() when the signed-in user has no active profile.
   // Must NOT be bounced back to /dashboard below, or the two redirects loop forever.
   const isInactiveNotice = path === "/login" && request.nextUrl.searchParams.get("inactive") === "1";
 
-  if (!user && !isAuthRoute && !isPublicAsset) {
+  if (!user && !isAuthRoute && !isPublicAsset && !isTradePortal) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);

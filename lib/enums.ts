@@ -153,6 +153,23 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ACCEPTED_IS_TERMINAL: "تحویل‌دادنیِ پذیرفته‌شده قابل تغییر نیست.",
   REJECTION_REASON_REQUIRED: "برای رد کردن، درج دلیل الزامی است.",
   REVERSE_DEPENDENCY_EXISTS: "این دو کار قبلاً در جهت معکوس به هم وابسته شده‌اند.",
+
+  // Trade Portal
+  TOKEN_INVALID: "این لینک معتبر نیست.",
+  TOKEN_EXPIRED: "اعتبار این لینک به پایان رسیده است.",
+  ACCESS_REVOKED: "دسترسی این لینک لغو شده است.",
+  OFFER_NOT_PUBLISHED: "این آفر هنوز منتشر نشده است.",
+  OFFER_NOT_ACTIVE: "این آفر در حال حاضر فعال نیست.",
+  INTEREST_DEADLINE_PASSED: "مهلت اعلام تمایل برای این آفر به پایان رسیده است.",
+  DOCUMENT_DEADLINE_PASSED: "مهلت ارسال مدارک برای این آفر به پایان رسیده است.",
+  DEADLINE_ALREADY_PASSED: "مهلت این آفر گذشته است؛ ابتدا مهلت را تمدید کنید.",
+  DEADLINE_MUST_BE_FUTURE: "مهلت جدید باید در آینده باشد.",
+  INTEREST_DEADLINE_AFTER_DOCUMENT_DEADLINE: "مهلت اعلام تمایل نمی‌تواند بعد از مهلت ارسال مدارک باشد.",
+  DOCUMENT_DEADLINE_BEFORE_INTEREST_DEADLINE: "مهلت ارسال مدارک نمی‌تواند قبل از مهلت اعلام تمایل باشد.",
+  INVALID_DEADLINE_TYPE: "نوع مهلت نامعتبر است.",
+  BUYER_ALREADY_ASSIGNED: "این شرکت قبلاً به‌عنوان خریدار این آفر تعیین شده است.",
+  INVALID_RESPONSE_TYPE: "نوع پاسخ نامعتبر است.",
+  INVALID_DOCUMENT_TYPE: "نوع مدرک نامعتبر است.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -618,3 +635,76 @@ export const DELIVERABLE_STATUS_TONE: Record<DeliverableStatus, string> = {
   REJECTED: "status-cancelled",
   CANCELLED: "status-cancelled",
 };
+
+/* ============================ Trade Portal ================================ */
+
+export const TRADE_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type TradeRole = (typeof TRADE_ROLE)[number];
+export const TRADE_ROLE_LABEL: Record<TradeRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت/مدیریت خریداران", APPROVE: "انتشار/تأیید/تمدید مهلت", ADMIN: "مدیر پورتال معاملات",
+};
+
+export const TRADE_OFFER_STATUS = ["DRAFT", "ACTIVE", "EXPIRED", "CLOSED", "CANCELLED"] as const;
+export type TradeOfferStatus = (typeof TRADE_OFFER_STATUS)[number];
+export const TRADE_OFFER_STATUS_LABEL: Record<TradeOfferStatus, string> = {
+  DRAFT: "پیش‌نویس",
+  ACTIVE: "فعال",
+  EXPIRED: "منقضی‌شده",
+  CLOSED: "بسته‌شده",
+  CANCELLED: "لغوشده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const TRADE_OFFER_STATUS_TONE: Record<TradeOfferStatus, string> = {
+  DRAFT: "status-draft",
+  ACTIVE: "status-received",
+  EXPIRED: "status-cancelled",
+  CLOSED: "status-closed",
+  CANCELLED: "status-cancelled",
+};
+
+export const TRADE_RESPONSE_TYPE = ["INTERESTED", "NOT_INTERESTED", "REQUEST_MORE_TIME"] as const;
+export type TradeResponseType = (typeof TRADE_RESPONSE_TYPE)[number];
+export const TRADE_RESPONSE_TYPE_LABEL: Record<TradeResponseType, string> = {
+  INTERESTED: "علاقه‌مندم",
+  NOT_INTERESTED: "تمایل ندارم",
+  REQUEST_MORE_TIME: "درخواست زمان بیشتر دارم",
+};
+
+export const TRADE_DOCUMENT_TYPE = ["LOI", "ICPO"] as const;
+export type TradeDocumentType = (typeof TRADE_DOCUMENT_TYPE)[number];
+export const TRADE_DOCUMENT_TYPE_LABEL: Record<TradeDocumentType, string> = {
+  LOI: "LOI (اعلام نیت خرید)",
+  ICPO: "ICPO (سفارش خرید مشروط)",
+};
+
+export const TRADE_DEADLINE_TYPE = ["INTEREST", "DOCUMENT"] as const;
+export type TradeDeadlineType = (typeof TRADE_DEADLINE_TYPE)[number];
+export const TRADE_DEADLINE_TYPE_LABEL: Record<TradeDeadlineType, string> = {
+  INTEREST: "مهلت اعلام تمایل",
+  DOCUMENT: "مهلت ارسال LOI/ICPO",
+};
+
+/** Every event_type value the 0066 migration's CHECK constraint allows, for admin-timeline display. */
+export const TRADE_EVENT_TYPE_LABEL: Record<string, string> = {
+  OFFER_CREATED: "آفر ایجاد شد",
+  OFFER_UPDATED: "آفر ویرایش شد",
+  OFFER_PUBLISHED: "آفر منتشر شد",
+  OFFER_VIEWED: "خریدار آفر را مشاهده کرد",
+  BUYER_ASSIGNED: "خریدار تعیین شد",
+  BUYER_ACCESS_CREATED: "لینک دسترسی صادر شد",
+  BUYER_RESPONSE_SUBMITTED: "پاسخ خریدار ثبت شد",
+  MORE_TIME_REQUESTED: "درخواست زمان بیشتر ثبت شد",
+  DOCUMENT_UPLOADED: "مدرک بارگذاری شد",
+  DEADLINE_EXTENDED: "مهلت تمدید شد",
+  OFFER_EXPIRED: "آفر منقضی شد",
+  OFFER_CLOSED: "آفر بسته شد",
+  OFFER_CANCELLED: "آفر لغو شد",
+  ACCESS_REVOKED: "دسترسی خریدار لغو شد",
+};
+
+/**
+ * The exact legal disclaimer required on every Buyer Portal page
+ * (spec §18) — must render verbatim, at normal size, never hidden.
+ */
+export const TRADE_LEGAL_DISCLAIMER =
+  "این پیشنهاد صرفاً جهت بررسی و اعلام تمایل اولیه ارائه شده است. قیمت، موجودی و شرایط نهایی در زمان دریافت درخواست رسمی خریدار مجدداً توسط فروشنده تأیید خواهد شد. مشاهده یا تأیید این آفر به‌منزله رزرو کالا یا ایجاد تعهد قطعی برای طرفین نیست.";

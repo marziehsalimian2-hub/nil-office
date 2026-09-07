@@ -80,6 +80,54 @@ export function checkSignature(ext: string, bytes: Uint8Array): boolean {
 
 export type UploadCheck = { ok: true } | { ok: false; error: string };
 
+// ---------------------------------------------------------------------
+// Trade Portal document upload (LOI/ICPO) — a stricter, separate check
+// than validateUpload() above. Scoped here rather than widening the
+// shared SIGNATURE_EXTS/checkSignature used by every other module's
+// upload flow, so this does not change behavior for existing DOCX
+// uploads elsewhere in the app. PDF/DOCX only (no legacy .doc — its
+// OLE-based signature can't be verified as reliably as %PDF or the
+// DOCX/OOXML ZIP header), 10 MB cap (stricter than the bucket's own
+// 25 MB, since these are buyer-supplied one-page letters, not scans).
+// ---------------------------------------------------------------------
+export const MAX_TRADE_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10 MB
+const TRADE_DOCUMENT_EXT_MIME: Record<string, string[]> = {
+  pdf: ["application/pdf"],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+};
+
+/** DOCX is a ZIP/OOXML container — its magic bytes are the ZIP local-file-header signature. */
+export function checkDocxSignature(bytes: Uint8Array): boolean {
+  return startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]); // "PK\x03\x04"
+}
+
+export function validateTradeDocumentUpload(
+  fileName: string,
+  mimeType: string | null | undefined,
+  size: number,
+): UploadCheck {
+  if (!fileName || size <= 0) return { ok: false, error: "فایلی انتخاب نشده است." };
+  if (size > MAX_TRADE_DOCUMENT_BYTES)
+    return { ok: false, error: "حجم فایل بیش از حد مجاز (۱۰ مگابایت) است." };
+
+  const ext = extensionOf(fileName);
+  if (!ext || !(ext in TRADE_DOCUMENT_EXT_MIME))
+    return { ok: false, error: "فقط فایل PDF یا DOCX مجاز است." };
+
+  const mime = (mimeType || "").trim().toLowerCase();
+  if (mime && !TRADE_DOCUMENT_EXT_MIME[ext].includes(mime))
+    return { ok: false, error: "نوع فایل با پسوند آن هم‌خوان نیست." };
+
+  return { ok: true };
+}
+
+/** Verify a trade document's leading bytes match its extension (pdf or docx only). */
+export function checkTradeDocumentSignature(ext: string, bytes: Uint8Array): boolean {
+  if (ext === "pdf") return checkSignature("pdf", bytes);
+  if (ext === "docx") return checkDocxSignature(bytes);
+  return false;
+}
+
 export const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp"];
 
