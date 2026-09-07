@@ -42,7 +42,8 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
        payment_terms, notes, issued_by, created_by, created_at, issued_at, signatory_id,
        customer_legal_name_snapshot, customer_english_name_snapshot, customer_registration_number_snapshot,
        customer_national_id_snapshot, customer_economic_code_snapshot, customer_address_snapshot,
-       customer_contact_person_snapshot, customer_phone_snapshot`,
+       customer_contact_person_snapshot, customer_phone_snapshot,
+       bank_name_snapshot, bank_account_title_snapshot, bank_account_number_snapshot, bank_account_iban_snapshot`,
     )
     .eq("id", id)
     .single();
@@ -116,6 +117,11 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
 
     paymentTerms: doc.payment_terms,
     notes: doc.notes,
+
+    bankName: doc.bank_name_snapshot,
+    bankAccountTitle: doc.bank_account_title_snapshot,
+    bankAccountNumber: doc.bank_account_number_snapshot ? toFaDigits(doc.bank_account_number_snapshot) : null,
+    bankIban: doc.bank_account_iban_snapshot,
 
     nilSignatoryName: signatory?.full_name ?? null,
     nilSignatoryTitle: signatory?.title ?? null,

@@ -137,6 +137,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ONLY_PROFORMA_CONVERTIBLE: "فقط پیش‌فاکتور قابل تبدیل به فاکتور است.",
   ALREADY_CONVERTED: "این پیش‌فاکتور قبلاً به فاکتور تبدیل شده است.",
   USE_RPC_TO_CONVERT: "تبدیل به فاکتور فقط از مسیر مجاز امکان‌پذیر است.",
+  ACCOUNTING_DEFAULTS_NOT_CONFIGURED: "ابتدا از تنظیمات، حساب‌های پیش‌فرض حسابداری (دریافتنی و درآمد) را مشخص کنید.",
+  ACCOUNTING_DRAFT_ALREADY_EXISTS: "برای این فاکتور قبلاً پیش‌نویس حسابداری ساخته شده است.",
   ALREADY_CLOSED: "این فرصت قبلاً بسته شده است (موفق یا ازدست‌رفته).",
   LOST_REASON_REQUIRED: "برای ثبت ازدست‌رفته، انتخاب دلیل الزامی است.",
   NO_WON_STAGE: "برای این پایپ‌لاین، مرحلهٔ «موفق» تعریف نشده است.",

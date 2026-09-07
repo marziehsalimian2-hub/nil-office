@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Download, Trash2, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
 import { SalesDocumentStatusBadge } from "@/components/SalesDocumentStatusBadge";
 import { Tabs } from "@/components/Tabs";
@@ -31,6 +32,8 @@ const ACTIVITY_SOURCE_LABEL: Record<SalesDocumentFinancialActivityRow["source"],
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const profile = await requireProfile();
+  const hasAccountingCreateAccess = profile.role === "ADMIN" || (profile.accounting_role != null && profile.accounting_role !== "VIEW");
 
   const { data: doc } = await supabase.from("sales_documents").select("*").eq("id", id).single();
   if (!doc) notFound();
@@ -100,6 +103,18 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           {d.issued_at && <Row label="تاریخ صدور رسمی">{formatJalali(d.issued_at)}</Row>}
         </div>
       </Card>
+
+      {(d.bank_account_title_snapshot || d.bank_name_snapshot) && (
+        <Card>
+          <p className="mb-3 text-sm font-medium text-ink">حساب بانکی واریز</p>
+          <div className="divide-y divide-paper-line/60">
+            {d.bank_name_snapshot && <Row label="بانک">{d.bank_name_snapshot}</Row>}
+            {d.bank_account_title_snapshot && <Row label="به نام">{d.bank_account_title_snapshot}</Row>}
+            {d.bank_account_number_snapshot && <Row label="شماره حساب"><span dir="ltr">{d.bank_account_number_snapshot}</span></Row>}
+            {d.bank_account_iban_snapshot && <Row label="شماره شبا"><span dir="ltr">{d.bank_account_iban_snapshot}</span></Row>}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <p className="mb-3 text-sm font-medium text-ink">اطلاعات مشتری</p>
@@ -270,7 +285,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <div className="space-y-6">
           <Card>
             <p className="mb-3 text-sm font-medium text-ink">اقدامات</p>
-            <DetailActions id={d.id} status={d.status} type={d.type} />
+            <DetailActions
+              id={d.id}
+              status={d.status}
+              type={d.type}
+              hasAccountingCreateAccess={hasAccountingCreateAccess}
+              accountingJournalEntryId={d.accounting_journal_entry_id}
+            />
           </Card>
         </div>
       </div>

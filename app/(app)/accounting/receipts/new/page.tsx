@@ -18,6 +18,7 @@ export default async function NewReceiptPage() {
         companies={o.companies.map((c) => ({ id: c.id, label: c.legal_name }))}
         cases={o.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }))}
         contracts={o.contracts.map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title }))}
+        salesDocuments={o.salesDocuments.map((s) => ({ id: s.id, label: `${s.display_number ?? "پیش‌نویس"} — ${s.customer_legal_name_snapshot}` }))}
         fiscalYears={openFy} />
     </div>
   );

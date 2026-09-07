@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
+import { AccountingDefaultsForm } from "./AccountingDefaultsForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
 import { ContractRoleSelect } from "./ContractRoleSelect";
 import { InvoiceRoleSelect } from "./InvoiceRoleSelect";
@@ -26,10 +27,11 @@ export default async function SettingsPage() {
   const isAdmin = profile.role === "ADMIN";
   const supabase = await createClient();
 
-  const [{ data: seqs }, { data: users }, { data: settings }] = await Promise.all([
+  const [{ data: seqs }, { data: users }, { data: settings }, { data: postingAccounts }] = await Promise.all([
     supabase.from("number_sequences").select("*").order("scope").order("year", { ascending: false }),
     supabase.from("profiles").select("*").order("created_at"),
     supabase.from("app_settings").select("*").eq("id", 1).single(),
+    supabase.from("accounts").select("id, code, name").eq("allows_posting", true).eq("is_active", true).order("code"),
   ]);
   const displayUnit = (settings?.display_unit as "RIAL" | "TOMAN") ?? "RIAL";
   const sequences = (seqs ?? []) as NumberSequence[];
@@ -97,6 +99,16 @@ export default async function SettingsPage() {
             <p className="mb-1 text-sm font-medium text-ink">واحد پول حسابداری</p>
             <p className="mb-4 text-xs text-ink-muted">واحد نمایش مبالغ در بخش مالی و حسابداری.</p>
             <DisplayUnitForm current={displayUnit} />
+          </Card>
+
+          <Card>
+            <p className="mb-1 text-sm font-medium text-ink">پیش‌فرض‌های حسابداری فاکتور</p>
+            <p className="mb-4 text-xs text-ink-muted">برای فعال‌سازی «ایجاد پیش‌نویس حسابداری» روی فاکتورهای صادرشده لازم است.</p>
+            <AccountingDefaultsForm
+              accounts={(postingAccounts ?? []).map((a) => ({ id: a.id, label: `${a.code} — ${a.name}` }))}
+              defaultArAccountId={appSettings?.default_ar_account_id ?? null}
+              defaultRevenueAccountId={appSettings?.default_sales_revenue_account_id ?? null}
+            />
           </Card>
 
           <Card>
