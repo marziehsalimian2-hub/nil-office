@@ -160,6 +160,7 @@ export function persianError(message: string | undefined | null): string {
   for (const key of Object.keys(ERROR_MESSAGES)) {
     if (message.includes(key)) return ERROR_MESSAGES[key];
   }
+  console.error("[persianError] unrecognized DB error:", message);
   return "انجام عملیات با خطا مواجه شد. لطفاً دوباره تلاش کنید.";
 }
 
