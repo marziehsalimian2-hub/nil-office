@@ -38,6 +38,7 @@ export function InvoiceForm({
   contracts,
   cases,
   profiles,
+  bankAccounts,
   initial,
 }: {
   docId?: string;
@@ -46,12 +47,14 @@ export function InvoiceForm({
   contracts: Opt[];
   cases: Opt[];
   profiles: Opt[];
+  bankAccounts: Opt[];
   initial?: {
     type: SalesDocumentType;
     company_id: string | null;
     contract_id: string | null;
     case_id: string | null;
     signatory_id: string | null;
+    bank_account_id: string | null;
     issue_date: string | null;
     due_date: string | null;
     validity_date: string | null;
@@ -202,6 +205,13 @@ export function InvoiceForm({
             <Field label="تاریخ اعتبار"><JalaliDateInput name="validity_date" defaultISO={initial?.validity_date} /></Field>
           )}
         </div>
+
+        <Field label="حساب بانکی جهت واریز" hint="اطلاعات این حساب روی برگ سند چاپ می‌شود">
+          <select name="bank_account_id" className="input" defaultValue={initial?.bank_account_id ?? ""}>
+            <option value="">— انتخاب حساب —</option>
+            {bankAccounts.map((b) => (<option key={b.id} value={b.id}>{b.label}</option>))}
+          </select>
+        </Field>
       </div>
 
       <div className="card space-y-4 p-5">

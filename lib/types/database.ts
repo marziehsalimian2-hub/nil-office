@@ -219,6 +219,8 @@ export interface AppSettings {
   display_unit: "RIAL" | "TOMAN";
   letterhead_path: string | null;
   stamp_path: string | null;
+  default_ar_account_id: string | null;
+  default_sales_revenue_account_id: string | null;
   updated_at: string;
 }
 
@@ -517,6 +519,13 @@ export interface SalesDocument {
   customer_email_snapshot: string | null;
   customer_phone_snapshot: string | null;
   signatory_id: string | null;
+  bank_account_id: string | null;
+  bank_kind_snapshot: string | null;
+  bank_name_snapshot: string | null;
+  bank_account_title_snapshot: string | null;
+  bank_account_number_snapshot: string | null;
+  bank_account_iban_snapshot: string | null;
+  accounting_journal_entry_id: string | null;
   created_by: string;
   approved_by: string | null;
   approved_at: string | null;

@@ -42,6 +42,11 @@ export type InvoicePdfInput = {
   paymentTerms: string | null;
   notes: string | null;
 
+  bankName: string | null;
+  bankAccountTitle: string | null;
+  bankAccountNumber: string | null;
+  bankIban: string | null;
+
   nilSignatoryName: string | null;
   nilSignatoryTitle: string | null;
 
@@ -89,7 +94,9 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
     customerNationalId, customerEconomicCode, customerAddress, customerContactPerson, customerPhone,
     contractLabel, items, currencyLabel, subtotalLabel, discountLabel, taxLabel, totalLabel,
     paymentTerms, notes, nilSignatoryName, nilSignatoryTitle, stampDataUri, signatureDataUri,
+    bankName, bankAccountTitle, bankAccountNumber, bankIban,
   } = input;
+  const hasBankInfo = bankName || bankAccountTitle || bankAccountNumber || bankIban;
 
   const itemRows = items
     .map(
@@ -155,6 +162,11 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
 
   .terms { margin-top: 5mm; font-size: 11px; color: #333; white-space: pre-wrap; }
 
+  .bank-info { margin-top: 5mm; border: 0.5pt solid #1a1a1a33; border-radius: 2mm; padding: 3mm 4mm; font-size: 11px; }
+  .bank-info .heading { margin-bottom: 1.5mm; font-weight: 700; }
+  .bank-info .row { display: flex; gap: 2mm; padding: 0.6mm 0; }
+  .bank-info .label { width: 28mm; flex-shrink: 0; color: #555; }
+
   .signoff-block { break-inside: avoid; page-break-inside: avoid; }
   .signoff-heading { margin-bottom: 3mm; font-size: 12px; font-weight: 700; text-align: center; }
   .signoff-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10mm; row-gap: 2mm; font-size: 11px; }
@@ -205,6 +217,14 @@ function buildInvoiceHtml(input: InvoicePdfInput): string {
 
   ${paymentTerms ? `<div class="terms"><b>شرایط پرداخت:</b> ${esc(paymentTerms)}</div>` : ""}
   ${notes ? `<div class="terms">${esc(notes)}</div>` : ""}
+
+  ${hasBankInfo ? `<div class="bank-info">
+    <div class="heading">اطلاعات واریز</div>
+    ${bankName ? `<div class="row"><span class="label">بانک:</span><span>${esc(bankName)}</span></div>` : ""}
+    ${bankAccountTitle ? `<div class="row"><span class="label">به نام:</span><span>${esc(bankAccountTitle)}</span></div>` : ""}
+    ${bankAccountNumber ? `<div class="row"><span class="label">شماره حساب:</span><span dir="ltr">${esc(bankAccountNumber)}</span></div>` : ""}
+    ${bankIban ? `<div class="row"><span class="label">شماره شبا:</span><span dir="ltr">${esc(bankIban)}</span></div>` : ""}
+  </div>` : ""}
 
   <div class="signoff-spacer"></div>
   <div class="signoff-block">

@@ -83,6 +83,7 @@ export async function createSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_email_snapshot: d.customer_email_snapshot ?? null,
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
       signatory_id: d.signatory_id ?? null,
+      bank_account_id: d.bank_account_id ?? null,
       created_by: userId,
     })
     .select("id")
@@ -151,6 +152,7 @@ export async function updateSalesDocumentDraft(_p: ActionState, f: FormData): Pr
       customer_email_snapshot: d.customer_email_snapshot ?? null,
       customer_phone_snapshot: d.customer_phone_snapshot ?? null,
       signatory_id: d.signatory_id ?? null,
+      bank_account_id: d.bank_account_id ?? null,
     })
     .eq("id", id);
   if (error) return { error: persianError(error.message) };
@@ -297,6 +299,17 @@ export async function createSalesDocumentFromContract(_p: ActionState, f: FormDa
 
   revalidatePath(`/contracts/${contractId}`);
   redirect(`/invoices/${doc.id}`);
+}
+
+/** Push an ISSUED invoice into a DRAFT journal entry for accounting review — never posts it. */
+export async function createAccountingDraft(_p: ActionState, f: FormData): Promise<ActionState> {
+  const id = String(f.get("id") ?? "");
+  const { supabase } = await ctx();
+  const { data, error } = await supabase.rpc("create_accounting_draft_from_sales_document", { p_sales_document_id: id });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath(`/invoices/${id}`);
+  if (data) redirect(`/accounting/journal/${data}`);
+  return null;
 }
 
 /* ------------------------------- settings --------------------------------- */

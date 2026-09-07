@@ -111,3 +111,17 @@ export async function initSequence(_p: ActionState, f: FormData): Promise<Action
   revalidatePath("/settings");
   return null;
 }
+
+/** Admin-only: default GL accounts used by "ایجاد پیش‌نویس حسابداری" (invoice Phase 3). */
+export async function setAccountingDefaults(_p: ActionState, f: FormData): Promise<ActionState> {
+  const arAccountId = String(f.get("default_ar_account_id") ?? "") || null;
+  const revenueAccountId = String(f.get("default_sales_revenue_account_id") ?? "") || null;
+  const { supabase } = await ctx();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ default_ar_account_id: arAccountId, default_sales_revenue_account_id: revenueAccountId })
+    .eq("id", 1);
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/settings");
+  return null;
+}

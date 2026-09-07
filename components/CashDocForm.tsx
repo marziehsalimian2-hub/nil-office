@@ -8,11 +8,11 @@ import { MoneyInput } from "@/components/MoneyInput";
 
 type Opt = { id: string; label: string };
 export function CashDocForm({
-  kind, action, banks, accounts, details, companies, cases, contracts, fiscalYears,
+  kind, action, banks, accounts, details, companies, cases, contracts, salesDocuments, fiscalYears,
 }: {
   kind: "receipt" | "payment";
   action: (p: ActionState, f: FormData) => Promise<ActionState>;
-  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[]; contracts: Opt[]; fiscalYears: Opt[];
+  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[]; contracts: Opt[]; salesDocuments?: Opt[]; fiscalYears: Opt[];
 }) {
   const [state, run] = useActionState<ActionState, FormData>(action, null);
   const isReceipt = kind === "receipt";
@@ -67,11 +67,20 @@ export function CashDocForm({
             </select>
           </Field>
         </div>
-        <Field label="قرارداد مرتبط">
-          <select name="contract_id" className="input" defaultValue=""><option value="">—</option>
-            {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
-          </select>
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="قرارداد مرتبط">
+            <select name="contract_id" className="input" defaultValue=""><option value="">—</option>
+              {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
+            </select>
+          </Field>
+          {isReceipt && (
+            <Field label="سند فروش مرتبط" hint="با ثبت قطعی این دریافت، وضعیت فاکتور به‌طور خودکار به‌روزرسانی می‌شود">
+              <select name="sales_document_id" className="input" defaultValue=""><option value="">—</option>
+                {(salesDocuments ?? []).map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
+              </select>
+            </Field>
+          )}
+        </div>
         <Field label="شرح"><input name="description" className="input" /></Field>
       </div>
       <div className="flex gap-3">

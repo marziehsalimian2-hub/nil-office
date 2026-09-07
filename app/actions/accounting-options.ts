@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Account, DetailAccount, BankAccount, FiscalYear, Company, Case, Contract } from "@/lib/types/database";
+import type { Account, DetailAccount, BankAccount, FiscalYear, Company, Case, Contract, SalesDocument } from "@/lib/types/database";
 
 /** Option lists used by accounting forms (posting accounts, banks, fiscal years). */
 export async function loadAccountingOptions() {
   const supabase = await createClient();
-  const [postingAccounts, allAccounts, details, banks, fyears, companies, cases, contracts] = await Promise.all([
+  const [postingAccounts, allAccounts, details, banks, fyears, companies, cases, contracts, salesDocuments] = await Promise.all([
     supabase.from("accounts").select("id, code, name, account_type").eq("allows_posting", true).eq("is_active", true).order("code"),
     supabase.from("accounts").select("id, code, name, level, allows_posting").order("code"),
     supabase.from("detail_accounts").select("id, name, code").eq("is_active", true).order("name"),
@@ -13,6 +13,7 @@ export async function loadAccountingOptions() {
     supabase.from("companies").select("id, legal_name").order("legal_name"),
     supabase.from("cases").select("id, case_code, title").order("created_at", { ascending: false }),
     supabase.from("contracts").select("id, display_number, external_contract_number, title").order("created_at", { ascending: false }),
+    supabase.from("sales_documents").select("id, display_number, customer_legal_name_snapshot").eq("type", "INVOICE").order("created_at", { ascending: false }),
   ]);
   return {
     postingAccounts: (postingAccounts.data ?? []) as Pick<Account, "id" | "code" | "name" | "account_type">[],
@@ -23,6 +24,7 @@ export async function loadAccountingOptions() {
     companies: (companies.data ?? []) as Pick<Company, "id" | "legal_name">[],
     cases: (cases.data ?? []) as Pick<Case, "id" | "case_code" | "title">[],
     contracts: (contracts.data ?? []) as Pick<Contract, "id" | "display_number" | "external_contract_number" | "title">[],
+    salesDocuments: (salesDocuments.data ?? []) as Pick<SalesDocument, "id" | "display_number" | "customer_legal_name_snapshot">[],
   };
 }
 

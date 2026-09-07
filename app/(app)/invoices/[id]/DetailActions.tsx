@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, FileCheck2, XCircle, PlayCircle, Undo2, FileDown, Pencil, ArrowRightLeft } from "lucide-react";
+import { CheckCircle2, FileCheck2, XCircle, PlayCircle, Undo2, FileDown, Pencil, ArrowRightLeft, BookOpenCheck } from "lucide-react";
 import {
   setSalesDocumentStatus,
   issueSalesDocument,
   convertProformaToInvoice,
   cancelSalesDocument,
+  createAccountingDraft,
   type ActionState,
 } from "@/app/actions/invoices";
 import { FormError } from "@/components/form";
@@ -20,10 +21,14 @@ export function DetailActions({
   id,
   status,
   type,
+  hasAccountingCreateAccess,
+  accountingJournalEntryId,
 }: {
   id: string;
   status: SalesDocumentStatus;
   type: SalesDocumentType;
+  hasAccountingCreateAccess: boolean;
+  accountingJournalEntryId: string | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string>();
@@ -114,6 +119,18 @@ export function DetailActions({
               </button>
             )}
           </>
+        )}
+
+        {type === "INVOICE" && hasAccountingCreateAccess && ["ISSUED", "PARTIALLY_SETTLED", "OVERDUE"].includes(status) && (
+          accountingJournalEntryId ? (
+            <Link href={`/accounting/journal/${accountingJournalEntryId}`} className="btn-ghost">
+              <BookOpenCheck className="h-4 w-4" /> مشاهدهٔ پیش‌نویس حسابداری
+            </Link>
+          ) : (
+            <button disabled={pending} className="btn-ghost" onClick={() => run(createAccountingDraft, { id })}>
+              <BookOpenCheck className="h-4 w-4" /> ایجاد پیش‌نویس حسابداری
+            </button>
+          )
         )}
 
         {canCancel && (
