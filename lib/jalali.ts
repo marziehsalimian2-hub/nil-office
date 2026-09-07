@@ -119,31 +119,43 @@ export const toFaDigits = (s: string | number) =>
 export const toEnDigits = (s: string) =>
   s.replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)));
 
+/** Extracts the Gregorian y/m/d from an ISO date-only string or a Date,
+ * without routing a date-only string through `new Date(...)` — which
+ * would parse it as UTC midnight and shift the calendar day by one in
+ * any timezone behind UTC. Shared by formatJalali/formatGregorian. */
+function gregorianYMD(input: string | Date): { gy: number; gm: number; gd: number } | null {
+  if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}(?!T)/.test(input)) {
+    const [y, m, d] = input.slice(0, 10).split("-").map(Number);
+    return { gy: y, gm: m, gd: d };
+  }
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return null;
+  return { gy: d.getFullYear(), gm: d.getMonth() + 1, gd: d.getDate() };
+}
+
 /** Format an ISO date (or Date) as a Jalali string, e.g. ۱۴۰۵/۰۳/۰۷ */
 export function formatJalali(input: string | Date | null | undefined, fa = true): string {
   if (!input) return "—";
-
-  let gy: number, gm: number, gd: number;
-  if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}(?!T)/.test(input)) {
-    // Date-only value (e.g. "2026-08-29"). Read the components directly —
-    // routing this through `new Date(...)` would parse it as UTC midnight
-    // and then read back local getters, shifting the calendar day by one
-    // in any timezone behind UTC.
-    const [y, m, d] = input.slice(0, 10).split("-").map(Number);
-    gy = y;
-    gm = m;
-    gd = d;
-  } else {
-    const d = typeof input === "string" ? new Date(input) : input;
-    if (Number.isNaN(d.getTime())) return "—";
-    gy = d.getFullYear();
-    gm = d.getMonth() + 1;
-    gd = d.getDate();
-  }
-
-  const { jy, jm, jd } = toJalaali(gy, gm, gd);
+  const ymd = gregorianYMD(input);
+  if (!ymd) return "—";
+  const { jy, jm, jd } = toJalaali(ymd.gy, ymd.gm, ymd.gd);
   const s = `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")}`;
   return fa ? toFaDigits(s) : s;
+}
+
+const GREGORIAN_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** Format an ISO date (or Date) as a Gregorian string, e.g. "Aug 29, 2026" —
+ * for English-language documents, where a Jalali date (even with Latin
+ * digits) would be meaningless to the reader. */
+export function formatGregorian(input: string | Date | null | undefined): string {
+  if (!input) return "—";
+  const ymd = gregorianYMD(input);
+  if (!ymd) return "—";
+  return `${GREGORIAN_MONTHS[ymd.gm - 1]} ${ymd.gd}, ${ymd.gy}`;
 }
 
 /** Parse a Jalali `YYYY/MM/DD` (Persian or Latin digits) into an ISO date. */

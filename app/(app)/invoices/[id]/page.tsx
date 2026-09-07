@@ -15,6 +15,7 @@ import { formatBytes } from "@/lib/utils";
 import {
   SALES_DOCUMENT_TYPE_LABEL, SALES_DOCUMENT_ITEM_TYPE_LABEL, type SalesDocumentType, type SalesDocumentItemType,
   POSTING_STATUS_LABEL, POSTING_STATUS_TONE, type PostingStatus,
+  LANGUAGE_LABEL, type Language,
 } from "@/lib/enums";
 import type {
   SalesDocument, SalesDocumentItem, Company, Case, Contract, Attachment,
@@ -75,6 +76,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <div className="divide-y divide-paper-line/60">
           <Row label="نوع سند">{SALES_DOCUMENT_TYPE_LABEL[d.type as SalesDocumentType]}</Row>
           <Row label="شماره">{d.display_number ? toFaDigits(d.display_number) : "پیش‌نویس"}</Row>
+          <Row label="زبان سند">{LANGUAGE_LABEL[d.language as Language]}</Row>
           <Row label="طرف حساب">
             {company ? (
               <a href={`/companies`} className="text-seal hover:underline">{(company as Pick<Company, "legal_name">).legal_name}</a>

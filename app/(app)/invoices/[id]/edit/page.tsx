@@ -51,6 +51,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
           case_id: d.case_id,
           signatory_id: d.signatory_id,
           bank_account_id: d.bank_account_id,
+          language: d.language,
           issue_date: d.issue_date,
           due_date: d.due_date,
           validity_date: d.validity_date,

@@ -526,6 +526,7 @@ export interface SalesDocument {
   bank_account_number_snapshot: string | null;
   bank_account_iban_snapshot: string | null;
   accounting_journal_entry_id: string | null;
+  language: "FA" | "EN";
   created_by: string;
   approved_by: string | null;
   approved_at: string | null;
