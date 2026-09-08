@@ -1116,6 +1116,7 @@ export type TradeBuyerViewResult =
         timezone: string;
         interest_open: boolean;
         document_open: boolean;
+        upload_allowed: boolean;
       };
       assignment: {
         viewed_before: boolean;
