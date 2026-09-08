@@ -132,8 +132,12 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
     taxLabel: money(doc.tax_amount),
     totalLabel: `${money(doc.total_amount)} ${currencyLabel}`,
 
-    paymentTerms: doc.payment_terms,
-    notes: doc.notes,
+    // Free-typed text — convert digits to Persian for FA display only, same
+    // as every other free-typed field above (address, registration number,
+    // etc.); previously missed here, which let a customer's own mixed
+    // Persian/Latin digit input (e.g. "24 ساعت") reach the PDF as typed.
+    paymentTerms: doc.payment_terms ? (isEn ? doc.payment_terms : toFaDigits(doc.payment_terms)) : null,
+    notes: doc.notes ? (isEn ? doc.notes : toFaDigits(doc.notes)) : null,
 
     bankName: doc.bank_name_snapshot,
     bankAccountTitle: doc.bank_account_title_snapshot,

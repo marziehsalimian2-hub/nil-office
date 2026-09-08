@@ -709,3 +709,37 @@ export const TRADE_EVENT_TYPE_LABEL: Record<string, string> = {
  */
 export const TRADE_LEGAL_DISCLAIMER =
   "این پیشنهاد صرفاً جهت بررسی و اعلام تمایل اولیه ارائه شده است. قیمت، موجودی و شرایط نهایی در زمان دریافت درخواست رسمی خریدار مجدداً توسط فروشنده تأیید خواهد شد. مشاهده یا تأیید این آفر به‌منزله رزرو کالا یا ایجاد تعهد قطعی برای طرفین نیست.";
+
+/* ============================ Executive Dashboard =========================== */
+
+export const ATTENTION_SEVERITY = ["INFO", "WARNING", "HIGH", "CRITICAL"] as const;
+export type AttentionSeverity = (typeof ATTENTION_SEVERITY)[number];
+export const ATTENTION_SEVERITY_LABEL: Record<AttentionSeverity, string> = {
+  INFO: "اطلاعاتی", WARNING: "هشدار", HIGH: "مهم", CRITICAL: "بحرانی",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const ATTENTION_SEVERITY_TONE: Record<AttentionSeverity, string> = {
+  INFO: "status-review", WARNING: "status-waiting", HIGH: "status-cancelled", CRITICAL: "status-cancelled",
+};
+
+/**
+ * Deterministic rule codes the Attention Engine can produce
+ * (lib/dashboard/attention.ts) — every attention item traces back to
+ * exactly one of these (spec §45/§46: rule-based, explainable, never
+ * AI-labeled). CONTRACT_OBLIGATION_OVERDUE is intentionally absent —
+ * Contract Obligations was never built in this codebase.
+ */
+export const ATTENTION_RULE_LABEL: Record<string, string> = {
+  TASK_OVERDUE: "کار عقب‌افتاده",
+  TASK_BLOCKED_URGENT: "کار فوری مسدودشده",
+  FOLLOWUP_OVERDUE: "پیگیری عقب‌افتاده",
+  PROJECT_DELAYED: "پروژهٔ عقب‌افتاده",
+  PROJECT_AT_RISK: "پروژهٔ در معرض خطر",
+  MILESTONE_OVERDUE: "مایلستون عقب‌افتاده",
+  DELIVERABLE_OVERDUE: "تحویل‌دادنی عقب‌افتاده",
+  INVOICE_OVERDUE: "فاکتور عقب‌افتاده از سررسید",
+  CONTRACT_EXPIRING: "قرارداد نزدیک به پایان",
+  CONTRACT_EXPIRED_STILL_ACTIVE: "قرارداد منقضی‌شدهٔ همچنان فعال",
+  CRM_STALE: "فرصت تجاری بدون فعالیت",
+  CRM_NEXT_ACTION_OVERDUE: "اقدام بعدی فرصت تجاری عقب‌افتاده",
+};

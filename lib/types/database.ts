@@ -223,6 +223,8 @@ export interface AppSettings {
   stamp_path: string | null;
   default_ar_account_id: string | null;
   default_sales_revenue_account_id: string | null;
+  dashboard_contract_expiry_days: number;
+  dashboard_project_ending_soon_days: number;
   updated_at: string;
 }
 

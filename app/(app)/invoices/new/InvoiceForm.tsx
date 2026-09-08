@@ -150,8 +150,13 @@ export function InvoiceForm({
       <div className="card space-y-4 p-5">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="نوع سند" required>
+            {/* Disabled selects are omitted from FormData entirely — a hidden
+                input keeps `type` submitted (and thus validated) once editing
+                makes it immutable, matching the pattern already used above
+                for the customer-snapshot fields. */}
+            {docId && <input type="hidden" name="type" value={type} />}
             <select
-              name="type"
+              name={docId ? undefined : "type"}
               required
               className="input"
               value={type}

@@ -125,3 +125,21 @@ export async function setAccountingDefaults(_p: ActionState, f: FormData): Promi
   revalidatePath("/settings");
   return null;
 }
+
+/** Executive Dashboard attention thresholds — RLS (app_settings, 0009) restricts the actual write to admins. */
+export async function setDashboardThresholds(_p: ActionState, f: FormData): Promise<ActionState> {
+  const contractExpiryDays = Math.max(1, Number(f.get("dashboard_contract_expiry_days")) || 30);
+  const projectEndingSoonDays = Math.max(1, Number(f.get("dashboard_project_ending_soon_days")) || 14);
+  const { supabase } = await ctx();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({
+      dashboard_contract_expiry_days: contractExpiryDays,
+      dashboard_project_ending_soon_days: projectEndingSoonDays,
+    })
+    .eq("id", 1);
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  return null;
+}
