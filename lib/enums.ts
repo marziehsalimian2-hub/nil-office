@@ -170,6 +170,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   BUYER_ALREADY_ASSIGNED: "این شرکت قبلاً به‌عنوان خریدار این آفر تعیین شده است.",
   INVALID_RESPONSE_TYPE: "نوع پاسخ نامعتبر است.",
   INVALID_DOCUMENT_TYPE: "نوع مدرک نامعتبر است.",
+  INTEREST_REQUIRED_FOR_UPLOAD: "برای بارگذاری LOI/ICPO ابتدا باید تمایل خود را با گزینهٔ «علاقه‌مندم» اعلام کنید.",
 };
 
 export function persianError(message: string | undefined | null): string {

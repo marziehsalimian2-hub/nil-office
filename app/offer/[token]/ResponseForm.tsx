@@ -5,17 +5,9 @@ import { submitTradeResponse, type ActionState } from "./actions";
 import { FormError, SubmitButton } from "@/components/form";
 import { TRADE_RESPONSE_TYPE, TRADE_RESPONSE_TYPE_LABEL, type TradeResponseType } from "@/lib/enums";
 
-export function ResponseForm({ token, disabled, latest }: { token: string; disabled: boolean; latest: TradeResponseType | null }) {
+export function ResponseForm({ token, latest }: { token: string; latest: TradeResponseType | null }) {
   const boundAction = submitTradeResponse.bind(null, token);
   const [state, formAction] = useActionState<ActionState, FormData>(boundAction, null);
-
-  if (disabled) {
-    return (
-      <div className="card p-4">
-        <p className="text-sm text-ink-muted">مهلت اعلام تمایل برای این آفر به پایان رسیده است.</p>
-      </div>
-    );
-  }
 
   if (state?.ok) {
     return (

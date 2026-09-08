@@ -12,6 +12,9 @@ import {
 } from "@/lib/upload-validation";
 
 export type ActionState = { error?: string; ok?: boolean } | null;
+export type UploadActionState =
+  | { error?: string; ok?: boolean; fileName?: string; documentType?: string; uploadedAt?: string }
+  | null;
 
 const entries = (f: FormData) => Object.fromEntries(f.entries());
 
@@ -45,7 +48,7 @@ export async function submitTradeResponse(token: string, _prev: ActionState, f: 
  * trade_record_document_upload() re-validates the document deadline
  * server-side before recording the row, exactly like the response path.
  */
-export async function uploadTradeDocument(token: string, _prev: ActionState, f: FormData): Promise<ActionState> {
+export async function uploadTradeDocument(token: string, _prev: UploadActionState, f: FormData): Promise<UploadActionState> {
   const documentType = tradeDocumentTypeSchema.safeParse(f.get("document_type"));
   if (!documentType.success) return { error: "نوع مدرک نامعتبر است." };
   const file = f.get("file");
@@ -103,5 +106,5 @@ export async function uploadTradeDocument(token: string, _prev: ActionState, f: 
   }
 
   revalidatePath(`/offer/${token}`);
-  return { ok: true };
+  return { ok: true, fileName: file.name, documentType: documentType.data, uploadedAt: new Date().toISOString() };
 }
