@@ -57,6 +57,10 @@ supabase/migrations/0023_contract_rls.sql            # RLS و دسترسی‌ه�
 ...                                                    # مهاجرت‌های ۰۰۲۴ تا ۰۰۲۶ (امضاکننده، رفع باگ ابطال، نمایندهٔ طرف قرارداد)
 supabase/migrations/0027_contract_financial_links.sql    # افزودن contract_id به دریافت/پرداخت/سند حسابداری (فاز ۳)
 supabase/migrations/0028_contract_financial_functions.sql # RPCهای امن نمایش فعالیت مالی قرارداد
+...                                                # مهاجرت‌های ۰۰۲۹ تا ۰۰۶۵ (فاکتور/پیش‌فاکتور، CRM، پروژه‌ها و کارها، زبان انگلیسی فاکتور)
+supabase/migrations/0066_trade_portal.sql              # پورتال معاملات (Trade Portal) — آفر، خریدار توکنی، رویدادها
+supabase/migrations/0067_trade_upload_requires_interest.sql # بارگذاری LOI/ICPO منوط به پاسخ «علاقه‌مندم»
+supabase/migrations/0068_dashboard_settings.sql        # آستانه‌های قابل‌تنظیم مرکز فرمان (پایان قرارداد/پروژه)
 ```
 
 ### ۵) ساخت کاربران و مدیر اول
@@ -131,6 +135,13 @@ supabase/tests/contract_integrity.sql
 node supabase/tests/security-rls-contract-financials.mjs
 ```
 تأیید می‌کند: کاربر فقط-قرارداد نمی‌تواند مستقیم جدول `receipts`/`payments` را بخواند، ولی از طریق RPC امن فعالیت مالی «تأییدشدهٔ» قراردادش را می‌بیند؛ سند «پیش‌نویس» نشان داده نمی‌شود؛ کاربر فقط-حسابداری (بدون دسترسی قراردادها) از همین RPC چیزی نمی‌بیند؛ محاسبهٔ مانده درست است.
+
+### تست‌های مرکز فرمان (Executive Dashboard)
+```
+supabase/tests/dashboard_integrity.sql       # SQL Editor — تنظیمات آستانه، توابع بازاستفاده‌شدهٔ پروژه/CRM
+node supabase/tests/security-rls-dashboard.mjs  # کاربر بدون دسترسی حسابداری هیچ ردیف مالی نمی‌بیند
+```
+مرکز فرمان تقریباً هیچ منطق SQL جدیدی ندارد — از فیلترها و توابع موجود هر ماژول (`get_project_progress_summary`، `get_stale_crm_opportunities`، `v_trial_balance`) عیناً استفاده می‌کند؛ برای همین بیشتر «تست‌ها»ی این بخش در سطح TypeScript (تطابق دقیق فیلتر شمارنده با فیلتر صفحهٔ لیست مقصد) هستند، نه SQL.
 
 ---
 

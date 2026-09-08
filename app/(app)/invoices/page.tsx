@@ -17,6 +17,7 @@ const TABS = [
   { key: "invoice", label: "فاکتورها" },
   { key: "draft", label: "پیش‌نویس‌ها" },
   { key: "unpaid", label: "پرداخت‌نشده" },
+  { key: "overdue", label: "عقب‌افتاده از سررسید" },
   { key: "settled", label: "تسویه‌شده" },
   { key: "cancelled", label: "ابطال‌شده" },
 ] as const;
@@ -42,6 +43,10 @@ export default async function InvoicesPage({
       break;
     case "unpaid":
       query = query.eq("type", "INVOICE").in("status", ["ISSUED", "PARTIALLY_SETTLED", "OVERDUE"]);
+      break;
+    case "overdue":
+      // Executive Dashboard drill-down — identical filter to lib/dashboard/invoices.ts / attention.ts's INVOICE_OVERDUE rule.
+      query = query.eq("type", "INVOICE").in("status", ["ISSUED", "PARTIALLY_SETTLED"]).lt("due_date", new Date().toISOString().slice(0, 10));
       break;
     case "settled":
       query = query.eq("status", "SETTLED");

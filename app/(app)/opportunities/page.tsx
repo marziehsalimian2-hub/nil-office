@@ -56,6 +56,11 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
     staleIds = ((stale ?? []) as { id: string }[]).map((s) => s.id);
     query = query.in("id", staleIds.length > 0 ? staleIds : ["00000000-0000-0000-0000-000000000000"]);
   }
+  // Executive Dashboard drill-down — identical filter to the attention-item count in lib/dashboard/attention.ts / crm.ts.
+  if (sp.status === "next_action_overdue") {
+    const today = new Date().toISOString().slice(0, 10);
+    query = query.is("won_at", null).is("lost_at", null).not("next_action_date", "is", null).lt("next_action_date", today);
+  }
 
   const [{ data }, { data: pipelines }, { data: stages }, { data: profiles }] = await Promise.all([
     query,

@@ -4,6 +4,7 @@ import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
 import { AccountingDefaultsForm } from "./AccountingDefaultsForm";
+import { DashboardThresholdsForm } from "./DashboardThresholdsForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
 import { ContractRoleSelect } from "./ContractRoleSelect";
 import { InvoiceRoleSelect } from "./InvoiceRoleSelect";
@@ -109,6 +110,15 @@ export default async function SettingsPage() {
               accounts={(postingAccounts ?? []).map((a) => ({ id: a.id, label: `${a.code} — ${a.name}` }))}
               defaultArAccountId={appSettings?.default_ar_account_id ?? null}
               defaultRevenueAccountId={appSettings?.default_sales_revenue_account_id ?? null}
+            />
+          </Card>
+
+          <Card>
+            <p className="mb-1 text-sm font-medium text-ink">آستانه‌های هشدار مرکز فرمان</p>
+            <p className="mb-4 text-xs text-ink-muted">چند روز مانده به پایان قرارداد/پروژه در «نیازمند توجه شما» نمایش داده شود.</p>
+            <DashboardThresholdsForm
+              contractExpiryDays={appSettings?.dashboard_contract_expiry_days ?? 30}
+              projectEndingSoonDays={appSettings?.dashboard_project_ending_soon_days ?? 14}
             />
           </Card>
 

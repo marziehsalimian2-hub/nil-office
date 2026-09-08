@@ -20,7 +20,15 @@ export default async function ContractsPage({
   const supabase = await createClient();
 
   let query = supabase.from("contracts").select("*").order("created_at", { ascending: false }).limit(200);
-  if (status) query = query.eq("status", status);
+  if (status === "EXPIRING_SOON") {
+    // Executive Dashboard drill-down — identical filter to lib/dashboard/contracts.ts / attention.ts's CONTRACT_EXPIRING rule.
+    const { data: settings } = await supabase.from("app_settings").select("dashboard_contract_expiry_days").eq("id", 1).single();
+    const today = new Date().toISOString().slice(0, 10);
+    const windowEnd = new Date(Date.now() + (settings?.dashboard_contract_expiry_days ?? 30) * 86400000).toISOString().slice(0, 10);
+    query = query.eq("status", "ACTIVE").not("expiry_date", "is", null).gte("expiry_date", today).lte("expiry_date", windowEnd);
+  } else if (status) {
+    query = query.eq("status", status);
+  }
   if (type) query = query.eq("contract_type_id", type);
 
   const [{ data }, { data: types }, { data: companies }] = await Promise.all([
