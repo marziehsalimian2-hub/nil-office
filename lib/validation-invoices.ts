@@ -7,7 +7,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "تاریخ نامعتب
 const optIsoDate = isoDate.optional().or(z.literal("").transform(() => undefined));
 
 export const salesDocumentSchema = z.object({
-  type: z.enum(SALES_DOCUMENT_TYPE),
+  type: z.enum(SALES_DOCUMENT_TYPE, { errorMap: () => ({ message: "نوع سند نامعتبر است." }) }),
   company_id: z.string().uuid("طرف حساب (مشتری) را انتخاب کنید."),
   contract_id: optUuid,
   case_id: optUuid,
