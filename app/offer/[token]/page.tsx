@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { getTradeBuyerView } from "@/lib/trade/buyer";
 import { CountdownTimer } from "./CountdownTimer";
 import { ResponseForm } from "./ResponseForm";
@@ -25,7 +26,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-paper px-4 py-8">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink text-sm font-bold text-seal-soft">نیل</div>
+          <Image src="/nil-logo.png" alt="نیل" width={40} height={50} className="h-10 w-auto rounded-md bg-white p-0.5" priority />
           <p className="text-sm font-semibold text-ink">شرکت مدیریت راهبردی نیل — پورتال معاملات</p>
         </div>
         {children}
