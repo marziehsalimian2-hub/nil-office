@@ -5,8 +5,9 @@ import puppeteer, { type Browser } from "puppeteer";
 import { PDFDocument } from "pdf-lib";
 
 export type LetterPdfInput = {
+  language: "FA" | "EN";
   displayNumber: string | null;
-  dateLabel: string; // already-formatted Jalali date string
+  dateLabel: string; // already-formatted Jalali (FA) or Gregorian (EN) date string
   recipientLabel: string | null;
   subject: string | null;
   bodyHtml: string; // must already be sanitized
@@ -14,6 +15,11 @@ export type LetterPdfInput = {
   letterheadDataUri: string | null;
   stampDataUri: string | null;
   signatureDataUri: string | null;
+};
+
+const LABELS: Record<"FA" | "EN", { dir: "rtl" | "ltr"; recipient: string; subject: string; draft: string }> = {
+  FA: { dir: "rtl", recipient: "گیرنده:", subject: "موضوع:", draft: "پیش‌نویس" },
+  EN: { dir: "ltr", recipient: "To:", subject: "Subject:", draft: "Draft" },
 };
 
 let cachedFontBase64: string | null = null;
@@ -44,10 +50,11 @@ const FONT_FACE = `@font-face {
  * one-paragraph letter onto a spurious page 2.
  */
 function buildLetterHtml(input: LetterPdfInput): string {
-  const { recipientLabel, subject, bodyHtml, signatoryLabel, stampDataUri, signatureDataUri } = input;
+  const { language, recipientLabel, subject, bodyHtml, signatoryLabel, stampDataUri, signatureDataUri } = input;
+  const L = LABELS[language];
 
   return `<!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="${language === "EN" ? "en" : "fa"}" dir="${L.dir}">
 <head>
 <meta charset="utf-8" />
 <style>
@@ -56,7 +63,7 @@ function buildLetterHtml(input: LetterPdfInput): string {
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Vazirmatn", sans-serif;
-    direction: rtl;
+    direction: ${L.dir};
     color: #1a1a1a;
     font-size: 13px;
     line-height: 1.3;
@@ -125,8 +132,8 @@ function buildLetterHtml(input: LetterPdfInput): string {
 </style>
 </head>
 <body>
-  ${recipientLabel ? `<div class="recipient">گیرنده: ${esc(recipientLabel)}</div>` : ""}
-  ${subject ? `<div class="subject">موضوع: <b>${esc(subject)}</b></div>` : ""}
+  ${recipientLabel ? `<div class="recipient">${L.recipient} ${esc(recipientLabel)}</div>` : ""}
+  ${subject ? `<div class="subject">${L.subject} <b>${esc(subject)}</b></div>` : ""}
   <div class="body">${bodyHtml}</div>
   <div class="signoff-spacer"></div>
   <div class="signoff">
@@ -150,9 +157,10 @@ function buildLetterHtml(input: LetterPdfInput): string {
 /** Small transparent snippet with just the date/number, rendered by
  * Chromium so Persian text shaping (letter joining, digit forms) is
  * correct — pdf-lib's own text drawing can't shape Arabic-script text. */
-function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null): string {
+function buildHeaderFieldsHtml(language: "FA" | "EN", dateLabel: string, displayNumber: string | null): string {
+  const L = LABELS[language];
   return `<!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="${language === "EN" ? "en" : "fa"}" dir="${L.dir}">
 <head>
 <meta charset="utf-8" />
 <style>
@@ -160,7 +168,7 @@ function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null):
   html, body { margin: 0; padding: 0; background: transparent; }
   body {
     font-family: "Vazirmatn", sans-serif;
-    direction: rtl;
+    direction: ${L.dir};
     text-align: left;
     color: #1a1a1a;
     font-size: 15px;
@@ -170,7 +178,7 @@ function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null):
 </head>
 <body>
   <div>${esc(dateLabel)}</div>
-  <div>${displayNumber ? esc(displayNumber) : "پیش‌نویس"}</div>
+  <div>${displayNumber ? esc(displayNumber) : esc(L.draft)}</div>
 </body>
 </html>`;
 }
@@ -179,11 +187,11 @@ const HEADER_SNIPPET_WIDTH_PX = 400;
 const HEADER_SNIPPET_HEIGHT_PX = 90;
 const PX_TO_PT = 0.75; // CSS px (96dpi) -> PDF points (72dpi)
 
-async function renderHeaderFieldsPng(browser: Browser, dateLabel: string, displayNumber: string | null) {
+async function renderHeaderFieldsPng(browser: Browser, language: "FA" | "EN", dateLabel: string, displayNumber: string | null) {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: HEADER_SNIPPET_WIDTH_PX, height: HEADER_SNIPPET_HEIGHT_PX, deviceScaleFactor: 3 });
-    await page.setContent(buildHeaderFieldsHtml(dateLabel, displayNumber), { waitUntil: "load" });
+    await page.setContent(buildHeaderFieldsHtml(language, dateLabel, displayNumber), { waitUntil: "load" });
     return await page.screenshot({ type: "png", omitBackground: true });
   } finally {
     await page.close();
@@ -219,7 +227,7 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<Buffer> {
     });
 
     if (input.letterheadDataUri) {
-      headerPng = await renderHeaderFieldsPng(browser, input.dateLabel, input.displayNumber);
+      headerPng = await renderHeaderFieldsPng(browser, input.language, input.dateLabel, input.displayNumber);
     }
   } finally {
     await browser.close();

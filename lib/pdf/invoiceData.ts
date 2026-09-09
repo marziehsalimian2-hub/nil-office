@@ -46,8 +46,17 @@ async function pathToDataUri(
  * `language` (FA/EN) branches digit script, date calendar (Jalali vs.
  * Gregorian), and currency/item-type labels — see renderInvoicePdf.ts
  * for the corresponding template-side branch.
+ *
+ * `opts.noStamp` skips the company stamp/signatory signature images
+ * (e.g. a draft-style copy sent for internal review) — a print-time
+ * choice, not a stored document property, so re-downloading without the
+ * flag always gets the normal, fully-signed PDF back.
  */
-export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Promise<Buffer> {
+export async function buildInvoicePdf(
+  supabase: SupabaseClient,
+  id: string,
+  opts?: { noStamp?: boolean },
+): Promise<{ buffer: Buffer; fileName: string }> {
   const { data: doc, error } = await supabase
     .from("sales_documents")
     .select(
@@ -86,16 +95,20 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
   const contract = contractRes.data;
   const signatory = signatoryRes.data;
 
+  const noStamp = opts?.noStamp ?? false;
   const [letterheadDataUri, stampDataUri, signatureDataUri] = await Promise.all([
     pathToDataUri(supabase, settings?.letterhead_path),
-    pathToDataUri(supabase, settings?.stamp_path),
-    pathToDataUri(supabase, signatory?.signature_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, settings?.stamp_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
   const currencyLabel = isEn ? doc.currency_code : (CURRENCY_LABEL[doc.currency_code as Currency] ?? doc.currency_code);
   const money = (v: number) => formatMoney(v, undefined, isEn ? "en" : "fa");
 
-  return renderInvoicePdf({
+  const docTypeName = isEn ? DOC_TYPE_LABEL_EN[doc.type as SalesDocumentType] : SALES_DOCUMENT_TYPE_LABEL[doc.type as SalesDocumentType];
+  const fileName = `${docTypeName}-${doc.customer_legal_name_snapshot}-${doc.display_number ?? "DRAFT"}.pdf`;
+
+  const buffer = await renderInvoicePdf({
     language: isEn ? "EN" : "FA",
     displayNumber: doc.display_number ? (isEn ? doc.display_number : toFaDigits(doc.display_number)) : null,
     dateLabel: isEn ? formatGregorian(doc.issued_at ?? doc.created_at) : formatJalali(doc.issued_at ?? doc.created_at),
@@ -151,4 +164,6 @@ export async function buildInvoicePdf(supabase: SupabaseClient, id: string): Pro
     stampDataUri,
     signatureDataUri,
   });
+
+  return { buffer, fileName };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -66,9 +67,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
       <div className="mb-4 flex items-center gap-3 px-2 pt-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink text-sm font-bold text-seal-soft">
-          نیل
-        </div>
+        <Image src="/nil-logo.png" alt="نیل" width={40} height={50} className="h-10 w-auto rounded-lg bg-white p-0.5" priority />
         <div className="leading-tight">
           <p className="text-sm font-semibold text-ink">دبیرخانه نیل</p>
           <p className="text-[11px] text-ink-muted">مدیریت راهبردی نیل</p>

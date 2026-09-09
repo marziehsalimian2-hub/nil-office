@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatJalali, toFaDigits } from "@/lib/jalali";
+import { formatJalali, formatGregorian, toFaDigits } from "@/lib/jalali";
 import { renderLetterPdf } from "@/lib/pdf/renderLetterPdf";
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -39,11 +39,13 @@ export async function buildLetterPdfForCorrespondence(
   const { data: letter, error } = await supabase
     .from("correspondence")
     .select(
-      "id, display_number, subject, draft_text, recipient_name, recipient_company_id, signatory_id, signatory_label, finalized_at, created_at",
+      "id, display_number, subject, draft_text, recipient_name, recipient_company_id, signatory_id, signatory_label, finalized_at, created_at, language",
     )
     .eq("id", correspondenceId)
     .single();
   if (error || !letter) throw new Error("نامه یافت نشد.");
+
+  const isEn = letter.language === "EN";
 
   const [{ data: settings }, companyRes, signatoryRes] = await Promise.all([
     supabase.from("app_settings").select("letterhead_path, stamp_path").eq("id", 1).single(),
@@ -64,8 +66,9 @@ export async function buildLetterPdfForCorrespondence(
   ]);
 
   return renderLetterPdf({
-    displayNumber: letter.display_number ? toFaDigits(letter.display_number) : null,
-    dateLabel: formatJalali(letter.finalized_at ?? letter.created_at),
+    language: isEn ? "EN" : "FA",
+    displayNumber: letter.display_number ? (isEn ? letter.display_number : toFaDigits(letter.display_number)) : null,
+    dateLabel: isEn ? formatGregorian(letter.finalized_at ?? letter.created_at) : formatJalali(letter.finalized_at ?? letter.created_at),
     recipientLabel: recipientCompany?.legal_name ?? letter.recipient_name ?? null,
     subject: letter.subject,
     bodyHtml: letter.draft_text ?? "",

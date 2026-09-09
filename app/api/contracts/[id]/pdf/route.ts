@@ -2,20 +2,24 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildContractPdf } from "@/lib/pdf/contractData";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", _req.url));
+  if (!user) return NextResponse.redirect(new URL("/login", req.url));
+
+  const noStamp = req.nextUrl.searchParams.get("no_stamp") === "1";
 
   try {
-    const pdf = await buildContractPdf(supabase, id);
-    return new NextResponse(new Uint8Array(pdf), {
+    const { buffer, fileName } = await buildContractPdf(supabase, id, { noStamp });
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="contract-${id}.pdf"`,
+        // RFC 5987 filename* carries the real (Persian) name in every current
+        // browser; the plain filename= is a safe ASCII fallback for the rest.
+        "Content-Disposition": `inline; filename="contract-${id}.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       },
     });
   } catch (err) {

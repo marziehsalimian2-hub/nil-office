@@ -45,8 +45,15 @@ function textToHtml(text: string | null): string {
  * letterhead, followed by a two-party signoff table: the counterparty's
  * side is left blank for their own hand-written signature (they're not a
  * system user), NIL's side is auto-filled from the chosen signatory.
+ *
+ * `opts.noStamp` skips the company stamp/signatory signature images — a
+ * print-time choice, not a stored document property.
  */
-export async function buildContractPdf(supabase: SupabaseClient, contractId: string): Promise<Buffer> {
+export async function buildContractPdf(
+  supabase: SupabaseClient,
+  contractId: string,
+  opts?: { noStamp?: boolean },
+): Promise<{ buffer: Buffer; fileName: string }> {
   const { data: contract, error } = await supabase
     .from("contracts")
     .select(
@@ -68,15 +75,17 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
   const counterparty = companyRes.data;
   const signatory = signatoryRes.data;
 
+  const noStamp = opts?.noStamp ?? false;
   const [letterheadDataUri, stampDataUri, signatureDataUri] = await Promise.all([
     pathToDataUri(supabase, settings?.letterhead_path),
-    pathToDataUri(supabase, settings?.stamp_path),
-    pathToDataUri(supabase, signatory?.signature_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, settings?.stamp_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
   const rawDisplayNumber = contract.display_number ?? contract.external_contract_number;
+  const fileName = `قرارداد-${counterparty?.legal_name ?? "بدون-طرف-قرارداد"}-${rawDisplayNumber ?? "DRAFT"}.pdf`;
 
-  return renderContractPdf({
+  const buffer = await renderContractPdf({
     displayNumber: rawDisplayNumber ? toFaDigits(rawDisplayNumber) : null,
     dateLabel: formatJalali(contract.finalized_at ?? contract.created_at),
     recipientLabel: counterparty?.legal_name ?? null,
@@ -90,4 +99,6 @@ export async function buildContractPdf(supabase: SupabaseClient, contractId: str
     stampDataUri,
     signatureDataUri,
   });
+
+  return { buffer, fileName };
 }
