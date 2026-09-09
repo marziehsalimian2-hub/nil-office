@@ -41,20 +41,38 @@ function taskPayload(d: ReturnType<typeof taskSchema.parse>) {
   };
 }
 
-export async function createTask(_p: ActionState, f: FormData): Promise<ActionState> {
-  const parsed = taskSchema.safeParse(entries(f));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-  const { supabase, userId } = await ctx();
+/**
+ * Non-redirecting core shared by the form action below and NIL
+ * Assistant's CREATE_TASK_DRAFT action (lib/assistant/actions/task.ts).
+ * Next's redirect() throws a special control-flow error that only a
+ * page-render/form-action caller can catch correctly — a programmatic
+ * caller like the Assistant action registry needs a plain return value,
+ * so the redirect stays here, in the thin wrapper, not in the shared core.
+ */
+export async function insertTaskDraftCore(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  d: ReturnType<typeof taskSchema.parse>,
+): Promise<{ data: { id: string } } | { error: string }> {
   const { data, error } = await supabase
     .from("tasks")
-    .insert({ ...taskPayload(parsed.data), created_by: userId })
+    .insert({ ...taskPayload(d), created_by: userId })
     .select("id")
     .single();
   if (error) return { error: persianError(error.message) };
   revalidatePath("/tasks");
   revalidatePath("/tasks/mine");
-  if (parsed.data.project_id) revalidatePath(`/projects/${parsed.data.project_id}`);
-  redirect(`/tasks/${data.id}`);
+  if (d.project_id) revalidatePath(`/projects/${d.project_id}`);
+  return { data };
+}
+
+export async function createTask(_p: ActionState, f: FormData): Promise<ActionState> {
+  const parsed = taskSchema.safeParse(entries(f));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const { supabase, userId } = await ctx();
+  const result = await insertTaskDraftCore(supabase, userId, parsed.data);
+  if ("error" in result) return { error: result.error };
+  redirect(`/tasks/${result.data.id}`);
 }
 
 export async function updateTask(_p: ActionState, f: FormData): Promise<ActionState> {

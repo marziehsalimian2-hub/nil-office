@@ -67,15 +67,34 @@ export async function createDocument(_p: ActionState, f: FormData): Promise<Acti
   redirect("/documents");
 }
 
+/**
+ * Non-redirecting core shared by the form action below and NIL
+ * Assistant's CREATE_FOLLOWUP_DRAFT action
+ * (lib/assistant/actions/followup.ts). See insertTaskDraftCore in
+ * app/actions/tasks.ts for why redirect() has to stay out of this
+ * function and live in the thin wrapper instead.
+ */
+export async function insertFollowupDraftCore(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  d: ReturnType<typeof followupSchema.parse>,
+): Promise<{ data: { id: string } } | { error: string }> {
+  const { data, error } = await supabase
+    .from("followups")
+    .insert({ ...d, created_by: userId })
+    .select("id")
+    .single();
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/followups");
+  return { data };
+}
+
 export async function createFollowup(_p: ActionState, f: FormData): Promise<ActionState> {
   const parsed = followupSchema.safeParse(entries(f));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const { supabase, userId } = await ctx();
-  const { error } = await supabase
-    .from("followups")
-    .insert({ ...parsed.data, created_by: userId });
-  if (error) return { error: persianError(error.message) };
-  revalidatePath("/followups");
+  const result = await insertFollowupDraftCore(supabase, userId, parsed.data);
+  if ("error" in result) return { error: result.error };
   redirect("/followups");
 }
 
