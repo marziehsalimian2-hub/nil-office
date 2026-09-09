@@ -5,7 +5,12 @@ import { runChatTurn } from "@/lib/assistant/orchestrator";
 import type { Profile } from "@/lib/types/database";
 
 const bodySchema = z.object({
-  conversation_id: z.string().uuid().optional(),
+  // .nullish() (not just .optional()) — the client sends an explicit
+  // `null` for conversation_id on the first message of a new
+  // conversation (JSON.stringify keeps `null` but drops `undefined`
+  // keys entirely), so plain .optional() alone rejected every first
+  // message with a generic "ورودی نامعتبر است."
+  conversation_id: z.string().uuid().nullish(),
   message: z.string().trim().min(1).max(2000),
 });
 
