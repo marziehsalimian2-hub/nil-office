@@ -43,11 +43,21 @@ export async function updateSession(request: NextRequest) {
   // handlers do all authorization from the token itself; nothing here
   // should ever bounce an anonymous buyer to /login.
   const isTradePortal = path.startsWith("/offer/");
+  // Telegram webhook — no Supabase session exists for it (Telegram
+  // carries no cookies at all), and it has no login page to redirect to
+  // in the first place. It does its own authentication entirely inline
+  // (webhook-secret header, then allowlist, then identity mapping —
+  // lib/assistant/telegram/security.ts/identity.ts), same shape as the
+  // Buyer Portal's own token-based auth replacing a Supabase session.
+  // Without this carve-out, every webhook POST was silently redirected
+  // to /login (a 307) and Telegram logged it as "Wrong response from
+  // the webhook" — found live, not caught in review, see git history.
+  const isTelegramWebhook = path === "/api/telegram/webhook";
   // Set by requireProfile() when the signed-in user has no active profile.
   // Must NOT be bounced back to /dashboard below, or the two redirects loop forever.
   const isInactiveNotice = path === "/login" && request.nextUrl.searchParams.get("inactive") === "1";
 
-  if (!user && !isAuthRoute && !isPublicAsset && !isTradePortal) {
+  if (!user && !isAuthRoute && !isPublicAsset && !isTradePortal && !isTelegramWebhook) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);
