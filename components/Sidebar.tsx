@@ -27,11 +27,13 @@ import {
   FolderKanban,
   ListChecks,
   Handshake,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { href: "/assistant", label: "دستیار نیل", icon: Bot },
   { href: "/correspondence/outgoing", label: "نامه‌های صادره", icon: Send },
   { href: "/correspondence/incoming", label: "نامه‌های وارده", icon: Inbox },
   { href: "/cases", label: "پرونده‌ها", icon: FolderOpen },
