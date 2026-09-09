@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FormError } from "@/components/form";
@@ -29,9 +30,7 @@ function LoginForm() {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-ink text-lg font-bold text-seal-soft">
-          نیل
-        </div>
+        <Image src="/nil-logo.png" alt="نیل" width={56} height={70} className="mx-auto mb-4 h-14 w-auto rounded-xl bg-white p-1" priority />
         <h1 className="text-lg font-semibold text-ink">دبیرخانه نیل</h1>
         <p className="mt-1 text-sm text-ink-muted">سامانه داخلی مکاتبات و بایگانی</p>
       </div>

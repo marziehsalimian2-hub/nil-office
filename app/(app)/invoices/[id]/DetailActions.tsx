@@ -33,6 +33,7 @@ export function DetailActions({
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [noStamp, setNoStamp] = useState(false);
 
   function run(action: Action, fields: Record<string, string>) {
     const fd = new FormData();
@@ -53,10 +54,14 @@ export function DetailActions({
   return (
     <div className="space-y-3">
       <FormError message={error} />
-      <div className="flex flex-wrap gap-2">
-        <a href={`/api/invoices/${id}/pdf`} target="_blank" rel="noopener" className="btn-ghost">
+      <div className="flex flex-wrap items-center gap-2">
+        <a href={`/api/invoices/${id}/pdf${noStamp ? "?no_stamp=1" : ""}`} target="_blank" rel="noopener" className="btn-ghost">
           <FileDown className="h-4 w-4" /> دانلود PDF
         </a>
+        <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+          <input type="checkbox" checked={noStamp} onChange={(e) => setNoStamp(e.target.checked)} />
+          بدون مهر و امضا
+        </label>
 
         {canEdit && (
           <Link href={`/invoices/${id}/edit`} className="btn-ghost">
