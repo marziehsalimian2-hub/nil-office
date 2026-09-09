@@ -177,7 +177,8 @@ export async function updateSalesDocumentDraft(_p: ActionState, f: FormData): Pr
   if (itemErr) return { error: persianError(itemErr.message) };
 
   revalidatePath(`/invoices/${id}`);
-  return null;
+  revalidatePath("/invoices");
+  redirect(`/invoices/${id}`);
 }
 
 /** Advance a simple (non-numbering, non-conversion) status transition. */
