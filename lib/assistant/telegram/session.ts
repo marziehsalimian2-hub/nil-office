@@ -36,19 +36,22 @@ async function mintSession(profileId: string): Promise<CachedSession> {
   if (linkErr || !linkData?.properties?.hashed_token) {
     throw new Error(`telegram session: generateLink failed for ${email}: ${linkErr?.message}`);
   }
-  // TEMP DIAGNOSTIC — remove once the verifyOtp failure is root-caused.
-  console.error("[telegram][diag] generateLink properties:", JSON.stringify(linkData.properties));
-
   const anon = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // `type: "email"` here — NOT "magiclink". "magiclink" is the OTP type
+  // for a user-INITIATED signInWithOtp() flow; an ADMIN-generated link's
+  // hashed_token (generateLink({type:"magiclink"}) above — that "type"
+  // is the LINK kind, a separate concept) is verified as a generic
+  // "email" OTP. Using "magiclink" here made every verifyOtp call fail
+  // with a generic otp_expired/"Token has expired or is invalid" even
+  // immediately after generation — confirmed live via the diagnostic
+  // logging above before this fix.
   const { data: otpData, error: otpErr } = await anon.auth.verifyOtp({
     email,
     token: linkData.properties.hashed_token,
-    type: "magiclink",
+    type: "email",
   });
-  // TEMP DIAGNOSTIC — remove once the verifyOtp failure is root-caused.
-  console.error("[telegram][diag] verifyOtp error:", JSON.stringify(otpErr));
   if (otpErr || !otpData.session) {
     throw new Error(`telegram session: verifyOtp failed for ${email}: ${otpErr?.message}`);
   }
