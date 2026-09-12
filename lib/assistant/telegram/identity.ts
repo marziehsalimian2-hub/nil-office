@@ -21,6 +21,8 @@ export async function resolveProfileForTelegramUser(
     .eq("external_user_id", String(telegramUserId))
     .eq("is_active", true)
     .maybeSingle();
+  // TEMP DIAGNOSTIC — remove once the NOT_LINKED cause is confirmed.
+  console.error("[telegram][diag3] identity lookup", JSON.stringify({ telegramUserId, asString: String(telegramUserId), data, error }));
   if (error || !data) return null;
   return { profileId: data.profile_id };
 }
