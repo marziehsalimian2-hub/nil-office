@@ -1,0 +1,29 @@
+-- =====================================================================
+-- NIL Office — 0072_service_role_base_grants.sql
+-- Root cause of the Telegram "profile fetch" 42501 (permission denied
+-- for table profiles): lib/assistant/telegram/session.ts (5b2ab46)
+-- made EVERY Telegram-originated query run as `service_role` (the
+-- approved RLS-bypass trade-off, documented in that file's header).
+-- `service_role` already bypasses RLS project-wide (bypassrls), but
+-- this codebase's own convention (0013_table_grants.sql) never relies
+-- on Supabase's project-default grants — every role's base object
+-- privileges are granted explicitly, table by table. That convention
+-- was only ever applied for `authenticated`/`anon`, so `service_role`
+-- has no base privileges on almost any table in this schema.
+--
+-- 0071_assistant_telegram_grants.sql already hit this for exactly two
+-- tables (assistant_channel_identities/updates) and patched them one
+-- at a time. Since the Telegram bot now runs its *entire* request path
+-- — profiles, assistant_conversations/messages/pending_actions, and
+-- whichever Action Registry table a given user request touches (tasks,
+-- projects, contracts, correspondence, crm, documents, followups,
+-- trade, invoices, ...) — as service_role, patching table-by-table as
+-- each one surfaces in production is not worth it. This grants
+-- `service_role` the same select/insert/update/delete as
+-- `authenticated` across every existing public table in one shot.
+-- This does not expand what service_role can actually reach (bypassrls
+-- already means RLS enforces nothing against it) — it only satisfies
+-- Postgres's separate, independent object-privilege check.
+-- =====================================================================
+
+grant select, insert, update, delete on all tables in schema public to service_role;
