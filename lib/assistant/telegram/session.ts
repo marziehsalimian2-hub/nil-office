@@ -31,29 +31,43 @@ async function mintSession(profileId: string): Promise<CachedSession> {
     throw new Error(`telegram session: could not resolve an email for profile ${profileId}`);
   }
   const email = userRes.user.email;
+  // TEMP DIAGNOSTIC (round 2) — remove once root-caused.
+  console.error("[telegram][diag2] user", JSON.stringify({
+    email, id: userRes.user.id, email_confirmed_at: userRes.user.email_confirmed_at,
+    confirmed_at: userRes.user.confirmed_at, banned_until: (userRes.user as unknown as { banned_until?: string }).banned_until,
+    t: new Date().toISOString(),
+  }));
 
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: "magiclink", email });
   if (linkErr || !linkData?.properties?.hashed_token) {
     throw new Error(`telegram session: generateLink failed for ${email}: ${linkErr?.message}`);
   }
+  console.error("[telegram][diag2] generateLink ok", JSON.stringify({
+    hashed_token: linkData.properties.hashed_token, email_otp: linkData.properties.email_otp, t: new Date().toISOString(),
+  }));
+
   const anon = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  // `type: "email"` here — NOT "magiclink". "magiclink" is the OTP type
-  // for a user-INITIATED signInWithOtp() flow; an ADMIN-generated link's
-  // hashed_token (generateLink({type:"magiclink"}) above — that "type"
-  // is the LINK kind, a separate concept) is verified as a generic
-  // "email" OTP. Using "magiclink" here made every verifyOtp call fail
-  // with a generic otp_expired/"Token has expired or is invalid" even
-  // immediately after generation — confirmed live via the diagnostic
-  // logging above before this fix.
   const { data: otpData, error: otpErr } = await anon.auth.verifyOtp({
     email,
     token: linkData.properties.hashed_token,
     type: "email",
   });
+  console.error("[telegram][diag2] verifyOtp(email) result", JSON.stringify({ ok: !!otpData?.session, err: otpErr ? { message: otpErr.message, code: (otpErr as unknown as { code?: string }).code, status: otpErr.status } : null, t: new Date().toISOString() }));
+
   if (otpErr || !otpData.session) {
-    throw new Error(`telegram session: verifyOtp failed for ${email}: ${otpErr?.message}`);
+    // Second attempt, same hashed_token, "magiclink" type — some GoTrue
+    // versions genuinely want the LINK's own type back here, not "email".
+    // Trying both and logging both outcomes settles it with real data
+    // instead of a second blind guess.
+    const retry = await anon.auth.verifyOtp({ email, token: linkData.properties.hashed_token, type: "magiclink" });
+    console.error("[telegram][diag2] verifyOtp(magiclink) retry result", JSON.stringify({ ok: !!retry.data?.session, err: retry.error ? { message: retry.error.message, code: (retry.error as unknown as { code?: string }).code, status: retry.error.status } : null, t: new Date().toISOString() }));
+    if (retry.error || !retry.data.session) {
+      throw new Error(`telegram session: verifyOtp failed for ${email}: ${otpErr?.message}`);
+    }
+    const s = retry.data.session;
+    return { accessToken: s.access_token, refreshToken: s.refresh_token, expiresAt: (s.expires_at ?? Math.floor(Date.now() / 1000) + 3600) * 1000 };
   }
 
   const { access_token, refresh_token, expires_at } = otpData.session;
