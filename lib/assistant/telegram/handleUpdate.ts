@@ -45,7 +45,9 @@ async function authorize(telegramUserId: number): Promise<{ profile: Profile; se
   if (!mapped) return { denied: "NOT_LINKED" };
 
   const sessionClient = await getSessionClientForProfile(mapped.profileId);
-  const { data: profile } = await sessionClient.from("profiles").select("*").eq("id", mapped.profileId).single();
+  const { data: profile, error: profileErr } = await sessionClient.from("profiles").select("*").eq("id", mapped.profileId).single();
+  // TEMP DIAGNOSTIC — remove once the NOT_LINKED cause is confirmed.
+  console.error("[telegram][diag4] profile fetch", JSON.stringify({ profileId: mapped.profileId, found: !!profile, is_active: profile?.is_active, error: profileErr }));
   if (!profile || !profile.is_active) return { denied: "NOT_LINKED" };
 
   return { profile: profile as Profile, sessionClient };
