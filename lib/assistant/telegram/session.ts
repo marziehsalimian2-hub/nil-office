@@ -36,6 +36,8 @@ async function mintSession(profileId: string): Promise<CachedSession> {
   if (linkErr || !linkData?.properties?.hashed_token) {
     throw new Error(`telegram session: generateLink failed for ${email}: ${linkErr?.message}`);
   }
+  // TEMP DIAGNOSTIC — remove once the verifyOtp failure is root-caused.
+  console.error("[telegram][diag] generateLink properties:", JSON.stringify(linkData.properties));
 
   const anon = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -45,6 +47,8 @@ async function mintSession(profileId: string): Promise<CachedSession> {
     token: linkData.properties.hashed_token,
     type: "magiclink",
   });
+  // TEMP DIAGNOSTIC — remove once the verifyOtp failure is root-caused.
+  console.error("[telegram][diag] verifyOtp error:", JSON.stringify(otpErr));
   if (otpErr || !otpData.session) {
     throw new Error(`telegram session: verifyOtp failed for ${email}: ${otpErr?.message}`);
   }
