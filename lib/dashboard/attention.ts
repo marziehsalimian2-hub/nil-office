@@ -1,8 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeProjectHealth } from "@/lib/project-health";
+import { toFaDigits } from "@/lib/jalali";
 import type { AttentionItem } from "./types";
 import type { Profile, ProjectProgressSummary } from "@/lib/types/database";
+
+function formatChequeAmount(amount: number, currencyCode: string): string {
+  return `${toFaDigits(new Intl.NumberFormat("en-US").format(amount))} ${currencyCode}`;
+}
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 3, HIGH: 2, WARNING: 1, INFO: 0 };
 
@@ -24,7 +29,7 @@ function daysBetween(a: string, today: string): number {
  */
 export async function getAttentionItems(
   supabase: SupabaseClient,
-  profile: Pick<Profile, "role" | "project_role" | "invoice_role" | "contract_role" | "crm_role">,
+  profile: Pick<Profile, "role" | "project_role" | "invoice_role" | "contract_role" | "crm_role" | "cheque_role">,
   thresholds: { contractExpiryDays: number },
 ): Promise<AttentionItem[]> {
   const isAdmin = profile.role === "ADMIN";
@@ -32,6 +37,7 @@ export async function getAttentionItems(
   const hasInvoice = isAdmin || profile.invoice_role != null;
   const hasContract = isAdmin || profile.contract_role != null;
   const hasCrm = isAdmin || profile.crm_role != null;
+  const hasCheque = isAdmin || profile.cheque_role != null;
 
   const today = new Date().toISOString().slice(0, 10);
   const expiryWindow = new Date(Date.now() + thresholds.contractExpiryDays * 86400000).toISOString().slice(0, 10);
@@ -200,6 +206,50 @@ export async function getAttentionItems(
         title: `${o.opportunity_number} — اقدام بعدی عقب‌افتاده`, description: o.next_action ? `اقدام بعدی: ${o.next_action}` : "اقدام بعدی از موعد گذشته است.",
         responsible_user_id: o.owner_user_id, due_date: o.next_action_date, days_overdue: daysBetween(o.next_action_date, today),
         navigation_target: `/opportunities/${o.id}`,
+      });
+    }
+  }
+
+  // --- Cheques (both directions) — reuses the exact same active-cheque
+  // notion the Cheques list page's own default filter uses (spec §34):
+  // not yet DRAFT (not committed) and not a terminal status. ---
+  if (hasCheque) {
+    const dueSoonWindow = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    const { data: activeCheques } = await supabase
+      .from("cheques")
+      .select("id, display_number, cheque_number, amount, currency_code, cheque_date, status")
+      .not("status", "in", "(DRAFT,CLEARED,RETURNED,CANCELLED,VOID)");
+    for (const c of (activeCheques ?? []) as { id: string; display_number: string | null; cheque_number: string; amount: number; currency_code: string; cheque_date: string; status: string }[]) {
+      const label = c.display_number ?? c.cheque_number;
+      const amountText = formatChequeAmount(c.amount, c.currency_code);
+      if (c.cheque_date === today) {
+        items.push({
+          id: `cheque-due-today-${c.id}`, source_type: "cheque", source_id: c.id, severity: "HIGH", rule_code: "CHEQUE_DUE_TODAY",
+          title: `چک ${label} — سررسید امروز`, description: `مبلغ ${amountText} امروز سررسید می‌شود.`,
+          responsible_user_id: null, due_date: c.cheque_date, days_overdue: null, navigation_target: `/cheques/${c.id}`,
+        });
+      } else if (c.cheque_date > today && c.cheque_date <= dueSoonWindow) {
+        items.push({
+          id: `cheque-due-soon-${c.id}`, source_type: "cheque", source_id: c.id, severity: "WARNING", rule_code: "CHEQUE_DUE_SOON",
+          title: `چک ${label} — سررسید نزدیک`, description: `مبلغ ${amountText} در ${daysBetween(today, c.cheque_date)} روز آینده سررسید می‌شود.`,
+          responsible_user_id: null, due_date: c.cheque_date, days_overdue: null, navigation_target: `/cheques/${c.id}`,
+        });
+      } else if (c.cheque_date < today) {
+        items.push({
+          id: `cheque-overdue-${c.id}`, source_type: "cheque", source_id: c.id, severity: "CRITICAL", rule_code: "CHEQUE_OVERDUE",
+          title: `چک ${label} — سررسید گذشته`, description: `${daysBetween(c.cheque_date, today)} روز از سررسید (مبلغ ${amountText}) گذشته است.`,
+          responsible_user_id: null, due_date: c.cheque_date, days_overdue: daysBetween(c.cheque_date, today), navigation_target: `/cheques/${c.id}`,
+        });
+      }
+    }
+
+    const { data: returnedCheques } = await supabase
+      .from("cheques").select("id, display_number, cheque_number, return_reason").eq("status", "RETURNED");
+    for (const c of (returnedCheques ?? []) as { id: string; display_number: string | null; cheque_number: string; return_reason: string | null }[]) {
+      items.push({
+        id: `cheque-returned-${c.id}`, source_type: "cheque", source_id: c.id, severity: "HIGH", rule_code: "CHEQUE_RETURNED",
+        title: `چک ${c.display_number ?? c.cheque_number} — برگشت خورده`, description: c.return_reason ?? "این چک برگشت خورده است.",
+        responsible_user_id: null, due_date: null, days_overdue: null, navigation_target: `/cheques/${c.id}`,
       });
     }
   }

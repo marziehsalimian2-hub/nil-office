@@ -6,7 +6,7 @@ import type { AttentionSeverity } from "@/lib/enums";
  */
 export type AttentionItem = {
   id: string;
-  source_type: "task" | "followup" | "project" | "milestone" | "deliverable" | "invoice" | "contract" | "opportunity";
+  source_type: "task" | "followup" | "project" | "milestone" | "deliverable" | "invoice" | "contract" | "opportunity" | "cheque";
   source_id: string;
   severity: AttentionSeverity;
   rule_code: string;

@@ -28,6 +28,7 @@ import {
   ListChecks,
   Handshake,
   Bot,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ const accountingNav = [
   { href: "/accounting/receipts", label: "دریافت‌ها", icon: ArrowDownCircle },
   { href: "/accounting/payments", label: "پرداخت‌ها", icon: ArrowUpCircle },
   { href: "/accounting/banks", label: "بانک و صندوق", icon: Wallet },
+  { href: "/cheques", label: "چک‌ها", icon: Banknote },
   { href: "/accounting/accounts", label: "کدینگ حساب‌ها", icon: Landmark },
   { href: "/accounting/ledger", label: "دفتر کل", icon: BookOpen },
   { href: "/accounting/trial-balance", label: "تراز آزمایشی", icon: Scale },

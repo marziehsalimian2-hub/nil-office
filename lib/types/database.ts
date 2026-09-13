@@ -30,13 +30,14 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type CrmRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ProjectRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type TradeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type ChequeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -49,8 +50,123 @@ export interface Profile {
   crm_role: CrmRoleT | null;
   project_role: ProjectRoleT | null;
   trade_role: TradeRoleT | null;
+  cheque_role: ChequeRoleT | null;
   is_active: boolean;
   signature_path: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ChequeDirection = "PAYABLE" | "RECEIVABLE";
+export type ChequeBookStatus = "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+export type ChequeStatus =
+  | "AVAILABLE"
+  | "DRAFT"
+  | "PREPARED"
+  | "ISSUED"
+  | "DELIVERED"
+  | "RECEIVED"
+  | "DEPOSITED"
+  | "CLEARED"
+  | "RETURNED"
+  | "CANCELLED"
+  | "VOID";
+export type ChequeCurrencyCode = "IRR" | "TOMAN" | "USD" | "EUR" | "AED" | "TRY" | "CNY";
+
+export interface ChequeBook {
+  id: string;
+  bank_account_id: string;
+  book_identifier: string;
+  first_cheque_number: string;
+  last_cheque_number: string;
+  leaves_count: number;
+  issue_date: string;
+  status: ChequeBookStatus;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Cheque {
+  id: string;
+  direction: ChequeDirection;
+  cheque_book_id: string | null;
+  cheque_number: string;
+  sayad_id: string | null;
+  display_number: string | null;
+  counterparty_company_id: string | null;
+  counterparty_name_snapshot: string;
+  drawer_bank_name: string | null;
+  drawer_branch: string | null;
+  drawer_account_number: string | null;
+  amount: number;
+  currency_code: ChequeCurrencyCode;
+  amount_in_words: string;
+  cheque_date: string;
+  purpose: string | null;
+  description: string | null;
+  status: ChequeStatus;
+  company_id: string | null;
+  contract_id: string | null;
+  sales_document_id: string | null;
+  case_id: string | null;
+  project_id: string | null;
+  payment_id: string | null;
+  receipt_id: string | null;
+  print_template_id: string | null;
+  first_printed_at: string | null;
+  last_printed_at: string | null;
+  print_count: number;
+  printed_by: string | null;
+  prepared_at: string | null;
+  issued_at: string | null;
+  delivered_at: string | null;
+  received_at: string | null;
+  deposited_at: string | null;
+  cleared_at: string | null;
+  returned_at: string | null;
+  return_reason: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChequePrintTemplate {
+  id: string;
+  name: string;
+  bank_account_id: string | null;
+  page_width_mm: number;
+  page_height_mm: number;
+  orientation: "LANDSCAPE" | "PORTRAIT";
+  print_date_format: "JALALI" | "GREGORIAN";
+  offset_x_mm: number;
+  offset_y_mm: number;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ChequePrintFieldKey = "DATE" | "PAYEE" | "AMOUNT_NUMERIC" | "AMOUNT_WORDS" | "PURPOSE" | "SAYAD_ID" | "ACCOUNT_INFO" | "CUSTOM_TEXT";
+
+export interface ChequePrintTemplateField {
+  id: string;
+  template_id: string;
+  field_key: ChequePrintFieldKey;
+  custom_label: string | null;
+  x_mm: number;
+  y_mm: number;
+  width_mm: number;
+  height_mm: number;
+  font_size_pt: number;
+  alignment: "LEFT" | "RIGHT" | "CENTER";
+  direction: "RTL" | "LTR";
+  rotation_deg: number;
   created_at: string;
   updated_at: string;
 }
