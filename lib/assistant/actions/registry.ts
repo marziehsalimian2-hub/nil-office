@@ -13,16 +13,21 @@ import { documentActions } from "./document";
 import { taskActions } from "./task";
 import { followupActions } from "./followup";
 import { tradeActions } from "./trade";
+import { chequeActions } from "./cheque";
 
 /**
  * The complete Action Registry — the ONLY set of operations the LLM can
  * ever request (spec §4). Nothing HIGH/CRITICAL is wired up in v1 (spec
  * §6): no accounting posting, no contract activation, no invoice
  * finalization, no official letter numbering, no Trade Portal publish/
- * buyer-issuance/deadline-extension, no permission/user management —
- * those actions simply don't exist here, so there is no tool definition
- * the model could ever call for them, not even one guarded by a
- * confirmation the model might talk its way past.
+ * buyer-issuance/deadline-extension, no permission/user management, no
+ * cheque issuance/printing/clearing — those actions simply don't exist
+ * here, so there is no tool definition the model could ever call for
+ * them, not even one guarded by a confirmation the model might talk its
+ * way past. Cheque Management's own HIGH/CRITICAL-tier operations
+ * (issue_cheque, clear_cheque, record_cheque_print, void_cheque, ...)
+ * follow the same rule — chequeActions below exposes only read actions
+ * plus two MEDIUM write-proposals (draft creation, print preparation).
  */
 export const ACTION_REGISTRY: ActionDefinition<any>[] = [
   ...dashboardActions,
@@ -36,6 +41,7 @@ export const ACTION_REGISTRY: ActionDefinition<any>[] = [
   ...taskActions,
   ...followupActions,
   ...tradeActions,
+  ...chequeActions,
 ];
 
 const registryByName = new Map(ACTION_REGISTRY.map((a) => [a.name, a]));

@@ -103,6 +103,51 @@ export const DIRECTION_LABEL: Record<"OUTGOING" | "INCOMING", string> = {
   INCOMING: "وارده",
 };
 
+/* ============================ Cheque Management ============================ */
+
+export const CHEQUE_DIRECTION_LABEL: Record<"PAYABLE" | "RECEIVABLE", string> = {
+  PAYABLE: "پرداختی",
+  RECEIVABLE: "دریافتی",
+};
+
+export const CHEQUE_STATUS_LABEL: Record<string, string> = {
+  AVAILABLE: "موجود",
+  DRAFT: "پیش‌نویس",
+  PREPARED: "آماده‌شده",
+  ISSUED: "صادرشده",
+  DELIVERED: "تحویل‌شده",
+  RECEIVED: "دریافت‌شده",
+  DEPOSITED: "تودیع‌شده",
+  CLEARED: "وصول‌شده",
+  RETURNED: "برگشت‌خورده",
+  CANCELLED: "لغوشده",
+  VOID: "باطل‌شده",
+};
+
+export const CHEQUE_STATUS_TONE: Record<string, string> = {
+  AVAILABLE: "status-draft",
+  DRAFT: "status-draft",
+  PREPARED: "status-review",
+  ISSUED: "status-final",
+  DELIVERED: "status-received",
+  RECEIVED: "status-received",
+  DEPOSITED: "status-waiting",
+  CLEARED: "status-closed",
+  RETURNED: "status-cancelled",
+  CANCELLED: "status-cancelled",
+  VOID: "status-cancelled",
+};
+
+export const CHEQUE_CURRENCY_LABEL: Record<string, string> = {
+  IRR: "ریال",
+  TOMAN: "تومان",
+  USD: "دلار",
+  EUR: "یورو",
+  AED: "درهم",
+  TRY: "لیر",
+  CNY: "یوان",
+};
+
 /** Maps RPC/DB error codes to clear Persian messages (never raw SQL). */
 export const ERROR_MESSAGES: Record<string, string> = {
   NOT_AUTHORIZED: "شما مجاز به انجام این عملیات نیستید.",
@@ -171,6 +216,21 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_RESPONSE_TYPE: "نوع پاسخ نامعتبر است.",
   INVALID_DOCUMENT_TYPE: "نوع مدرک نامعتبر است.",
   INTEREST_REQUIRED_FOR_UPLOAD: "برای بارگذاری LOI/ICPO ابتدا باید تمایل خود را با گزینهٔ «علاقه‌مندم» اعلام کنید.",
+
+  // Cheque Management
+  INVALID_AMOUNT: "مبلغ واردشده نامعتبر است.",
+  INVALID_CURRENCY: "واحد پول انتخاب‌شده نامعتبر است.",
+  CHEQUE_NUMBER_REQUIRED: "شمارهٔ چک الزامی است.",
+  CHEQUE_BOOK_REQUIRED: "برای چک پرداختی، انتخاب دسته‌چک الزامی است.",
+  CHEQUE_BOOK_NOT_ACTIVE: "این دسته‌چک فعال نیست.",
+  DRAWER_BANK_REQUIRED: "برای چک دریافتی، درج بانک صادرکننده الزامی است.",
+  COMPANY_NOT_FOUND: "شرکت انتخاب‌شده یافت نشد.",
+  COUNTERPARTY_REQUIRED: "درج نام طرف حساب (ذی‌نفع/صادرکننده) الزامی است.",
+  BANK_ACCOUNT_NOT_FOUND: "حساب بانکی انتخاب‌شده یافت نشد.",
+  CHEQUE_NOT_DRAFT: "این چک دیگر در وضعیت پیش‌نویس نیست و قابل ویرایش نیست.",
+  CHEQUE_WRONG_DIRECTION: "این عملیات برای این نوع چک (دریافتی/پرداختی) مجاز نیست.",
+  REASON_REQUIRED: "برای این عملیات، درج دلیل الزامی است.",
+  IMMUTABLE_FIELD_CHANGED: "مبلغ، طرف حساب، تاریخ و شمارهٔ چک پس از صدور قابل تغییر نیستند.",
 };
 
 export function persianError(message: string | undefined | null): string {

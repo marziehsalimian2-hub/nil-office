@@ -14,7 +14,7 @@ export type ActionContext = {
 
 /** The small structured "card" shape a read action can attach to its answer (spec §29/§30 — always traceable to a real record). */
 export type ResultCard = {
-  kind: "task" | "project" | "contract" | "invoice" | "company" | "opportunity" | "attention" | "followup" | "correspondence" | "trade_offer";
+  kind: "task" | "project" | "contract" | "invoice" | "company" | "opportunity" | "attention" | "followup" | "correspondence" | "trade_offer" | "cheque";
   id: string;
   title: string;
   subtitle?: string;

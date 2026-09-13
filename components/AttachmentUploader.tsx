@@ -9,7 +9,7 @@ export function AttachmentUploader({
   entityType,
   entityId,
 }: {
-  entityType: "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK";
+  entityType: "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE";
   entityId: string;
 }) {
   const [state, action] = useActionState<ActionState, FormData>(uploadAttachment, null);

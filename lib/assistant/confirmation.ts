@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertTaskDraftCore } from "@/app/actions/tasks";
 import { insertFollowupDraftCore } from "@/app/actions/entities";
+import { createChequeDraftCore, prepareChequeCore } from "@/app/actions/cheques";
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -23,6 +24,8 @@ const WRITE_EXECUTORS: Record<
 > = {
   CREATE_TASK_DRAFT: (payload, supabase, userId) => insertTaskDraftCore(supabase, userId, payload as never),
   CREATE_FOLLOWUP_DRAFT: (payload, supabase, userId) => insertFollowupDraftCore(supabase, userId, payload as never),
+  CREATE_CHEQUE_DRAFT: (payload, supabase, userId) => createChequeDraftCore(supabase, userId, payload as never),
+  PREPARE_CHEQUE_PRINT: (payload, supabase, userId) => prepareChequeCore(supabase, userId, payload as never),
 };
 
 /**
