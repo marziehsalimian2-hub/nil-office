@@ -125,12 +125,12 @@ export async function finalizeOutgoing(
       .select("display_number")
       .eq("id", id)
       .single();
-    const pdf = await buildLetterPdfForCorrespondence(supabase, id);
+    const { buffer } = await buildLetterPdfForCorrespondence(supabase, id);
     const safeNumber = (fresh?.display_number ?? id).replace(/[^\w.-]+/g, "_");
     const path = `correspondence/${id}/${Date.now()}-letter-${safeNumber}.pdf`;
     const { error: upErr } = await supabase.storage
       .from("nil-files")
-      .upload(path, pdf, { contentType: "application/pdf", upsert: false });
+      .upload(path, buffer, { contentType: "application/pdf", upsert: false });
     if (!upErr) {
       await supabase.from("attachments").insert({
         entity_type: "CORRESPONDENCE",
@@ -138,7 +138,7 @@ export async function finalizeOutgoing(
         file_name: `نامه-${fresh?.display_number ?? ""}.pdf`,
         storage_path: path,
         mime_type: "application/pdf",
-        size_bytes: pdf.length,
+        size_bytes: buffer.length,
         uploaded_by: userId,
       });
     }

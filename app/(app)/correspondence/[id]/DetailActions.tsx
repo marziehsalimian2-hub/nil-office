@@ -29,6 +29,7 @@ export function DetailActions({
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [noStamp, setNoStamp] = useState(false);
 
   function run(action: Action, fields: Record<string, string>) {
     const fd = new FormData();
@@ -51,14 +52,20 @@ export function DetailActions({
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
         {direction === "OUTGOING" && (
-          <a
-            href={`/api/correspondence/${id}/pdf`}
-            target="_blank"
-            rel="noopener"
-            className="btn-ghost"
-          >
-            <FileDown className="h-4 w-4" /> دانلود PDF (پیش‌نمایش)
-          </a>
+          <>
+            <a
+              href={`/api/correspondence/${id}/pdf${noStamp ? "?no_stamp=1" : ""}`}
+              target="_blank"
+              rel="noopener"
+              className="btn-ghost"
+            >
+              <FileDown className="h-4 w-4" /> دانلود PDF (پیش‌نمایش)
+            </a>
+            <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+              <input type="checkbox" checked={noStamp} onChange={(e) => setNoStamp(e.target.checked)} />
+              بدون مهر و امضا
+            </label>
+          </>
         )}
 
         {direction === "OUTGOING" && editable && !hasNumber && (

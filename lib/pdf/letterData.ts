@@ -28,14 +28,19 @@ async function pathToDataUri(
 
 /**
  * Loads everything needed to render a given outgoing letter (branding
- * images, signatory, recipient) and returns the finished PDF bytes.
- * Shared by the on-demand preview route and the finalize-time archival
- * step, so both always produce the same layout from the same data.
+ * images, signatory, recipient) and returns the finished PDF bytes plus
+ * a human-readable file name (recipient + display number — same pattern
+ * as buildInvoicePdf's docTypeName-customerName-number). Shared by the
+ * on-demand preview route and the finalize-time archival step, so both
+ * always produce the same layout from the same data.
  */
 export async function buildLetterPdfForCorrespondence(
   supabase: SupabaseClient,
   correspondenceId: string,
-): Promise<Buffer> {
+  opts?: { noStamp?: boolean },
+): Promise<{ buffer: Buffer; fileName: string }> {
+  const noStamp = opts?.noStamp ?? false;
+
   const { data: letter, error } = await supabase
     .from("correspondence")
     .select(
@@ -61,15 +66,16 @@ export async function buildLetterPdfForCorrespondence(
 
   const [letterheadDataUri, stampDataUri, signatureDataUri] = await Promise.all([
     pathToDataUri(supabase, settings?.letterhead_path),
-    pathToDataUri(supabase, settings?.stamp_path),
-    pathToDataUri(supabase, signatory?.signature_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, settings?.stamp_path),
+    noStamp ? Promise.resolve(null) : pathToDataUri(supabase, signatory?.signature_path),
   ]);
 
-  return renderLetterPdf({
+  const recipientLabel = recipientCompany?.legal_name ?? letter.recipient_name ?? null;
+  const buffer = await renderLetterPdf({
     language: isEn ? "EN" : "FA",
     displayNumber: letter.display_number ? (isEn ? letter.display_number : toFaDigits(letter.display_number)) : null,
     dateLabel: isEn ? formatGregorian(letter.finalized_at ?? letter.created_at) : formatJalali(letter.finalized_at ?? letter.created_at),
-    recipientLabel: recipientCompany?.legal_name ?? letter.recipient_name ?? null,
+    recipientLabel,
     subject: letter.subject,
     bodyHtml: letter.draft_text ?? "",
     signatoryLabel: letter.signatory_label,
@@ -77,4 +83,9 @@ export async function buildLetterPdfForCorrespondence(
     stampDataUri,
     signatureDataUri,
   });
+
+  const docLabel = isEn ? "Letter" : "نامه";
+  const fileName = `${docLabel}-${recipientLabel ?? letter.subject}-${letter.display_number ?? "DRAFT"}.pdf`;
+
+  return { buffer, fileName };
 }

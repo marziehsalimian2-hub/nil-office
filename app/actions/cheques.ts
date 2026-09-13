@@ -57,6 +57,8 @@ export async function createChequeDraftCore(
   _userId: string,
   d: ChequeDraftInput,
 ): Promise<{ data: { id: string } } | { error: string }> {
+  if (!d.cheque_date) return { error: "تاریخ چک را به‌درستی وارد کنید." };
+
   let amountInWords: string;
   try {
     amountInWords = amountToPersianWords(Math.round(d.amount), d.currency_code);
@@ -245,6 +247,9 @@ export async function recordChequePrint(chequeId: string, isTestPrint: boolean, 
 /* ------------------------- Cheque Books ------------------------- */
 
 export async function createChequeBook(_p: ActionState, f: FormData): Promise<ActionState> {
+  const issueDate = str(f.get("issue_date"));
+  if (!issueDate) return { error: "تاریخ صدور را به‌درستی وارد کنید." };
+
   const { supabase } = await ctx();
   const { data, error } = await supabase.rpc("create_cheque_book", {
     p_bank_account_id: String(f.get("bank_account_id") ?? ""),
@@ -252,7 +257,7 @@ export async function createChequeBook(_p: ActionState, f: FormData): Promise<Ac
     p_first_cheque_number: String(f.get("first_cheque_number") ?? ""),
     p_last_cheque_number: String(f.get("last_cheque_number") ?? ""),
     p_leaves_count: Number(f.get("leaves_count")),
-    p_issue_date: String(f.get("issue_date") ?? ""),
+    p_issue_date: issueDate,
     p_description: str(f.get("description")),
   });
   if (error) return { error: persianError(error.message) };
