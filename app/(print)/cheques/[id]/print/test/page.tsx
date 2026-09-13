@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
 import { PrintSheet } from "@/components/cheque/PrintSheet";
 import { loadChequePrintContext } from "@/lib/cheque/printContext";
 import { PrintTrigger } from "../PrintTrigger";
@@ -11,9 +12,11 @@ export const dynamic = "force-dynamic";
  * Test print — plain paper, calibration grid overlaid, NEVER changes
  * cheque status/print_count (spec §19). Use this to check alignment
  * before ever touching a real bank leaf, then adjust the template's
- * global offset and test again.
+ * global offset and test again. Deliberately outside (app) — see the
+ * comment in ../page.tsx for why.
  */
 export default async function ChequePrintTestPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
   const ctx = await loadChequePrintContext(supabase, id);
