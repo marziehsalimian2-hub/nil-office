@@ -1,13 +1,24 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
 import { PrintSheet } from "@/components/cheque/PrintSheet";
 import { loadChequePrintContext } from "@/lib/cheque/printContext";
 import { PrintTrigger } from "./PrintTrigger";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Deliberately OUTSIDE the (app) route group — that layout renders the
+ * sidebar/header (incl. the global search box), which must never appear
+ * on a page meant to be printed with window.print(). Only the root
+ * layout (html/body/fonts/RTL) wraps this page. requireProfile() below
+ * replaces the (app) layout's own auth redirect, which this page no
+ * longer inherits; RLS on `cheques` still blocks a caller without
+ * cheque access (loadChequePrintContext returns null -> notFound()).
+ */
 export default async function ChequePrintPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
   const ctx = await loadChequePrintContext(supabase, id);
