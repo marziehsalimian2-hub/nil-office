@@ -1,6 +1,12 @@
-# NIL Assistant — Multimodal Telegram v2.0, Phase 1
+# NIL Assistant — Multimodal Telegram v2.0
 
-Phase 1 of the "NIL Assistant Multimodal & Smart Office Operations v2.0" spec: voice-and-text-driven **letter drafting/finalization** and **invoice/proforma drafting/issuance** on the **existing** internal Telegram bot (Marzieh/Saman only). See §6 of the approved plan for what's explicitly deferred (external correspondence bot, photo/PDF OCR, accounting-from-receipt, incoming-letter/reply/follow-up threading, Smart Inbox).
+## Phase 1 — voice letters/invoices
+
+Voice-and-text-driven **letter drafting/finalization** and **invoice/proforma drafting/issuance** on the **existing** internal Telegram bot (Marzieh/Saman only). Shipped and live-confirmed 2026-09-14.
+
+## Phase 2 — incoming letters + reply/follow-up
+
+Photo/PDF-driven **incoming letter registration**, with the bot proposing a follow-up or a linked reply based on what it extracted. Still deferred: external correspondence bot, expense-receipt/accounting-draft extraction, Smart Inbox classification layer.
 
 ## Architecture
 
@@ -44,9 +50,30 @@ After a successful `CREATE_LETTER_DRAFT`/`CREATE_INVOICE_DRAFT` confirmation, `h
 
 If `sendDocument` fails, the bot replies with the official number and an inline **"ارسال مجدد فایل"** button (`callback_data: "resend:<LETTER|INVOICE>:<id>"`). The resend path is a pure read + regenerate + re-send — it never touches the Confirmation Engine, so it structurally cannot create a duplicate record or number.
 
-## Known limitations / deferred (see the approved plan for the full list)
+## Phase 2 architecture
 
-- No photo/PDF/OCR intake — `LlmContentBlock`/`AnthropicProvider` have no image/document content-block variant yet.
-- No accounting-draft-from-voice/photo.
-- No incoming-letter registration, reply drafting, or follow-up suggestion from Telegram yet — the underlying `correspondence_links`/`REPLY_TO` mechanism and `followups.correspondence_id` column already support it whenever it's built.
+### Vision/PDF support (`lib/assistant/llm/`)
+
+`LlmContentBlock` (`provider.ts`) gained `image`/`document` variants. `AnthropicProvider.toAnthropicMessages` (`anthropic.ts`) maps them to Anthropic's base64 content-block wire format. **Important**: the installed `@anthropic-ai/sdk@0.32.1` has no typed `DocumentBlockParam` (PDF support was added in a later SDK release) — the PDF block is hand-typed against Anthropic's own documented PDF-support format and sent via a type cast, not a real SDK type. This works because the SDK's TS types are compile-time only; what's actually sent over HTTPS is plain JSON — but this specific path (PDF via `msg.document`) needs **live verification** before being trusted, unlike everything else in this document which was confirmed working on the deployed bot. If a future SDK bump adds real `DocumentBlockParam` support, this local interface in `anthropic.ts` can be deleted in favor of the SDK's own type.
+
+An attachment is scoped to the single turn it arrives in — `runChatTurn` takes an optional `attachment` param, appended to the current turn's message content, never persisted to `assistant_messages` (which still stores only the caption/placeholder text) and never replayed into later turns' history.
+
+### Telegram photo/document handling (`lib/assistant/telegram/handleUpdate.ts`)
+
+`msg.photo` (largest `PhotoSize`, always JPEG) and `msg.document` (PDF or image only, everything else rejected before download) are downloaded entirely in-memory and base64-encoded, same in-memory-only discipline as voice. The caption (if any) becomes the turn's text; otherwise a default "check this image/document" prompt is used.
+
+### `REGISTER_INCOMING_LETTER` (`lib/assistant/actions/correspondence.ts`)
+
+HIGH-risk, same shape as `CREATE_LETTER_DRAFT`: one confirmation drafts + calls the existing `register_incoming` RPC + archives the original file as an attachment (`createAndRegisterIncomingCore`, `app/actions/correspondence.ts`). The original file's bytes reach the executor via a new `ActionContext.turnAttachment` field (`lib/assistant/actions/types.ts`), populated by `runChatTurn` from its own `attachment` parameter — **not** as a model-supplied tool parameter (a vision model can describe an image, it can't reproduce its raw bytes as text output). The base64 bytes travel inside the write-proposal's `payload` (stored in `assistant_pending_actions.payload`, a jsonb column with no practical size issue for a single letter-sized file), so they survive from "propose" to "confirm" even though those are separate requests, possibly minutes apart.
+
+### Reply/follow-up — extends existing actions, no new mechanism
+
+- `CREATE_LETTER_DRAFT` gained an optional `reply_to_correspondence_id` — when set, `createAndFinalizeLetterCore` inserts one `correspondence_links` row (`REPLY_TO`) after finalizing, exactly mirroring the web UI's own `createReplyDraft`.
+- `CREATE_FOLLOWUP_DRAFT` gained an optional `correspondence_id` — the column and the underlying `insertFollowupDraftCore` already supported it; only the tool's input schema needed it exposed.
+- The "does this letter need a reply/follow-up?" classification is **conversational only** (system prompt rule 11), never a stored column or an automatically-triggered action — matches the spec's explicit "this is a suggestion, not authority."
+
+## Known limitations / deferred
+
+- No accounting-draft-from-voice/photo (expense receipts).
 - No external Telegram bot.
+- No Smart Inbox classification layer across channels.

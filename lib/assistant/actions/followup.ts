@@ -23,12 +23,17 @@ const createFollowupDraftInput = z.object({
   due_date_phrase: z.string().trim().min(1, "تاریخ پیگیری الزامی است."),
   company_id: z.string().uuid().optional(),
   note: z.string().trim().optional(),
+  // Only when this follow-up is about a specific letter (e.g. right after
+  // REGISTER_INCOMING_LETTER/GET_CORRESPONDENCE) — links via the existing
+  // followups.correspondence_id column, already supported end-to-end by
+  // insertFollowupDraftCore, just not previously exposed to the model.
+  correspondence_id: z.string().uuid().optional(),
 });
 
 export const createFollowupDraft: ActionDefinition<z.infer<typeof createFollowupDraftInput>> = {
   name: "CREATE_FOLLOWUP_DRAFT",
   description:
-    "پیشنهاد ثبت یک پیگیری جدید (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). company_id را فقط اگر قبلاً با SEARCH_COMPANY پیدا کرده‌اید بفرستید. due_date_phrase می‌تواند «فردا»، «۳ روز دیگر»، یا یک تاریخ مشخص باشد و الزامی است.",
+    "پیشنهاد ثبت یک پیگیری جدید (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). company_id را فقط اگر قبلاً با SEARCH_COMPANY پیدا کرده‌اید بفرستید. اگر این پیگیری دربارهٔ یک نامهٔ مشخص است (مثلاً بعد از ثبت نامهٔ وارده)، شناسهٔ آن را در correspondence_id بفرستید. due_date_phrase می‌تواند «فردا»، «۳ روز دیگر»، یا یک تاریخ مشخص باشد و الزامی است.",
   riskLevel: "MEDIUM",
   requiresConfirmation: true,
   inputSchema: createFollowupDraftInput,
@@ -40,6 +45,7 @@ export const createFollowupDraft: ActionDefinition<z.infer<typeof createFollowup
       title: input.title,
       due_date: resolved.iso,
       company_id: input.company_id ?? null,
+      correspondence_id: input.correspondence_id ?? null,
       assigned_to: ctx.userId,
       note: input.note ?? null,
       status: "OPEN",

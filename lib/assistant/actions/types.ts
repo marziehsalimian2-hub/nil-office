@@ -10,6 +10,14 @@ export type ActionContext = {
   supabase: SupabaseClient;
   userId: string;
   profile: Profile;
+  /**
+   * The photo/PDF attached to THIS turn, if any (set by runChatTurn from
+   * its own `attachment` parameter — see lib/assistant/orchestrator.ts).
+   * The model never re-derives or re-encodes file bytes as a tool
+   * parameter; an action that needs the original file (e.g.
+   * REGISTER_INCOMING_LETTER, to archive it) reads it from here.
+   */
+  turnAttachment?: { mediaType: string; data: string };
 };
 
 /** The small structured "card" shape a read action can attach to its answer (spec §29/§30 — always traceable to a real record). */

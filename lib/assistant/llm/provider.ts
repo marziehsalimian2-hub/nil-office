@@ -16,7 +16,9 @@ import "server-only";
 export type LlmContentBlock =
   | { type: "text"; text: string }
   | { type: "tool_use"; id: string; name: string; input: unknown }
-  | { type: "tool_result"; toolUseId: string; content: string; isError?: boolean };
+  | { type: "tool_result"; toolUseId: string; content: string; isError?: boolean }
+  | { type: "image"; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; data: string /* base64 */ }
+  | { type: "document"; mediaType: "application/pdf"; data: string /* base64 */ };
 
 export type LlmMessage = { role: "user" | "assistant"; content: LlmContentBlock[] };
 
