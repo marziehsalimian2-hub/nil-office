@@ -75,7 +75,13 @@ export const getChequesDue: ActionDefinition<{ within_days?: number }> = {
   riskLevel: "LOW",
   requiresConfirmation: false,
   requiredAccess: hasChequeAccess,
-  inputSchema: z.object({ within_days: z.number().int().positive().max(365).optional() }),
+  // NOT .positive() — zod-to-json-schema renders it as the old draft-04
+  // {exclusiveMinimum: true, minimum: 0} shape, which Anthropic's tool
+  // schema validator rejects outright (draft 2020-12 requires
+  // exclusiveMinimum to be a number) — and since all tool schemas are
+  // sent in one request, a single bad one fails the ENTIRE chat turn,
+  // not just this action. .min(1) renders as the clean {minimum: 1}.
+  inputSchema: z.object({ within_days: z.number().int().min(1).max(365).optional() }),
   handler: async (input, ctx) => {
     const days = input.within_days ?? 7;
     const today = new Date().toISOString().slice(0, 10);
@@ -123,7 +129,9 @@ export const getChequeBookStatus: ActionDefinition<{ cheque_book_id: string }> =
 
 const createChequeDraftInput = z.object({
   direction: z.enum(["PAYABLE", "RECEIVABLE"]),
-  amount: z.number().positive("مبلغ باید بزرگ‌تر از صفر باشد."),
+  // NOT .positive() — see the GET_CHEQUES_DUE note above; amountToPersianWords
+  // below already rejects amount <= 0 with a clear Persian error.
+  amount: z.number().min(0),
   currency_code: z.enum(CURRENCY_CODES).optional(),
   cheque_date_phrase: z.string().trim().min(1, "تاریخ چک الزامی است."),
   cheque_number: z.string().trim().min(1, "شمارهٔ چک الزامی است."),

@@ -7,7 +7,14 @@ import type { ActionDefinition } from "./types";
 
 const invoiceItemInput = z.object({
   description: z.string().trim().min(1, "شرح ردیف الزامی است."),
-  quantity: z.number().positive("تعداد باید بزرگ‌تر از صفر باشد."),
+  // NOT .positive() — zod-to-json-schema renders it as the old draft-04
+  // {exclusiveMinimum: true, minimum: 0} shape, which Anthropic's tool
+  // schema validator rejects (draft 2020-12 requires exclusiveMinimum to
+  // be a number) — and since all tool schemas go in one request, a
+  // single bad one fails the ENTIRE chat turn, not just this action.
+  // .min(0) renders cleanly as {minimum: 0}; true positivity is checked
+  // in the handler below instead.
+  quantity: z.number().min(0),
   unit_price: z.number().min(0, "قیمت واحد نمی‌تواند منفی باشد."),
   unit: z.string().trim().optional(),
   discount_amount: z.number().min(0).optional(),
@@ -64,6 +71,10 @@ export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDr
   requiredAccess: (p) => p.role === "ADMIN" || p.invoice_role != null,
   inputSchema: createInvoiceDraftInput,
   handler: async (input) => {
+    if (input.items.some((it) => it.quantity <= 0)) {
+      throw new Error("تعداد هر ردیف باید بزرگ‌تر از صفر باشد.");
+    }
+
     const currency = input.currency_code ?? "IRR";
     const payload: InvoiceDraftInput = {
       type: input.type,
