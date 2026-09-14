@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { outgoingSchema, incomingSchema } from "@/lib/validation";
 import { persianError } from "@/lib/enums";
@@ -22,6 +23,42 @@ async function currentUserId() {
 
 function fd(formData: FormData) {
   return Object.fromEntries(formData.entries());
+}
+
+/**
+ * Archives the finalized letter's PDF as a permanent attachment — shared
+ * by finalizeOutgoing (web form) and createAndFinalizeLetterCore (NIL
+ * Assistant), so both produce the exact same archival record from the
+ * same code path. Best-effort by design: numbering already succeeded
+ * before this is ever called, and a PDF failure must never undo that.
+ */
+async function archiveLetterPdf(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  try {
+    const { data: fresh } = await supabase
+      .from("correspondence")
+      .select("display_number")
+      .eq("id", id)
+      .single();
+    const { buffer } = await buildLetterPdfForCorrespondence(supabase, id);
+    const safeNumber = (fresh?.display_number ?? id).replace(/[^\w.-]+/g, "_");
+    const path = `correspondence/${id}/${Date.now()}-letter-${safeNumber}.pdf`;
+    const { error: upErr } = await supabase.storage
+      .from("nil-files")
+      .upload(path, buffer, { contentType: "application/pdf", upsert: false });
+    if (!upErr) {
+      await supabase.from("attachments").insert({
+        entity_type: "CORRESPONDENCE",
+        entity_id: id,
+        file_name: `نامه-${fresh?.display_number ?? ""}.pdf`,
+        storage_path: path,
+        mime_type: "application/pdf",
+        size_bytes: buffer.length,
+        uploaded_by: userId,
+      });
+    }
+  } catch (pdfErr) {
+    console.error("archiveLetterPdf: letterhead PDF archival failed", pdfErr);
+  }
 }
 
 /** Create an outgoing letter as DRAFT or REVIEW (no number issued yet). */
@@ -117,38 +154,72 @@ export async function finalizeOutgoing(
   });
   if (error) return { error: persianError(error.message) };
 
-  // Best-effort: archive a permanent letterhead PDF as an attachment.
-  // Numbering already succeeded above; a PDF failure must never undo that.
-  try {
-    const { data: fresh } = await supabase
-      .from("correspondence")
-      .select("display_number")
-      .eq("id", id)
-      .single();
-    const { buffer } = await buildLetterPdfForCorrespondence(supabase, id);
-    const safeNumber = (fresh?.display_number ?? id).replace(/[^\w.-]+/g, "_");
-    const path = `correspondence/${id}/${Date.now()}-letter-${safeNumber}.pdf`;
-    const { error: upErr } = await supabase.storage
-      .from("nil-files")
-      .upload(path, buffer, { contentType: "application/pdf", upsert: false });
-    if (!upErr) {
-      await supabase.from("attachments").insert({
-        entity_type: "CORRESPONDENCE",
-        entity_id: id,
-        file_name: `نامه-${fresh?.display_number ?? ""}.pdf`,
-        storage_path: path,
-        mime_type: "application/pdf",
-        size_bytes: buffer.length,
-        uploaded_by: userId,
-      });
-    }
-  } catch (pdfErr) {
-    console.error("finalizeOutgoing: letterhead PDF archival failed", pdfErr);
-  }
+  await archiveLetterPdf(supabase, userId, id);
 
   revalidatePath(`/correspondence/${id}`);
   revalidatePath("/correspondence/outgoing");
   return null;
+}
+
+export type LetterDraftInput = {
+  subject: string;
+  draft_text: string;
+  recipient_company_id?: string | null;
+  recipient_name?: string | null;
+  case_id?: string | null;
+  language?: "FA" | "EN";
+  signatory_id?: string | null;
+  signatory_label?: string | null;
+};
+
+/**
+ * Non-redirecting core shared by NIL Assistant's CREATE_LETTER_DRAFT
+ * action (lib/assistant/actions/correspondence.ts) — mirrors
+ * insertTaskDraftCore's pattern, but this one is HIGH-risk (spec §71):
+ * a single confirmed call drafts the letter AND finalizes it AND
+ * archives the PDF, reusing the exact same finalize_correspondence RPC
+ * and archiveLetterPdf helper the web UI's own two-step flow
+ * (createOutgoing -> finalizeOutgoing) uses — never a parallel
+ * numbering or drafting path. If finalize_correspondence fails, the
+ * letter is left behind as an ordinary numberless DRAFT, recoverable
+ * through the normal web UI — not a special case to handle here.
+ */
+export async function createAndFinalizeLetterCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: LetterDraftInput,
+): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  const { data, error } = await supabase
+    .from("correspondence")
+    .insert({
+      direction: "OUTGOING",
+      status: "DRAFT",
+      subject: d.subject,
+      draft_text: sanitizeLetterHtml(d.draft_text),
+      recipient_company_id: d.recipient_company_id ?? null,
+      recipient_name: d.recipient_name ?? null,
+      case_id: d.case_id ?? null,
+      language: d.language ?? "FA",
+      signatory_id: d.signatory_id ?? userId,
+      signatory_label: d.signatory_label ?? null,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: persianError(error.message) };
+
+  const { error: rpcError } = await supabase.rpc("finalize_correspondence", {
+    p_letter_id: data.id,
+    p_year: currentJalaliYear(),
+  });
+  if (rpcError) return { error: persianError(rpcError.message) };
+
+  await archiveLetterPdf(supabase, userId, data.id);
+
+  const { data: fresh } = await supabase.from("correspondence").select("display_number").eq("id", data.id).single();
+  revalidatePath("/correspondence/outgoing");
+  revalidatePath(`/correspondence/${data.id}`);
+  return { data: { id: data.id, display_number: fresh?.display_number ?? null } };
 }
 
 /** Move a draft to REVIEW. */
