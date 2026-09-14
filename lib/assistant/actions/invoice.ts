@@ -68,7 +68,10 @@ export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDr
     "پیشنهاد صدور رسمی یک فاکتور یا پیش‌فاکتور (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). company_id را فقط اگر قبلاً با SEARCH_COMPANY پیدا کرده‌اید بفرستید — هرگز حدس نزنید. اگر مشتری، تعداد، قیمت واحد یا واحد پول مشخص نیست، از کاربر بپرسید، پیشنهاد ندهید. مبلغ کل را خودت محاسبه نکن — فقط ردیف‌های خام (تعداد، قیمت واحد، تخفیف، مالیات) را بفرست. پس از تأیید کاربر، سند بلافاصله شمارهٔ رسمی می‌گیرد.",
   riskLevel: "HIGH",
   requiresConfirmation: true,
-  requiredAccess: (p) => p.role === "ADMIN" || p.invoice_role != null,
+  // APPROVE+ specifically — finalize_sales_document's own can_approve_invoice()
+  // gate requires it, so a CREATE-tier user should be told up front rather
+  // than draft a full invoice only to have the final confirm step reject it.
+  requiredAccess: (p) => p.role === "ADMIN" || p.invoice_role === "APPROVE" || p.invoice_role === "ADMIN",
   inputSchema: createInvoiceDraftInput,
   handler: async (input) => {
     if (input.items.some((it) => it.quantity <= 0)) {
