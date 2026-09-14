@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
 import { currentJalaliYear } from "@/lib/jalali";
@@ -110,6 +111,110 @@ export async function createSalesDocumentDraft(_p: ActionState, f: FormData): Pr
 
   revalidatePath("/invoices");
   redirect(`/invoices/${data.id}`);
+}
+
+export type InvoiceDraftInput = {
+  type: "INVOICE" | "PROFORMA";
+  company_id: string;
+  items: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+    unit?: string | null;
+    discount_amount?: number;
+    tax_amount?: number;
+    item_type?: "GOODS" | "SERVICE";
+  }[];
+  currency_code?: string;
+  payment_terms?: string | null;
+  validity_date?: string | null;
+  contract_id?: string | null;
+  case_id?: string | null;
+  notes?: string | null;
+  language?: "FA" | "EN";
+};
+
+/**
+ * Non-redirecting core shared by NIL Assistant's CREATE_INVOICE_DRAFT
+ * action (lib/assistant/actions/invoice.ts) — HIGH-risk (spec §71),
+ * mirroring createAndFinalizeLetterCore's shape: one confirmed call
+ * drafts + transitions + issues, reusing the exact same tables/RPC the
+ * web UI's own multi-step flow uses. All arithmetic (line totals,
+ * subtotal, tax, grand total) comes from Postgres generated columns and
+ * the existing tg_sales_document_items_rollup trigger (0031) — this
+ * function never computes a total itself (spec §18). The company
+ * snapshot fields are looked up server-side here (mirrors
+ * createSalesDocumentFromContract's own company -> snapshot copy),
+ * since the bot only supplies company_id, never the full snapshot.
+ */
+export async function createAndIssueInvoiceCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: InvoiceDraftInput,
+): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  const { data: company, error: companyErr } = await supabase
+    .from("companies")
+    .select("legal_name, english_name, contact_person, email, phone, address")
+    .eq("id", d.company_id)
+    .single();
+  if (companyErr || !company) return { error: "شرکت انتخاب‌شده یافت نشد." };
+
+  const { data: doc, error } = await supabase
+    .from("sales_documents")
+    .insert({
+      type: d.type,
+      status: "DRAFT",
+      company_id: d.company_id,
+      contract_id: d.contract_id ?? null,
+      case_id: d.case_id ?? null,
+      validity_date: d.validity_date ?? null,
+      currency_code: d.currency_code ?? "IRR",
+      payment_terms: d.payment_terms ?? null,
+      notes: d.notes ?? null,
+      customer_legal_name_snapshot: company.legal_name,
+      customer_english_name_snapshot: company.english_name ?? null,
+      customer_contact_person_snapshot: company.contact_person ?? null,
+      customer_email_snapshot: company.email ?? null,
+      customer_phone_snapshot: company.phone ?? null,
+      customer_address_snapshot: company.address ?? null,
+      language: d.language ?? "FA",
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: persianError(error.message) };
+
+  const itemRows = d.items.map((it, i) => ({
+    sales_document_id: doc.id,
+    line_no: i + 1,
+    item_type: it.item_type ?? "SERVICE",
+    description: it.description,
+    unit: it.unit ?? null,
+    quantity: it.quantity,
+    unit_price: it.unit_price,
+    discount_amount: it.discount_amount ?? 0,
+    tax_amount: it.tax_amount ?? 0,
+  }));
+  const { error: itemErr } = await supabase.from("sales_document_items").insert(itemRows);
+  if (itemErr) {
+    await supabase.from("sales_documents").delete().eq("id", doc.id);
+    return { error: persianError(itemErr.message) };
+  }
+
+  // Same transitions the web UI's own buttons call (setSalesDocumentStatus) —
+  // chained here as one server-side sequence, not a new transition path.
+  const { error: reviewErr } = await supabase.from("sales_documents").update({ status: "REVIEW" }).eq("id", doc.id);
+  if (reviewErr) return { error: persianError(reviewErr.message) };
+  const { error: approveErr } = await supabase.from("sales_documents").update({ status: "APPROVED" }).eq("id", doc.id);
+  if (approveErr) return { error: persianError(approveErr.message) };
+
+  const { error: issueErr } = await supabase.rpc("finalize_sales_document", { p_id: doc.id, p_year: currentJalaliYear() });
+  if (issueErr) return { error: persianError(issueErr.message) };
+
+  const { data: fresh } = await supabase.from("sales_documents").select("display_number").eq("id", doc.id).single();
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${doc.id}`);
+  return { data: { id: doc.id, display_number: fresh?.display_number ?? null } };
 }
 
 /** Replace a sales document's header + items — only while still DRAFT/REVIEW. */

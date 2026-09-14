@@ -4,6 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertTaskDraftCore } from "@/app/actions/tasks";
 import { insertFollowupDraftCore } from "@/app/actions/entities";
 import { createChequeDraftCore, prepareChequeCore } from "@/app/actions/cheques";
+import { createAndFinalizeLetterCore } from "@/app/actions/correspondence";
+import { createAndIssueInvoiceCore } from "@/app/actions/invoices";
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -26,6 +28,8 @@ const WRITE_EXECUTORS: Record<
   CREATE_FOLLOWUP_DRAFT: (payload, supabase, userId) => insertFollowupDraftCore(supabase, userId, payload as never),
   CREATE_CHEQUE_DRAFT: (payload, supabase, userId) => createChequeDraftCore(supabase, userId, payload as never),
   PREPARE_CHEQUE_PRINT: (payload, supabase, userId) => prepareChequeCore(supabase, userId, payload as never),
+  CREATE_LETTER_DRAFT: (payload, supabase, userId) => createAndFinalizeLetterCore(supabase, userId, payload as never),
+  CREATE_INVOICE_DRAFT: (payload, supabase, userId) => createAndIssueInvoiceCore(supabase, userId, payload as never),
 };
 
 /**
@@ -66,7 +70,7 @@ export async function createPendingAction(
   return { pendingActionId: data.id, previewText, expiresAt };
 }
 
-export type ConfirmResult = { ok: true; resultId: string } | { ok: false; error: string };
+export type ConfirmResult = { ok: true; resultId: string; actionName: string } | { ok: false; error: string };
 
 /**
  * The entire Confirmation Engine boils down to this one atomic
@@ -113,7 +117,7 @@ export async function confirmPendingAction(supabase: SupabaseClient, userId: str
   await supabase.rpc("assistant_write_log", { p_pending_action_id: pendingActionId, p_action_name: claimed.action_name, p_result: outcome });
 
   if ("error" in result) return { ok: false, error: result.error };
-  return { ok: true, resultId: result.data.id };
+  return { ok: true, resultId: result.data.id, actionName: claimed.action_name };
 }
 
 export async function cancelPendingAction(supabase: SupabaseClient, userId: string, pendingActionId: string): Promise<{ ok: boolean }> {
