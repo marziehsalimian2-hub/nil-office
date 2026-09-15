@@ -5,7 +5,7 @@ import { resolveProfileForTelegramUser } from "./identity";
 import { getSessionClientForProfile } from "./session";
 import { sendMessage, answerCallbackQuery, clearInlineKeyboard, getFileDownloadUrl, sendDocument } from "./bot";
 import { formatChatTurnForTelegram } from "./format";
-import { runChatTurn } from "@/lib/assistant/orchestrator";
+import { runChatTurn, type ChatAttachment } from "@/lib/assistant/orchestrator";
 import { confirmPendingAction, cancelPendingAction } from "@/lib/assistant/confirmation";
 import { getSpeechToTextProvider } from "@/lib/assistant/speech";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
@@ -19,7 +19,10 @@ type TelegramUpdate = {
     chat: { id: number; type: string };
     from?: { id: number };
     text?: string;
+    caption?: string;
     voice?: { file_id: string; duration: number };
+    photo?: { file_id: string; file_size?: number }[];
+    document?: { file_id: string; mime_type?: string; file_size?: number };
   };
   callback_query?: { id: string; data?: string; from: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } };
 };
@@ -30,6 +33,8 @@ const UNAVAILABLE_TEXT = "دستیار نیل موقتاً در دسترس نی�
 
 const MAX_VOICE_BYTES = 15 * 1024 * 1024;
 const MAX_VOICE_DURATION_SECONDS = 300;
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const DEFAULT_ATTACHMENT_PROMPT = "این تصویر/سند را بررسی کن — اگر نامهٔ واردهاست، اطلاعات آن را استخراج کن.";
 
 /** Actions whose successful confirmation results in an official document that should be delivered to Telegram (spec §13/§21). Every other action (tasks, followups, cheques, ...) is a no-op here. */
 const DOCUMENT_ACTIONS: Record<string, "LETTER" | "INVOICE"> = {
@@ -98,6 +103,24 @@ async function transcribeVoice(fileId: string, durationSeconds: number): Promise
     console.error("[telegram] voice transcription failed", err);
     return { error: "تبدیل ویس به متن ناموفق بود. لطفاً بعداً دوباره تلاش کنید یا متن را تایپ کنید." };
   }
+}
+
+/**
+ * Photo/document pipeline (spec §25/§35): download entirely in-memory
+ * (never written to disk, nothing to clean up), base64-encode for the
+ * LLM's image/document content block. The original bytes are handed
+ * straight through to REGISTER_INCOMING_LETTER's payload for archival
+ * (lib/assistant/actions/correspondence.ts) — the model never re-derives
+ * or re-encodes the file itself.
+ */
+async function downloadTelegramFileAsBase64(fileId: string): Promise<{ base64: string } | { error: string }> {
+  const url = await getFileDownloadUrl(fileId);
+  if (!url) return { error: "دریافت فایل از تلگرام ناموفق بود." };
+  const res = await fetch(url);
+  if (!res.ok) return { error: "دانلود فایل ناموفق بود." };
+  const arrayBuffer = await res.arrayBuffer();
+  if (arrayBuffer.byteLength > MAX_ATTACHMENT_BYTES) return { error: "حجم فایل بیش از حد مجاز است (حداکثر ۱۵ مگابایت)." };
+  return { base64: Buffer.from(arrayBuffer).toString("base64") };
 }
 
 /**
@@ -171,7 +194,8 @@ async function findOrCreateTelegramConversation(sessionClient: Awaited<ReturnTyp
 async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promise<void> {
   if (!isPrivateChat(msg.chat.type)) return; // spec §26/§27 — groups/channels ignored entirely, no reply
   const telegramUserId = msg.from?.id;
-  if (!telegramUserId || (!msg.text && !msg.voice)) return;
+  const hasContent = Boolean(msg.text || msg.voice || (msg.photo && msg.photo.length > 0) || msg.document);
+  if (!telegramUserId || !hasContent) return;
 
   const auth = await authorize(telegramUserId);
   if ("denied" in auth) {
@@ -180,6 +204,8 @@ async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promi
   }
 
   let text: string;
+  let attachment: ChatAttachment | undefined;
+
   if (msg.voice) {
     const transcribed = await transcribeVoice(msg.voice.file_id, msg.voice.duration);
     if ("error" in transcribed) {
@@ -191,13 +217,37 @@ async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promi
     const lowConfidenceNote = transcribed.confidence === "LOW" ? "\n\nلطفاً اگر اشتباه شنیده شد، دوباره بگو یا تصحیح کن." : "";
     await sendMessage(msg.chat.id, `🎙 شنیدم: ${transcribed.text}${lowConfidenceNote}`);
     text = transcribed.text;
+  } else if (msg.photo && msg.photo.length > 0) {
+    const largest = msg.photo[msg.photo.length - 1]; // Telegram orders PhotoSize smallest -> largest
+    const downloaded = await downloadTelegramFileAsBase64(largest.file_id);
+    if ("error" in downloaded) {
+      await sendMessage(msg.chat.id, downloaded.error);
+      return;
+    }
+    attachment = { kind: "image", mediaType: "image/jpeg", data: downloaded.base64 }; // Telegram always re-encodes photos as JPEG
+    text = msg.caption?.trim() || DEFAULT_ATTACHMENT_PROMPT;
+  } else if (msg.document) {
+    const mime = msg.document.mime_type;
+    const isPdf = mime === "application/pdf";
+    const isImage = mime === "image/jpeg" || mime === "image/png" || mime === "image/gif" || mime === "image/webp";
+    if (!isPdf && !isImage) {
+      await sendMessage(msg.chat.id, "فقط فایل تصویر یا PDF پذیرفته می‌شود.");
+      return;
+    }
+    const downloaded = await downloadTelegramFileAsBase64(msg.document.file_id);
+    if ("error" in downloaded) {
+      await sendMessage(msg.chat.id, downloaded.error);
+      return;
+    }
+    attachment = { kind: isPdf ? "document" : "image", mediaType: mime, data: downloaded.base64 };
+    text = msg.caption?.trim() || DEFAULT_ATTACHMENT_PROMPT;
   } else {
     text = SLASH_ALIASES[msg.text!.trim()] ?? msg.text!;
   }
 
   try {
     const conversationId = await findOrCreateTelegramConversation(auth.sessionClient, auth.profile.id);
-    const result = await runChatTurn(auth.sessionClient, auth.profile, conversationId, text);
+    const result = await runChatTurn(auth.sessionClient, auth.profile, conversationId, text, attachment);
     const { chunks, keyboard } = formatChatTurnForTelegram(result);
     for (let i = 0; i < chunks.length; i++) {
       await sendMessage(msg.chat.id, chunks[i], i === chunks.length - 1 ? keyboard : undefined);

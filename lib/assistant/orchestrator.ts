@@ -56,11 +56,14 @@ function summarizeForModel(data: unknown): string {
   return json.length > 4000 ? json.slice(0, 4000) + "…(truncated)" : json;
 }
 
+export type ChatAttachment = { kind: "image" | "document"; mediaType: string; data: string /* base64 */ };
+
 export async function runChatTurn(
   supabase: SupabaseClient,
   profile: Profile,
   conversationId: string,
   userMessageText: string,
+  attachment?: ChatAttachment,
 ): Promise<ChatTurnResult> {
   if (!(await checkRateLimit(supabase, profile.id))) {
     return { text: "لطفاً کمی صبر کنید و دوباره تلاش کنید.", cards: [], pendingAction: null, rateLimited: true };
@@ -82,6 +85,22 @@ export async function runChatTurn(
 
   const history = await loadHistory(supabase, conversationId);
   const messages: LlmMessage[] = history;
+
+  // A photo/PDF is relevant only to the turn it arrives in — appended to
+  // THIS turn's message content for the model to see now, never persisted
+  // to assistant_messages (which stores only the caption/placeholder
+  // text, same as voice stores only its transcript, not the audio) and
+  // never replayed into a later turn's history.
+  if (attachment && messages.length > 0) {
+    const last = messages[messages.length - 1];
+    if (last.role === "user") {
+      last.content.push(
+        attachment.kind === "image"
+          ? { type: "image", mediaType: attachment.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: attachment.data }
+          : { type: "document", mediaType: "application/pdf", data: attachment.data },
+      );
+    }
+  }
   const systemPrompt = buildSystemPrompt(profile.full_name);
   const tools = buildLlmTools();
   const provider = getLLMProvider();
@@ -120,7 +139,12 @@ export async function runChatTurn(
         continue;
       }
 
-      const ctx = { supabase, userId: profile.id, profile };
+      const ctx = {
+        supabase,
+        userId: profile.id,
+        profile,
+        turnAttachment: attachment ? { mediaType: attachment.mediaType, data: attachment.data } : undefined,
+      };
       try {
         // requiresConfirmation is a plain runtime flag, not a type
         // discriminant (see the comment on ActionDefinition in

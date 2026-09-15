@@ -170,6 +170,8 @@ export type LetterDraftInput = {
   language?: "FA" | "EN";
   signatory_id?: string | null;
   signatory_label?: string | null;
+  /** When set, this letter is a reply — a correspondence_links(REPLY_TO) row is inserted after finalization, mirroring createReplyDraft's existing web-UI insert. */
+  reply_to_correspondence_id?: string | null;
 };
 
 /**
@@ -216,8 +218,103 @@ export async function createAndFinalizeLetterCore(
 
   await archiveLetterPdf(supabase, userId, data.id);
 
+  if (d.reply_to_correspondence_id) {
+    await supabase.from("correspondence_links").insert({
+      from_correspondence_id: data.id,
+      to_correspondence_id: d.reply_to_correspondence_id,
+      relation_type: "REPLY_TO",
+      created_by: userId,
+    });
+    revalidatePath(`/correspondence/${d.reply_to_correspondence_id}`);
+  }
+
   const { data: fresh } = await supabase.from("correspondence").select("display_number").eq("id", data.id).single();
   revalidatePath("/correspondence/outgoing");
+  revalidatePath(`/correspondence/${data.id}`);
+  return { data: { id: data.id, display_number: fresh?.display_number ?? null } };
+}
+
+export type IncomingLetterInput = {
+  subject: string;
+  body_summary: string;
+  sender_name?: string | null;
+  sender_company_id?: string | null;
+  external_letter_number?: string | null;
+  external_letter_date?: string | null;
+  case_id?: string | null;
+  requires_response?: boolean;
+  original_file_base64?: string | null;
+  original_file_mime_type?: string | null;
+};
+
+/**
+ * Non-redirecting core shared by NIL Assistant's REGISTER_INCOMING_LETTER
+ * action (lib/assistant/actions/correspondence.ts) — mirrors
+ * createAndFinalizeLetterCore's shape exactly but for the INCOMING
+ * direction: drafts + register_incoming (the existing RPC — same
+ * numbering/eligibility rules as the web UI's own createIncoming) +
+ * archives the original photo/PDF as an attachment, reusing the generic
+ * attachments/nil-files mechanism every other domain already uses (no
+ * new bucket/table). body_summary is the model's own understanding of
+ * the letter, composed as this tool's own parameter — same pattern as
+ * CREATE_LETTER_DRAFT's draft_text, no second LLM round-trip.
+ */
+export async function createAndRegisterIncomingCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: IncomingLetterInput,
+): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  const { data, error } = await supabase
+    .from("correspondence")
+    .insert({
+      direction: "INCOMING",
+      status: "DRAFT",
+      subject: d.subject,
+      draft_text: sanitizeLetterHtml(d.body_summary),
+      recipient_name: d.sender_name ?? null,
+      sender_company_id: d.sender_company_id ?? null,
+      external_letter_number: d.external_letter_number ?? null,
+      external_letter_date: d.external_letter_date ?? null,
+      case_id: d.case_id ?? null,
+      requires_response: d.requires_response ?? false,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: persianError(error.message) };
+
+  const { error: rpcError } = await supabase.rpc("register_incoming", {
+    p_letter_id: data.id,
+    p_year: currentJalaliYear(),
+  });
+  if (rpcError) return { error: persianError(rpcError.message) };
+
+  if (d.original_file_base64 && d.original_file_mime_type) {
+    try {
+      const buffer = Buffer.from(d.original_file_base64, "base64");
+      const ext = d.original_file_mime_type === "application/pdf" ? "pdf" : "jpg";
+      const path = `correspondence/${data.id}/${Date.now()}-incoming.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("nil-files")
+        .upload(path, buffer, { contentType: d.original_file_mime_type, upsert: false });
+      if (!upErr) {
+        await supabase.from("attachments").insert({
+          entity_type: "CORRESPONDENCE",
+          entity_id: data.id,
+          file_name: `نامه-وارده-اصل.${ext}`,
+          storage_path: path,
+          mime_type: d.original_file_mime_type,
+          size_bytes: buffer.length,
+          uploaded_by: userId,
+        });
+      }
+    } catch (archiveErr) {
+      console.error("createAndRegisterIncomingCore: original file archival failed", archiveErr);
+    }
+  }
+
+  const { data: fresh } = await supabase.from("correspondence").select("display_number").eq("id", data.id).single();
+  revalidatePath("/correspondence/incoming");
   revalidatePath(`/correspondence/${data.id}`);
   return { data: { id: data.id, display_number: fresh?.display_number ?? null } };
 }
