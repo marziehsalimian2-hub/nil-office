@@ -29,7 +29,16 @@ async function checkRateLimit(supabase: SupabaseClient, userId: string): Promise
   return (count ?? 0) < RATE_LIMIT_PER_MINUTE;
 }
 
-async function saveMessage(supabase: SupabaseClient, conversationId: string, role: "user" | "assistant" | "tool", content: string, toolCalls?: unknown) {
+/**
+ * Exported so the Telegram callback-query handler (confirm/cancel button
+ * taps, a code path entirely separate from runChatTurn) can also record
+ * an action's outcome into the SAME conversation history — without this,
+ * the model has no memory that a confirmed action actually completed
+ * (the confirm button's own reply is sent directly via Telegram, never
+ * through this function), and can reasonably think a since-confirmed
+ * write is still an unconfirmed draft on the very next turn.
+ */
+export async function saveMessage(supabase: SupabaseClient, conversationId: string, role: "user" | "assistant" | "tool", content: string, toolCalls?: unknown) {
   await supabase.from("assistant_messages").insert({ conversation_id: conversationId, role, content, tool_calls: toolCalls ?? null });
 }
 

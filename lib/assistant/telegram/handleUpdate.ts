@@ -5,7 +5,7 @@ import { resolveProfileForTelegramUser } from "./identity";
 import { getSessionClientForProfile } from "./session";
 import { sendMessage, answerCallbackQuery, clearInlineKeyboard, getFileDownloadUrl, sendDocument } from "./bot";
 import { formatChatTurnForTelegram } from "./format";
-import { runChatTurn, type ChatAttachment } from "@/lib/assistant/orchestrator";
+import { runChatTurn, saveMessage, type ChatAttachment } from "@/lib/assistant/orchestrator";
 import { confirmPendingAction, cancelPendingAction } from "@/lib/assistant/confirmation";
 import { getSpeechToTextProvider } from "@/lib/assistant/speech";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
@@ -41,6 +41,33 @@ const DOCUMENT_ACTIONS: Record<string, "LETTER" | "INVOICE"> = {
   CREATE_LETTER_DRAFT: "LETTER",
   CREATE_INVOICE_DRAFT: "INVOICE",
 };
+
+/** Every HIGH-risk action that assigns an official display_number — used to build a confirmation reply that actually states the number (not just "ثبت شد"), and to let the model's OWN history know what really happened (see buildConfirmationOutcomeText below). */
+const NUMBERED_RECORD_ACTIONS: Record<string, { table: "correspondence" | "sales_documents"; label: string }> = {
+  CREATE_LETTER_DRAFT: { table: "correspondence", label: "نامه" },
+  REGISTER_INCOMING_LETTER: { table: "correspondence", label: "نامهٔ وارده" },
+  CREATE_INVOICE_DRAFT: { table: "sales_documents", label: "فاکتور/پیش‌فاکتور" },
+};
+
+/**
+ * The plain "انجام شد. ثبت شد." success text never stated the actual
+ * official number, and — more importantly — the whole confirm/cancel
+ * exchange happens over a callback_query, a code path that never writes
+ * into assistant_messages at all. Without persisting SOMETHING here, the
+ * model's own conversation history still shows only the original
+ * unconfirmed proposal on the next turn, and it can reasonably (and
+ * wrongly) tell the user the action is still a draft.
+ */
+async function buildConfirmationOutcomeText(
+  sessionClient: Awaited<ReturnType<typeof getSessionClientForProfile>>,
+  actionName: string,
+  resultId: string,
+): Promise<string> {
+  const meta = NUMBERED_RECORD_ACTIONS[actionName];
+  if (!meta) return "انجام شد. ثبت شد.";
+  const { data } = await sessionClient.from(meta.table).select("display_number").eq("id", resultId).single();
+  return data?.display_number ? `${meta.label} با شمارهٔ ${data.display_number} ثبت شد.` : "انجام شد. ثبت شد.";
+}
 
 const SLASH_ALIASES: Record<string, string> = {
   "/start": "سلام نیل",
@@ -313,8 +340,20 @@ async function handleCallbackQuery(cb: NonNullable<TelegramUpdate["callback_quer
 
     await answerCallbackQuery(cb.id);
     await clearInlineKeyboard(cb.message.chat.id, cb.message.message_id);
-    const text = ok ? (decision === "confirm" ? "انجام شد. ثبت شد." : "لغو شد.") : (errorMessage ?? "این درخواست دیگر معتبر نیست.");
+
+    const text = ok
+      ? decision === "confirm" && confirmedActionName && confirmedResultId
+        ? await buildConfirmationOutcomeText(auth.sessionClient, confirmedActionName, confirmedResultId)
+        : "لغو شد."
+      : (errorMessage ?? "این درخواست دیگر معتبر نیست.");
     await sendMessage(cb.message.chat.id, text);
+
+    // The confirm/cancel exchange itself never goes through runChatTurn,
+    // so without this the model's own history has no record that the
+    // pending action was actually resolved — the next turn would still
+    // see only the original unconfirmed proposal.
+    const conversationId = await findOrCreateTelegramConversation(auth.sessionClient, auth.profile.id);
+    await saveMessage(auth.sessionClient, conversationId, "assistant", text);
 
     if (ok && decision === "confirm" && confirmedActionName && confirmedResultId) {
       await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, confirmedActionName, confirmedResultId);

@@ -297,8 +297,10 @@ export async function createAndRegisterIncomingCore(
       const { error: upErr } = await supabase.storage
         .from("nil-files")
         .upload(path, buffer, { contentType: d.original_file_mime_type, upsert: false });
-      if (!upErr) {
-        await supabase.from("attachments").insert({
+      if (upErr) {
+        console.error("createAndRegisterIncomingCore: storage upload failed", upErr);
+      } else {
+        const { error: attachErr } = await supabase.from("attachments").insert({
           entity_type: "CORRESPONDENCE",
           entity_id: data.id,
           file_name: `نامه-وارده-اصل.${ext}`,
@@ -307,6 +309,7 @@ export async function createAndRegisterIncomingCore(
           size_bytes: buffer.length,
           uploaded_by: userId,
         });
+        if (attachErr) console.error("createAndRegisterIncomingCore: attachments insert failed", attachErr);
       }
     } catch (archiveErr) {
       console.error("createAndRegisterIncomingCore: original file archival failed", archiveErr);
