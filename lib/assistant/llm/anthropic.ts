@@ -3,7 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, TextBlockParam, ImageBlockParam, ToolUseBlockParam, ToolResultBlockParam, Tool } from "@anthropic-ai/sdk/resources/messages";
 import type { LLMProvider, LlmMessage, LlmTool, LlmTurnResult } from "./provider";
 
-const MAX_TOKENS = 2000;
+// Bumped from 2000 (2026-09-15, live-tested): a long extraction with
+// several caveats (e.g. REGISTER_INCOMING_LETTER on an ambiguous
+// document) could hit the old cap mid-sentence. The bigger fix was
+// telling the model not to re-print the previewText format.ts already
+// appends automatically (orchestrator.ts's tool_result instruction) —
+// this is defense in depth on top of that, not the primary fix.
+const MAX_TOKENS = 3000;
 
 /**
  * @anthropic-ai/sdk@0.32.1 has no DocumentBlockParam export (PDF support
