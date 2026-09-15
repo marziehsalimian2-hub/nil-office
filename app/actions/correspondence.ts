@@ -264,6 +264,9 @@ export async function createAndRegisterIncomingCore(
   userId: string,
   d: IncomingLetterInput,
 ): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  // TEMP DIAGNOSTIC — remove once the missing-attachment cause is confirmed.
+  console.error("[assistant][diag] createAndRegisterIncomingCore payload file fields", JSON.stringify({ hasBase64: !!d.original_file_base64, base64Length: d.original_file_base64?.length ?? 0, mimeType: d.original_file_mime_type }));
+
   const { data, error } = await supabase
     .from("correspondence")
     .insert({
