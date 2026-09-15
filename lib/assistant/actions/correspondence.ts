@@ -118,8 +118,6 @@ export const registerIncomingLetter: ActionDefinition<z.infer<typeof registerInc
     // the model this turn (lib/assistant/actions/types.ts) — never
     // re-derived or re-encoded by the model itself as a tool parameter.
     const attachment = ctx.turnAttachment;
-    // TEMP DIAGNOSTIC — remove once the missing-attachment cause is confirmed.
-    console.error("[assistant][diag] registerIncomingLetter ctx.turnAttachment", JSON.stringify({ present: !!attachment, mediaType: attachment?.mediaType, dataLength: attachment?.data?.length ?? 0 }));
 
     const payload: IncomingLetterInput = {
       subject: input.subject,

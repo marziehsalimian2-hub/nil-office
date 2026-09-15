@@ -6,6 +6,7 @@ import { getAction, buildLlmTools } from "@/lib/assistant/actions/registry";
 import { hasAccess, type ResultCard, type ReadActionResult, type WriteProposal } from "@/lib/assistant/actions/types";
 import { buildSystemPrompt } from "@/lib/assistant/systemPrompt";
 import { createPendingAction, confirmPendingAction, isAffirmativePhrase, findSinglePendingAction } from "@/lib/assistant/confirmation";
+import { rememberPendingAttachment, getPendingAttachment, clearPendingAttachment } from "@/lib/assistant/pendingAttachment";
 
 const RATE_LIMIT_PER_MINUTE = 20;
 const HISTORY_WINDOW = 20; // spec §52 — bounded context, not full history
@@ -95,18 +96,26 @@ export async function runChatTurn(
   const history = await loadHistory(supabase, conversationId);
   const messages: LlmMessage[] = history;
 
-  // A photo/PDF is relevant only to the turn it arrives in — appended to
-  // THIS turn's message content for the model to see now, never persisted
-  // to assistant_messages (which stores only the caption/placeholder
-  // text, same as voice stores only its transcript, not the audio) and
-  // never replayed into a later turn's history.
-  if (attachment && messages.length > 0) {
+  // A fresh attachment refreshes what's remembered for this conversation;
+  // otherwise fall back to whatever was remembered from an earlier turn
+  // (spec §36's clarifying-question flow means the model often needs
+  // several attachment-less follow-up turns before it actually proposes
+  // an action — see lib/assistant/pendingAttachment.ts for why this
+  // in-process-only memory exists at all).
+  if (attachment) rememberPendingAttachment(conversationId, attachment);
+  const effectiveAttachment = attachment ?? getPendingAttachment(conversationId) ?? undefined;
+
+  // Never persisted to assistant_messages (which stores only the
+  // caption/placeholder text, same as voice stores only its transcript,
+  // not the audio) and never replayed from DB history on a later turn —
+  // effectiveAttachment above is what actually carries it forward.
+  if (effectiveAttachment && messages.length > 0) {
     const last = messages[messages.length - 1];
     if (last.role === "user") {
       last.content.push(
-        attachment.kind === "image"
-          ? { type: "image", mediaType: attachment.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: attachment.data }
-          : { type: "document", mediaType: "application/pdf", data: attachment.data },
+        effectiveAttachment.kind === "image"
+          ? { type: "image", mediaType: effectiveAttachment.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: effectiveAttachment.data }
+          : { type: "document", mediaType: "application/pdf", data: effectiveAttachment.data },
       );
     }
   }
@@ -152,7 +161,7 @@ export async function runChatTurn(
         supabase,
         userId: profile.id,
         profile,
-        turnAttachment: attachment ? { mediaType: attachment.mediaType, data: attachment.data } : undefined,
+        turnAttachment: effectiveAttachment ? { mediaType: effectiveAttachment.mediaType, data: effectiveAttachment.data } : undefined,
       };
       try {
         // requiresConfirmation is a plain runtime flag, not a type
@@ -161,6 +170,11 @@ export async function runChatTurn(
         // to return on each branch.
         if (action.requiresConfirmation) {
           const proposal = (await action.handler(parsed.data, ctx)) as WriteProposal;
+          // Once a proposal has actually captured the attachment's bytes
+          // into its payload, stop re-attaching it to further turns —
+          // the payload is now the durable copy (it survives to confirm
+          // time regardless of this in-memory cache).
+          if (ctx.turnAttachment) clearPendingAttachment(conversationId);
           const created = await createPendingAction(supabase, profile.id, action.name, proposal.payload, proposal.previewText);
           pendingAction = { id: created.pendingActionId, previewText: created.previewText };
           resultBlocks.push({
