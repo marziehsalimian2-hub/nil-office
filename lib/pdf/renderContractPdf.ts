@@ -26,7 +26,11 @@ export type ContractPdfInput = {
 let cachedFontBase64: string | null = null;
 function fontBase64(): string {
   if (cachedFontBase64) return cachedFontBase64;
-  const fontPath = path.join(process.cwd(), "app", "fonts", "Vazirmatn-Variable.woff2");
+  // B Nazanin, provided by the user (2026-09-16) — only a single
+  // (regular) weight file exists, so a requested font-weight:700 is
+  // browser-synthesized (faux bold), not a real bold face. Send a real
+  // Bold TTF later (e.g. B-Nazanin-Bold.ttf) to upgrade this.
+  const fontPath = path.join(process.cwd(), "app", "fonts", "B-Nazanin.ttf");
   cachedFontBase64 = fs.readFileSync(fontPath).toString("base64");
   return cachedFontBase64;
 }
@@ -35,9 +39,8 @@ const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 const FONT_FACE = `@font-face {
-  font-family: "Vazirmatn";
-  src: url(data:font/woff2;base64,${fontBase64()}) format("woff2");
-  font-weight: 100 900;
+  font-family: "B Nazanin";
+  src: url(data:font/ttf;base64,${fontBase64()}) format("truetype");
 }`;
 
 const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
@@ -65,11 +68,11 @@ function buildContractHtml(input: ContractPdfInput): string {
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: "Vazirmatn", sans-serif;
+    font-family: "B Nazanin", sans-serif;
     direction: rtl;
     color: #1a1a1a;
     font-size: 13px;
-    line-height: 1.3;
+    line-height: 1.8;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
@@ -107,7 +110,9 @@ function buildContractHtml(input: ContractPdfInput): string {
     width: 42mm;
     /* tall enough to contain the signature's absolute box without overflow */
     height: 33mm;
-    margin-top: 0;
+    /* pulls the box up closer to the "امضا و مهر:" label above it — same
+       fix as renderLetterPdf.ts's .stamp-row */
+    margin-top: -10mm;
   }
   .stamp-row img.stamp {
     position: absolute;
@@ -127,8 +132,8 @@ function buildContractHtml(input: ContractPdfInput): string {
 </style>
 </head>
 <body>
-  ${recipientLabel ? `<div class="recipient">طرف قرارداد: ${esc(recipientLabel)}</div>` : ""}
-  <div class="subject">موضوع: <b>${esc(subject)}</b></div>
+  ${recipientLabel ? `<div class="recipient">${esc(recipientLabel)}</div>` : ""}
+  <div class="subject"><b>${esc(subject)}</b></div>
   <div class="body">${bodyHtml}</div>
 
   <div class="signoff-spacer"></div>
@@ -170,7 +175,7 @@ function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null):
   ${FONT_FACE}
   html, body { margin: 0; padding: 0; background: transparent; }
   body {
-    font-family: "Vazirmatn", sans-serif;
+    font-family: "B Nazanin", sans-serif;
     direction: rtl;
     text-align: left;
     color: #1a1a1a;
@@ -245,22 +250,22 @@ export async function renderContractPdf(input: ContractPdfInput): Promise<Buffer
   for (let i = 0; i < pageCount; i++) {
     const outPage = outDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
 
-    if (i === 0 && input.letterheadDataUri) {
+    if (input.letterheadDataUri) {
       const { bytes, isJpg } = dataUriToBytes(input.letterheadDataUri);
       const img = isJpg ? await outDoc.embedJpg(bytes) : await outDoc.embedPng(bytes);
       outPage.drawImage(img, { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
+    }
 
-      if (headerPng) {
-        const embeddedHeader = await outDoc.embedPng(headerPng);
-        const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
-        const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
-        outPage.drawImage(embeddedHeader, {
-          x: 22 * MM_TO_PT,
-          y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
-          width: w,
-          height: h,
-        });
-      }
+    if (i === 0 && headerPng) {
+      const embeddedHeader = await outDoc.embedPng(headerPng);
+      const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
+      const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
+      outPage.drawImage(embeddedHeader, {
+        x: 22 * MM_TO_PT,
+        y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
+        width: w,
+        height: h,
+      });
     }
 
     outPage.drawPage(embeddedTextPages[i], { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
