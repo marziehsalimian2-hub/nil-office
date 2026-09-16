@@ -89,17 +89,20 @@ async function suggestIncomingLetterFollowup(
   conversationId: string,
   correspondenceId: string,
 ): Promise<void> {
-  const { data, error } = await sessionClient
+  // recipient_name doubles as "sender" for an INCOMING letter — the same
+  // column outgoing letters use for their recipient (see
+  // createAndRegisterIncomingCore's own insert). There is no separate
+  // sender_name column.
+  const { data } = await sessionClient
     .from("correspondence")
-    .select("display_number, subject, draft_text, sender_name")
+    .select("display_number, subject, draft_text, recipient_name")
     .eq("id", correspondenceId)
     .single();
-  console.error("[diag] suggestIncomingLetterFollowup: fetch", { correspondenceId, hasData: !!data, error: error?.message });
   if (!data) return;
 
   const prompt = `یک نامهٔ وارده هم‌اکنون با شمارهٔ ${data.display_number} ثبت شد:
 موضوع: ${data.subject ?? "-"}
-فرستنده: ${data.sender_name ?? "-"}
+فرستنده: ${data.recipient_name ?? "-"}
 متن/خلاصه: ${data.draft_text ?? "-"}
 
 طبق قانون ۱۱، دربارهٔ این نامه به کاربر پیشنهاد بده (پیگیری یا پیش‌نویس پاسخ) اگر لازم است — در غیر این صورت فقط کوتاه بگو این نامه صرفاً اطلاع‌رسانی است و نیازی به اقدام ندارد. هیچ ابزاری را در همین پیام فراخوانی نکن، فقط متن پاسخ بده.`;
@@ -111,7 +114,6 @@ async function suggestIncomingLetterFollowup(
       tools: [],
     });
     const text = result.text.trim();
-    console.error("[diag] suggestIncomingLetterFollowup: llm result", { stopReason: result.stopReason, textLength: text.length, toolUses: result.toolUses.length });
     if (!text) return;
     await sendMessage(chatId, text);
     await saveMessage(sessionClient, conversationId, "assistant", text);
@@ -406,7 +408,6 @@ async function handleCallbackQuery(cb: NonNullable<TelegramUpdate["callback_quer
     const conversationId = await findOrCreateTelegramConversation(auth.sessionClient, auth.profile.id);
     await saveMessage(auth.sessionClient, conversationId, "assistant", text);
 
-    console.error("[diag] handleCallbackQuery: post-confirm branch", { ok, decision, confirmedActionName, confirmedResultId });
     if (ok && decision === "confirm" && confirmedActionName && confirmedResultId) {
       await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, confirmedActionName, confirmedResultId);
       if (confirmedActionName === "REGISTER_INCOMING_LETTER") {
