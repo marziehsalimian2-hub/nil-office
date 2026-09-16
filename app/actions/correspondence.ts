@@ -191,6 +191,23 @@ export async function createAndFinalizeLetterCore(
   userId: string,
   d: LetterDraftInput,
 ): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  // The web UI's own letter form has a free-text "نام و سمت" field the
+  // human fills in by hand before finalizing (EditableLetterCard.tsx).
+  // NIL Assistant's CREATE_LETTER_DRAFT tool has no equivalent input, so
+  // without this fallback signatory_label stayed null for every
+  // bot-confirmed letter — the PDF's signoff block rendered blank, and
+  // the model (with no field to put a closing in) started writing "با
+  // احترام، <name>" into draft_text itself instead, duplicating the
+  // closing inside the body. Default to the confirming user's own
+  // profile (name/title), same as signatory_id already defaults to them.
+  let signatoryLabel = d.signatory_label ?? null;
+  if (!signatoryLabel) {
+    const { data: signatoryProfile } = await supabase.from("profiles").select("full_name, title").eq("id", d.signatory_id ?? userId).single();
+    if (signatoryProfile?.full_name) {
+      signatoryLabel = signatoryProfile.title ? `${signatoryProfile.full_name}\n${signatoryProfile.title}` : signatoryProfile.full_name;
+    }
+  }
+
   const { data, error } = await supabase
     .from("correspondence")
     .insert({
@@ -203,7 +220,7 @@ export async function createAndFinalizeLetterCore(
       case_id: d.case_id ?? null,
       language: d.language ?? "FA",
       signatory_id: d.signatory_id ?? userId,
-      signatory_label: d.signatory_label ?? null,
+      signatory_label: signatoryLabel,
       created_by: userId,
     })
     .select("id")

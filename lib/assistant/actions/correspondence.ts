@@ -47,7 +47,7 @@ const createLetterDraftInput = z.object({
 export const createLetterDraft: ActionDefinition<z.infer<typeof createLetterDraftInput>> = {
   name: "CREATE_LETTER_DRAFT",
   description:
-    "پیشنهاد نوشتن و صدور رسمی یک نامهٔ صادره (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). متن نامه (draft_text) را خودت با لحن رسمی و حرفه‌ای اداری فارسی بنویس — کامل و آماده برای ارسال، نه خلاصه. گیرنده را ترجیحاً با SEARCH_COMPANY پیدا کن و recipient_company_id را بفرست؛ اگر شرکتی در سیستم نبود، فقط recipient_name را بفرست. هرگز گیرنده یا موضوع را حدس نزن — اگر نامشخص است بپرس. اگر این نامه پاسخ به یک نامهٔ واردهٔ مشخص است (معمولاً بعد از REGISTER_INCOMING_LETTER و تأیید کاربر برای پاسخ‌دادن)، شناسهٔ آن نامه را در reply_to_correspondence_id بفرست. پس از تأیید کاربر، این نامه بلافاصله شمارهٔ رسمی می‌گیرد و دیگر قابل ویرایش نیست.",
+    "پیشنهاد نوشتن و صدور رسمی یک نامهٔ صادره (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). متن نامه (draft_text) را خودت با لحن رسمی و حرفه‌ای اداری فارسی بنویس — کامل و آماده برای ارسال، نه خلاصه، و فقط تا پایان متن اصلی نامه؛ هرگز عبارت پایانی «با احترام»، نام امضاکننده یا سمت او را در انتهای draft_text ننویس — این بخش (نام و سمت تأییدکنندهٔ نامه) به‌طور خودکار توسط سیستم زیر مهر و امضا چاپ می‌شود. گیرنده را ترجیحاً با SEARCH_COMPANY پیدا کن و recipient_company_id را بفرست؛ اگر شرکتی در سیستم نبود، فقط recipient_name را بفرست. هرگز گیرنده یا موضوع را حدس نزن — اگر نامشخص است بپرس. اگر این نامه پاسخ به یک نامهٔ واردهٔ مشخص است (معمولاً بعد از REGISTER_INCOMING_LETTER و تأیید کاربر برای پاسخ‌دادن)، شناسهٔ آن نامه را در reply_to_correspondence_id بفرست. پس از تأیید کاربر، این نامه بلافاصله شمارهٔ رسمی می‌گیرد و دیگر قابل ویرایش نیست.",
   riskLevel: "HIGH",
   requiresConfirmation: true,
   inputSchema: createLetterDraftInput,
@@ -66,13 +66,20 @@ export const createLetterDraft: ActionDefinition<z.infer<typeof createLetterDraf
       reply_to_correspondence_id: input.reply_to_correspondence_id ?? null,
     };
 
-    const excerpt = input.draft_text.length > 220 ? `${input.draft_text.slice(0, 220)}…` : input.draft_text;
+    // Full draft_text, not an excerpt: unlike REGISTER_INCOMING_LETTER's
+    // summary (the model's own paraphrase of someone else's letter), this
+    // text IS the official outgoing letter — once confirmed it gets a
+    // real number and "دیگر قابل ویرایش نیست", so the user needs to be
+    // able to read the whole thing before approving it, not just the
+    // first 220 characters. Telegram's own 4096-char chunking (format.ts)
+    // already splits a long message across several bubbles, so there's
+    // no length concern here.
     const previewText = [
       input.reply_to_correspondence_id ? "پاسخ به نامهٔ وارده — پس از تأیید بلافاصله شمارهٔ رسمی می‌گیرد:" : "نامهٔ صادرهٔ جدید — پس از تأیید بلافاصله شمارهٔ رسمی می‌گیرد:",
       `موضوع: ${input.subject}`,
       `گیرنده: ${input.recipient_name ?? "(شرکت انتخاب‌شده)"}`,
       "متن:",
-      excerpt,
+      input.draft_text,
     ].join("\n");
 
     return { payload: payload as unknown as Record<string, unknown>, previewText };
