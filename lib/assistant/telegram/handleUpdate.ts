@@ -8,6 +8,8 @@ import { formatChatTurnForTelegram } from "./format";
 import { runChatTurn, saveMessage, type ChatAttachment } from "@/lib/assistant/orchestrator";
 import { confirmPendingAction, cancelPendingAction } from "@/lib/assistant/confirmation";
 import { getSpeechToTextProvider } from "@/lib/assistant/speech";
+import { getLLMProvider } from "@/lib/assistant/llm";
+import { buildSystemPrompt } from "@/lib/assistant/systemPrompt";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
 import { buildInvoicePdf } from "@/lib/pdf/invoiceData";
 import type { Profile } from "@/lib/types/database";
@@ -67,6 +69,53 @@ async function buildConfirmationOutcomeText(
   if (!meta) return "انجام شد. ثبت شد.";
   const { data } = await sessionClient.from(meta.table).select("display_number").eq("id", resultId).single();
   return data?.display_number ? `${meta.label} با شمارهٔ ${data.display_number} ثبت شد.` : "انجام شد. ثبت شد.";
+}
+
+/**
+ * REGISTER_INCOMING_LETTER's own confirm/cancel exchange happens over a
+ * callback_query (see handleCallbackQuery), a code path that never calls
+ * runChatTurn — so systemPrompt rule 11's reply/follow-up suggestion,
+ * which needs the model's live reasoning about what it just registered,
+ * has nowhere to run once the user has only tapped a button. This makes
+ * one small, tool-free LLM call right after a successful registration so
+ * that suggestion still reaches the user, as its own message, instead of
+ * silently never happening (the bug reported 2026-09-16: the bot gave
+ * the official number and then just stopped).
+ */
+async function suggestIncomingLetterFollowup(
+  sessionClient: Awaited<ReturnType<typeof getSessionClientForProfile>>,
+  profile: Profile,
+  chatId: number,
+  conversationId: string,
+  correspondenceId: string,
+): Promise<void> {
+  const { data } = await sessionClient
+    .from("correspondence")
+    .select("display_number, subject, draft_text, sender_name")
+    .eq("id", correspondenceId)
+    .single();
+  if (!data) return;
+
+  const prompt = `یک نامهٔ وارده هم‌اکنون با شمارهٔ ${data.display_number} ثبت شد:
+موضوع: ${data.subject ?? "-"}
+فرستنده: ${data.sender_name ?? "-"}
+متن/خلاصه: ${data.draft_text ?? "-"}
+
+طبق قانون ۱۱، دربارهٔ این نامه به کاربر پیشنهاد بده (پیگیری یا پیش‌نویس پاسخ) اگر لازم است — در غیر این صورت فقط کوتاه بگو این نامه صرفاً اطلاع‌رسانی است و نیازی به اقدام ندارد. هیچ ابزاری را در همین پیام فراخوانی نکن، فقط متن پاسخ بده.`;
+
+  try {
+    const result = await getLLMProvider().converseWithTools({
+      systemPrompt: buildSystemPrompt(profile.full_name),
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+      tools: [],
+    });
+    const text = result.text.trim();
+    if (!text) return;
+    await sendMessage(chatId, text);
+    await saveMessage(sessionClient, conversationId, "assistant", text);
+  } catch (err) {
+    console.error("[telegram] incoming-letter followup suggestion failed", err);
+  }
 }
 
 const SLASH_ALIASES: Record<string, string> = {
@@ -357,6 +406,9 @@ async function handleCallbackQuery(cb: NonNullable<TelegramUpdate["callback_quer
 
     if (ok && decision === "confirm" && confirmedActionName && confirmedResultId) {
       await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, confirmedActionName, confirmedResultId);
+      if (confirmedActionName === "REGISTER_INCOMING_LETTER") {
+        await suggestIncomingLetterFollowup(auth.sessionClient, auth.profile, cb.message.chat.id, conversationId, confirmedResultId);
+      }
     }
   } catch (err) {
     console.error("[telegram] handleCallbackQuery failed", err);
