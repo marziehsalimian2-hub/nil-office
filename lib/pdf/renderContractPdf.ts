@@ -72,7 +72,7 @@ function buildContractHtml(input: ContractPdfInput): string {
     direction: rtl;
     color: #1a1a1a;
     font-size: 13px;
-    line-height: 1.8;
+    line-height: 2.1;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
