@@ -69,7 +69,7 @@ function buildContractHtml(input: ContractPdfInput): string {
     direction: rtl;
     color: #1a1a1a;
     font-size: 13px;
-    line-height: 1.3;
+    line-height: 1.8;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
@@ -107,7 +107,9 @@ function buildContractHtml(input: ContractPdfInput): string {
     width: 42mm;
     /* tall enough to contain the signature's absolute box without overflow */
     height: 33mm;
-    margin-top: 0;
+    /* pulls the box up closer to the "امضا و مهر:" label above it — same
+       fix as renderLetterPdf.ts's .stamp-row */
+    margin-top: -10mm;
   }
   .stamp-row img.stamp {
     position: absolute;
@@ -127,8 +129,8 @@ function buildContractHtml(input: ContractPdfInput): string {
 </style>
 </head>
 <body>
-  ${recipientLabel ? `<div class="recipient">طرف قرارداد: ${esc(recipientLabel)}</div>` : ""}
-  <div class="subject">موضوع: <b>${esc(subject)}</b></div>
+  ${recipientLabel ? `<div class="recipient">${esc(recipientLabel)}</div>` : ""}
+  <div class="subject"><b>${esc(subject)}</b></div>
   <div class="body">${bodyHtml}</div>
 
   <div class="signoff-spacer"></div>
@@ -245,22 +247,22 @@ export async function renderContractPdf(input: ContractPdfInput): Promise<Buffer
   for (let i = 0; i < pageCount; i++) {
     const outPage = outDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
 
-    if (i === 0 && input.letterheadDataUri) {
+    if (input.letterheadDataUri) {
       const { bytes, isJpg } = dataUriToBytes(input.letterheadDataUri);
       const img = isJpg ? await outDoc.embedJpg(bytes) : await outDoc.embedPng(bytes);
       outPage.drawImage(img, { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
+    }
 
-      if (headerPng) {
-        const embeddedHeader = await outDoc.embedPng(headerPng);
-        const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
-        const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
-        outPage.drawImage(embeddedHeader, {
-          x: 22 * MM_TO_PT,
-          y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
-          width: w,
-          height: h,
-        });
-      }
+    if (i === 0 && headerPng) {
+      const embeddedHeader = await outDoc.embedPng(headerPng);
+      const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
+      const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
+      outPage.drawImage(embeddedHeader, {
+        x: 22 * MM_TO_PT,
+        y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
+        width: w,
+        height: h,
+      });
     }
 
     outPage.drawPage(embeddedTextPages[i], { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });

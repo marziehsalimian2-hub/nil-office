@@ -17,9 +17,9 @@ export type LetterPdfInput = {
   signatureDataUri: string | null;
 };
 
-const LABELS: Record<"FA" | "EN", { dir: "rtl" | "ltr"; recipient: string; subject: string; draft: string }> = {
-  FA: { dir: "rtl", recipient: "گیرنده:", subject: "موضوع:", draft: "پیش‌نویس" },
-  EN: { dir: "ltr", recipient: "To:", subject: "Subject:", draft: "Draft" },
+const LABELS: Record<"FA" | "EN", { dir: "rtl" | "ltr"; draft: string }> = {
+  FA: { dir: "rtl", draft: "پیش‌نویس" },
+  EN: { dir: "ltr", draft: "Draft" },
 };
 
 let cachedFontBase64: string | null = null;
@@ -66,7 +66,7 @@ function buildLetterHtml(input: LetterPdfInput): string {
     direction: ${L.dir};
     color: #1a1a1a;
     font-size: 13px;
-    line-height: 1.3;
+    line-height: 1.8;
   }
   .recipient { margin-bottom: 4mm; font-weight: 700; }
   .subject { margin-bottom: 8mm; }
@@ -107,10 +107,13 @@ function buildLetterHtml(input: LetterPdfInput): string {
     width: 42mm;
     /* tall enough to fully contain the signature's absolute box (bottom:
        13mm + max-height 20mm = 33mm) so it never overflows the container
-       into the label above — avoids needing a large margin-top as a
-       buffer, which was reading as a big empty gap. */
+       into the label above. */
     height: 33mm;
-    margin-top: 0;
+    /* Pulls the box up so the stamp/signature sit closer under the
+       signatory name — most of the 33mm box is naturally empty at the
+       top (both images are bottom-anchored), which read as a large gap
+       under the name text before this was applied. */
+    margin-top: -10mm;
   }
   .stamp-row img.stamp {
     position: absolute;
@@ -132,8 +135,8 @@ function buildLetterHtml(input: LetterPdfInput): string {
 </style>
 </head>
 <body>
-  ${recipientLabel ? `<div class="recipient">${L.recipient} ${esc(recipientLabel)}</div>` : ""}
-  ${subject ? `<div class="subject">${L.subject} <b>${esc(subject)}</b></div>` : ""}
+  ${recipientLabel ? `<div class="recipient">${esc(recipientLabel)}</div>` : ""}
+  ${subject ? `<div class="subject"><b>${esc(subject)}</b></div>` : ""}
   <div class="body">${bodyHtml}</div>
   <div class="signoff-spacer"></div>
   <div class="signoff">
@@ -247,22 +250,22 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<Buffer> {
   for (let i = 0; i < pageCount; i++) {
     const outPage = outDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
 
-    if (i === 0 && input.letterheadDataUri) {
+    if (input.letterheadDataUri) {
       const { bytes, isJpg } = dataUriToBytes(input.letterheadDataUri);
       const img = isJpg ? await outDoc.embedJpg(bytes) : await outDoc.embedPng(bytes);
       outPage.drawImage(img, { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
+    }
 
-      if (headerPng) {
-        const embeddedHeader = await outDoc.embedPng(headerPng);
-        const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
-        const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
-        outPage.drawImage(embeddedHeader, {
-          x: 22 * MM_TO_PT,
-          y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
-          width: w,
-          height: h,
-        });
-      }
+    if (i === 0 && headerPng) {
+      const embeddedHeader = await outDoc.embedPng(headerPng);
+      const w = HEADER_SNIPPET_WIDTH_PX * PX_TO_PT;
+      const h = HEADER_SNIPPET_HEIGHT_PX * PX_TO_PT;
+      outPage.drawImage(embeddedHeader, {
+        x: 22 * MM_TO_PT,
+        y: A4_HEIGHT_PT - 14 * MM_TO_PT - h,
+        width: w,
+        height: h,
+      });
     }
 
     outPage.drawPage(embeddedTextPages[i], { x: 0, y: 0, width: A4_WIDTH_PT, height: A4_HEIGHT_PT });
