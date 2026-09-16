@@ -26,7 +26,11 @@ export type ContractPdfInput = {
 let cachedFontBase64: string | null = null;
 function fontBase64(): string {
   if (cachedFontBase64) return cachedFontBase64;
-  const fontPath = path.join(process.cwd(), "app", "fonts", "Vazirmatn-Variable.woff2");
+  // B Nazanin, provided by the user (2026-09-16) — only a single
+  // (regular) weight file exists, so a requested font-weight:700 is
+  // browser-synthesized (faux bold), not a real bold face. Send a real
+  // Bold TTF later (e.g. B-Nazanin-Bold.ttf) to upgrade this.
+  const fontPath = path.join(process.cwd(), "app", "fonts", "B-Nazanin.ttf");
   cachedFontBase64 = fs.readFileSync(fontPath).toString("base64");
   return cachedFontBase64;
 }
@@ -35,9 +39,8 @@ const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 const FONT_FACE = `@font-face {
-  font-family: "Vazirmatn";
-  src: url(data:font/woff2;base64,${fontBase64()}) format("woff2");
-  font-weight: 100 900;
+  font-family: "B Nazanin";
+  src: url(data:font/ttf;base64,${fontBase64()}) format("truetype");
 }`;
 
 const NIL_LEGAL_NAME = "شرکت مدیریت راهبردی نیل";
@@ -65,7 +68,7 @@ function buildContractHtml(input: ContractPdfInput): string {
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: "Vazirmatn", sans-serif;
+    font-family: "B Nazanin", sans-serif;
     direction: rtl;
     color: #1a1a1a;
     font-size: 13px;
@@ -172,7 +175,7 @@ function buildHeaderFieldsHtml(dateLabel: string, displayNumber: string | null):
   ${FONT_FACE}
   html, body { margin: 0; padding: 0; background: transparent; }
   body {
-    font-family: "Vazirmatn", sans-serif;
+    font-family: "B Nazanin", sans-serif;
     direction: rtl;
     text-align: left;
     color: #1a1a1a;
