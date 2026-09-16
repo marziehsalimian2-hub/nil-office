@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { outgoingSchema, incomingSchema } from "@/lib/validation";
 import { persianError } from "@/lib/enums";
-import { currentJalaliYear } from "@/lib/jalali";
+import { currentJalaliYear, parseJalali } from "@/lib/jalali";
 import { sanitizeLetterHtml } from "@/lib/sanitize-html";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
 
@@ -264,6 +264,16 @@ export type IncomingLetterInput = {
   original_file_mime_type?: string | null;
 };
 
+/** Accepts either Gregorian ISO (YYYY-MM-DD) or a Jalali YYYY/MM/DD the
+ * model extracted verbatim from the letter (Persian or Latin digits) —
+ * see createAndRegisterIncomingCore for why this exists. */
+function normalizeIncomingLetterDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  return parseJalali(trimmed);
+}
+
 /**
  * Non-redirecting core shared by NIL Assistant's REGISTER_INCOMING_LETTER
  * action (lib/assistant/actions/correspondence.ts) — mirrors
@@ -291,7 +301,15 @@ export async function createAndRegisterIncomingCore(
       recipient_name: d.sender_name ?? null,
       sender_company_id: d.sender_company_id ?? null,
       external_letter_number: d.external_letter_number ?? null,
-      external_letter_date: d.external_letter_date ?? null,
+      // The model reads this date straight off a physical letter, so it
+      // naturally comes back Jalali (often with Persian digits) — same as
+      // what a human sees on the page — not the Gregorian ISO the `date`
+      // column expects. Live-tested 2026-09-16: passing it through as-is
+      // hit Postgres with "invalid input syntax for type date". Normalize
+      // here rather than asking the model to do calendar math itself,
+      // matching this codebase's existing convention of letting the
+      // server (not the LLM) own date computation.
+      external_letter_date: normalizeIncomingLetterDate(d.external_letter_date),
       case_id: d.case_id ?? null,
       requires_response: d.requires_response ?? false,
       created_by: userId,
