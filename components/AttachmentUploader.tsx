@@ -8,9 +8,14 @@ import { FormError, SubmitButton } from "@/components/form";
 export function AttachmentUploader({
   entityType,
   entityId,
+  extraFields,
 }: {
-  entityType: "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE";
+  entityType:
+    | "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY"
+    | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE";
   entityId: string;
+  /** Extra hidden fields the action needs — e.g. { company_id } for SERVICE_ENTRY/SERVICE_EXPENSE, whose ENTITY_MAP entry (app/actions/attachments.ts) reads a parentIdField to revalidate the right page (these entities live inside a company's tab, not their own top-level route). */
+  extraFields?: Record<string, string>;
 }) {
   const [state, action] = useActionState<ActionState, FormData>(uploadAttachment, null);
   const ref = useRef<HTMLInputElement>(null);
@@ -19,6 +24,7 @@ export function AttachmentUploader({
     <form action={action} className="space-y-3">
       <input type="hidden" name="entity_type" value={entityType} />
       <input type="hidden" name="entity_id" value={entityId} />
+      {extraFields && Object.entries(extraFields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <FormError message={state?.error} />
       <div className="flex flex-wrap items-center gap-3">
         <label className="btn-ghost cursor-pointer">

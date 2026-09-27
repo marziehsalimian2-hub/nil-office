@@ -803,3 +803,88 @@ export const ATTENTION_RULE_LABEL: Record<string, string> = {
   CRM_STALE: "فرصت تجاری بدون فعالیت",
   CRM_NEXT_ACTION_OVERDUE: "اقدام بعدی فرصت تجاری عقب‌افتاده",
 };
+
+/* ============================ Client Service Ledger — Phase 1 =========================== */
+
+export const SERVICE_LEDGER_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type ServiceLedgerRole = (typeof SERVICE_LEDGER_ROLE)[number];
+export const SERVICE_LEDGER_ROLE_LABEL: Record<ServiceLedgerRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید", ADMIN: "مدیر خدمات مشتری",
+};
+
+export const CLIENT_SERVICE_STATUS = ["ACTIVE", "ON_HOLD", "CLOSED", "ARCHIVED"] as const;
+export type ClientServiceStatus = (typeof CLIENT_SERVICE_STATUS)[number];
+export const CLIENT_SERVICE_STATUS_LABEL: Record<ClientServiceStatus, string> = {
+  ACTIVE: "فعال", ON_HOLD: "متوقف‌شده", CLOSED: "بسته‌شده", ARCHIVED: "بایگانی‌شده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const CLIENT_SERVICE_STATUS_TONE: Record<ClientServiceStatus, string> = {
+  ACTIVE: "status-received", ON_HOLD: "status-waiting", CLOSED: "status-closed", ARCHIVED: "status-cancelled",
+};
+
+export const SERVICE_ARRANGEMENT_TYPE = [
+  "RETAINER", "FIXED_FEE", "HOURLY", "PER_SERVICE", "PROJECT_BASED", "CONTRACT_INCLUDED", "CUSTOM",
+] as const;
+export type ServiceArrangementType = (typeof SERVICE_ARRANGEMENT_TYPE)[number];
+export const SERVICE_ARRANGEMENT_TYPE_LABEL: Record<ServiceArrangementType, string> = {
+  RETAINER: "قرارداد ماهانه (Retainer)",
+  FIXED_FEE: "حق‌الزحمهٔ ثابت",
+  HOURLY: "ساعتی",
+  PER_SERVICE: "به‌ازای هر خدمت",
+  PROJECT_BASED: "پروژه‌محور",
+  CONTRACT_INCLUDED: "داخل قرارداد",
+  CUSTOM: "سفارشی",
+};
+
+export const SERVICE_ARRANGEMENT_STATUS = ["DRAFT", "ACTIVE", "SUSPENDED", "COMPLETED", "CANCELLED"] as const;
+export type ServiceArrangementStatus = (typeof SERVICE_ARRANGEMENT_STATUS)[number];
+export const SERVICE_ARRANGEMENT_STATUS_LABEL: Record<ServiceArrangementStatus, string> = {
+  DRAFT: "پیش‌نویس", ACTIVE: "فعال", SUSPENDED: "معلق", COMPLETED: "تکمیل‌شده", CANCELLED: "لغوشده",
+};
+
+export const BILLING_CYCLE = ["MONTHLY", "QUARTERLY", "ANNUAL", "ONE_TIME"] as const;
+export type BillingCycle = (typeof BILLING_CYCLE)[number];
+export const BILLING_CYCLE_LABEL: Record<BillingCycle, string> = {
+  MONTHLY: "ماهانه", QUARTERLY: "فصلی", ANNUAL: "سالانه", ONE_TIME: "یک‌باره",
+};
+
+export const SERVICE_ENTRY_STATUS = ["DRAFT", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
+export type ServiceEntryStatus = (typeof SERVICE_ENTRY_STATUS)[number];
+export const SERVICE_ENTRY_STATUS_LABEL: Record<ServiceEntryStatus, string> = {
+  DRAFT: "پیش‌نویس", IN_PROGRESS: "در حال انجام", COMPLETED: "تکمیل‌شده", CANCELLED: "لغوشده",
+};
+
+/** All 8 spec values — only the first 4 are selectable anywhere in Phase 1's UI/actions (see the migration's CHECK constraint); INVOICED/PARTIALLY_SETTLED/SETTLED/WAIVED exist here only so a future Phase-2 billing batch can render them without another enums.ts change. */
+export const BILLING_STATUS = [
+  "NON_BILLABLE", "INCLUDED", "BILLABLE", "READY_TO_BILL", "INVOICED", "PARTIALLY_SETTLED", "SETTLED", "WAIVED",
+] as const;
+/** Only the values a Phase-1 form/action may ever write. */
+export const BILLING_STATUS_PHASE1 = ["NON_BILLABLE", "INCLUDED", "BILLABLE", "READY_TO_BILL"] as const;
+export type BillingStatus = (typeof BILLING_STATUS)[number];
+export const BILLING_STATUS_LABEL: Record<BillingStatus, string> = {
+  NON_BILLABLE: "غیرقابل مطالبه",
+  INCLUDED: "داخل قرارداد/Retainer",
+  BILLABLE: "قابل مطالبه",
+  READY_TO_BILL: "آمادهٔ صورتحساب",
+  INVOICED: "فاکتورشده",
+  PARTIALLY_SETTLED: "بخشی وصول‌شده",
+  SETTLED: "تسویه‌شده",
+  WAIVED: "بخشوده‌شده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const BILLING_STATUS_TONE: Record<BillingStatus, string> = {
+  NON_BILLABLE: "status-cancelled",
+  INCLUDED: "status-draft",
+  BILLABLE: "status-waiting",
+  READY_TO_BILL: "status-review",
+  INVOICED: "status-final",
+  PARTIALLY_SETTLED: "status-waiting",
+  SETTLED: "status-closed",
+  WAIVED: "status-cancelled",
+};
+
+export const EXPENSE_PAID_BY = ["NIL", "CLIENT", "EMPLOYEE", "OTHER"] as const;
+export type ExpensePaidBy = (typeof EXPENSE_PAID_BY)[number];
+export const EXPENSE_PAID_BY_LABEL: Record<ExpensePaidBy, string> = {
+  NIL: "نیل", CLIENT: "مشتری", EMPLOYEE: "کارمند", OTHER: "سایر",
+};

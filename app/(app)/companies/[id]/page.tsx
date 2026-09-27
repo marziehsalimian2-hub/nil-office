@@ -9,6 +9,7 @@ import { CrmStatusBadge } from "@/components/CrmStatusBadge";
 import { EditableCompanyBaseCard, EditableCompanyCrmCard } from "./EditableCompanyCard";
 import { ContactsTab } from "./ContactsTab";
 import { ActivitiesTab } from "./ActivitiesTab";
+import { ServiceLedgerTab } from "./ServiceLedgerTab";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_TONE, type ContractStatus } from "@/lib/enums";
@@ -19,6 +20,8 @@ import { formatBytes } from "@/lib/utils";
 import type {
   Company, CompanyContact, CrmCompanyRole, CrmActivity, Attachment,
   Contract, SalesDocument, Correspondence, Case, Followup,
+  ClientServiceFile, ServiceArrangement, ServiceCategory, ServiceEntry, TimeEntry, Expense,
+  ServiceLedgerClaimableAmountRow,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +31,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const profile = await requireProfile();
   const canEditCrm = profile.role === "ADMIN" || (profile.crm_role != null && profile.crm_role !== "VIEW");
+  const canManageServices = profile.role === "ADMIN" || (profile.service_ledger_role != null && profile.service_ledger_role !== "VIEW");
 
   const { data: company } = await supabase.from("companies").select("*").eq("id", id).single();
   if (!company) notFound();
@@ -45,6 +49,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     { data: followups },
     { data: attachments },
     { data: profiles },
+    { data: serviceFile },
+    { data: serviceCategories },
   ] = await Promise.all([
     supabase.from("crm_company_roles").select("*").eq("company_id", id),
     supabase.from("company_contacts").select("*").eq("company_id", id).order("is_primary", { ascending: false }),
@@ -66,7 +72,32 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     supabase.from("followups").select("*").eq("company_id", id).order("due_date"),
     supabase.from("attachments").select("*").eq("entity_type", "COMPANY").eq("entity_id", id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name").eq("is_active", true),
+    supabase.from("client_service_files").select("*").eq("company_id", id).maybeSingle(),
+    supabase.from("service_categories").select("id, name").eq("is_active", true).order("name"),
   ]);
+
+  const serviceFileRow = (serviceFile ?? null) as ClientServiceFile | null;
+  let serviceArrangements: unknown[] = [];
+  let serviceEntries: unknown[] = [];
+  let claimableSummary: unknown[] = [];
+  if (serviceFileRow) {
+    const [arrRes, entRes, sumRes] = await Promise.all([
+      supabase
+        .from("service_arrangements")
+        .select("*")
+        .eq("client_service_file_id", serviceFileRow.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("service_entries")
+        .select("*, service_categories(name), time_entries(*), expenses(*)")
+        .eq("client_service_file_id", serviceFileRow.id)
+        .order("service_date", { ascending: false }),
+      supabase.rpc("get_client_service_claimable_summary", { p_client_service_file_id: serviceFileRow.id }),
+    ]);
+    serviceArrangements = arrRes.data ?? [];
+    serviceEntries = entRes.data ?? [];
+    claimableSummary = sumRes.data ?? [];
+  }
 
   const profileOpts = ((profiles ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, label: p.full_name ?? "—" }));
   const profileName = new Map(profileOpts.map((p) => [p.id, p.label]));
@@ -256,6 +287,25 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     </Card>
   );
 
+  const servicesTab = (
+    <ServiceLedgerTab
+      companyId={id}
+      serviceFile={serviceFileRow}
+      canManage={canManageServices}
+      profiles={profileOpts}
+      categories={(serviceCategories ?? []) as Pick<ServiceCategory, "id" | "name">[]}
+      arrangements={serviceArrangements as ServiceArrangement[]}
+      entries={
+        serviceEntries as (ServiceEntry & {
+          service_categories: { name: string } | { name: string }[] | null;
+          time_entries: TimeEntry[];
+          expenses: Expense[];
+        })[]
+      }
+      claimableSummary={claimableSummary as ServiceLedgerClaimableAmountRow[]}
+    />
+  );
+
   const documentsTab = (
     <Card>
       <p className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">
@@ -298,6 +348,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
           { label: "افراد", content: peopleTab },
           { label: "فرصت‌های تجاری", content: opportunitiesTab },
           { label: "فعالیت‌ها", content: activitiesTab },
+          { label: "خدمات", content: servicesTab },
           { label: "مکاتبات", content: correspondenceTab },
           { label: "پرونده‌ها", content: casesTab },
           { label: "قراردادها", content: contractsTab },
