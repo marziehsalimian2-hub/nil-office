@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { quickAddServiceEntry } from "@/app/actions/service-entries";
 import { Field, FormError } from "@/components/form";
 import { Card } from "@/components/ui";
+import { JalaliDateInput } from "@/components/JalaliDateInput";
 import type { ServiceCategory } from "@/lib/types/database";
 
 // Matches the exact "new Date().toISOString().slice(0,10)" convention
@@ -90,7 +91,7 @@ export function QuickAddServiceEntry({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="تاریخ" required>
-            <input type="date" name="service_date" required defaultValue={todayIsoClient()} className="input tnum" />
+            <JalaliDateInput name="service_date" defaultISO={todayIsoClient()} required />
           </Field>
           <Field label="مدت‌زمان (دقیقه)" required hint="مثلاً برای ۱ ساعت و ۳۰ دقیقه بنویسید ۹۰">
             <input type="number" name="duration_minutes" required min={1} className="input tnum" />
