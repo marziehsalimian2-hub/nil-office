@@ -854,11 +854,11 @@ export const SERVICE_ENTRY_STATUS_LABEL: Record<ServiceEntryStatus, string> = {
   DRAFT: "پیش‌نویس", IN_PROGRESS: "در حال انجام", COMPLETED: "تکمیل‌شده", CANCELLED: "لغوشده",
 };
 
-/** All 8 spec values — only the first 4 are selectable anywhere in Phase 1's UI/actions (see the migration's CHECK constraint); INVOICED/PARTIALLY_SETTLED/SETTLED/WAIVED exist here only so a future Phase-2 billing batch can render them without another enums.ts change. */
+/** All 8 spec values. INVOICED/WAIVED are reachable since Phase 2 (billing batches, waiver) but ONLY through the guarded paths (convert_billing_batch_to_sales_document RPC / the waive actions) — never through a generic entry/expense edit form. PARTIALLY_SETTLED/SETTLED are still unreachable (deliberately deferred — see the Phase 2 plan's "collection status is read via the linked sales_document instead" note). */
 export const BILLING_STATUS = [
   "NON_BILLABLE", "INCLUDED", "BILLABLE", "READY_TO_BILL", "INVOICED", "PARTIALLY_SETTLED", "SETTLED", "WAIVED",
 ] as const;
-/** Only the values a Phase-1 form/action may ever write. */
+/** Only the values a generic entry/expense edit FORM may ever write — WAIVED/INVOICED go through their own dedicated, guarded actions instead. */
 export const BILLING_STATUS_PHASE1 = ["NON_BILLABLE", "INCLUDED", "BILLABLE", "READY_TO_BILL"] as const;
 export type BillingStatus = (typeof BILLING_STATUS)[number];
 export const BILLING_STATUS_LABEL: Record<BillingStatus, string> = {
@@ -887,4 +887,22 @@ export const EXPENSE_PAID_BY = ["NIL", "CLIENT", "EMPLOYEE", "OTHER"] as const;
 export type ExpensePaidBy = (typeof EXPENSE_PAID_BY)[number];
 export const EXPENSE_PAID_BY_LABEL: Record<ExpensePaidBy, string> = {
   NIL: "نیل", CLIENT: "مشتری", EMPLOYEE: "کارمند", OTHER: "سایر",
+};
+
+/* ============================ Client Service Ledger — Phase 2 (Billing) =========================== */
+
+export const BILLING_BATCH_STATUS = ["DRAFT", "READY", "CONVERTED", "CANCELLED"] as const;
+export type BillingBatchStatus = (typeof BILLING_BATCH_STATUS)[number];
+export const BILLING_BATCH_STATUS_LABEL: Record<BillingBatchStatus, string> = {
+  DRAFT: "پیش‌نویس", READY: "آماده", CONVERTED: "صادرشده", CANCELLED: "لغوشده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const BILLING_BATCH_STATUS_TONE: Record<BillingBatchStatus, string> = {
+  DRAFT: "status-draft", READY: "status-review", CONVERTED: "status-final", CANCELLED: "status-cancelled",
+};
+
+export const BILLING_BATCH_SOURCE_TYPE = ["SERVICE_ENTRY", "TIME_ENTRY", "EXPENSE", "MANUAL_ADJUSTMENT"] as const;
+export type BillingBatchSourceType = (typeof BILLING_BATCH_SOURCE_TYPE)[number];
+export const BILLING_BATCH_SOURCE_TYPE_LABEL: Record<BillingBatchSourceType, string> = {
+  SERVICE_ENTRY: "حق‌الزحمهٔ خدمت", TIME_ENTRY: "زمان صرف‌شده", EXPENSE: "هزینه", MANUAL_ADJUSTMENT: "ردیف دستی",
 };

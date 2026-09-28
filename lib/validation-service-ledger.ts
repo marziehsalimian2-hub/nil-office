@@ -114,6 +114,16 @@ export const expenseSchema = z.object({
   billing_status: z.enum(BILLING_STATUS_PHASE1).default("NON_BILLABLE"),
 });
 
+export const waiveServiceEntrySchema = z.object({
+  id: z.string().uuid(),
+  reason: z.string().trim().min(1, "دلیل بخشش الزامی است."),
+});
+
+export const waiveExpenseSchema = z.object({
+  id: z.string().uuid(),
+  reason: z.string().trim().min(1, "دلیل بخشش الزامی است."),
+});
+
 export const internalCostRateSchema = z.object({
   profile_id: z.string().uuid(),
   hourly_cost_rate: z.coerce.number().min(0, "نرخ باید صفر یا بیشتر باشد."),
@@ -130,4 +140,25 @@ export const quickAddServiceEntrySchema = z.object({
   expense_amount: optAmount,
   expense_description: optText,
   currency: z.enum(CURRENCY).default("IRR"),
+});
+
+/* ============================ Phase 2 — Billing Batches ==================== */
+
+export const billingBatchSchema = z.object({
+  client_service_file_id: z.string().uuid(),
+  currency: z.enum(CURRENCY).default("IRR"),
+  period_start: optIsoDate,
+  period_end: optIsoDate,
+});
+
+/** One selected candidate from the batch builder — see the Phase 2 plan's "granular lines, not per-entry rollups" decision: SERVICE_ENTRY/TIME_ENTRY both reference a service_entries id but are two distinct, non-overlapping claims on it. */
+export const billingBatchCandidateRefSchema = z.object({
+  source_type: z.enum(["SERVICE_ENTRY", "TIME_ENTRY", "EXPENSE"]),
+  source_id: z.string().uuid(),
+});
+
+export const manualAdjustmentItemSchema = z.object({
+  batch_id: z.string().uuid(),
+  description: z.string().trim().min(1, "شرح ردیف الزامی است."),
+  amount: z.coerce.number().min(0, "مبلغ نمی‌تواند منفی باشد."),
 });

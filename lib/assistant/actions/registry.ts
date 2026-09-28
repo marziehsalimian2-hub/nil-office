@@ -37,6 +37,15 @@ import { serviceLedgerActions } from "./serviceLedger";
  * MEDIUM action already uses — the model can propose, but only an
  * explicit human tap on "تأیید" executes anything, same guarantee as
  * every other write action here.
+ *
+ * Client Service Ledger Phase 2 (Billing Integration) deliberately does
+ * NOT add a billing-batch-creation or batch-conversion action here —
+ * converting a batch into a real sales_document is a bigger escalation
+ * than even CREATE_INVOICE_DRAFT (it also mutates a whole set of
+ * service-ledger rows atomically). serviceLedgerActions below stays
+ * read-only for anything billing-related (GET_UNBILLED_WORK etc.) plus
+ * the existing Phase 1 entry/time/expense drafts — this is a permanent
+ * boundary, not a placeholder for later.
  */
 export const ACTION_REGISTRY: ActionDefinition<any>[] = [
   ...dashboardActions,

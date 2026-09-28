@@ -1339,6 +1339,9 @@ export interface ServiceEntry {
   service_fee: number;
   is_billable: boolean;
   notes: string | null;
+  waived_reason: string | null;
+  waived_by: string | null;
+  waived_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -1391,6 +1394,9 @@ export interface Expense {
   is_reimbursable: boolean;
   reimbursable_amount: number | null;
   billing_status: BillingStatusT;
+  waived_reason: string | null;
+  waived_by: string | null;
+  waived_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -1403,4 +1409,37 @@ export interface ServiceLedgerClaimableAmountRow {
   billable_time_amount: number;
   reimbursable_expense_amount: number;
   claimable_total: number;
+}
+
+// =====================================================================
+// Client Service Ledger — Phase 2 (Billing Integration)
+// =====================================================================
+export type BillingBatchStatusT = "DRAFT" | "READY" | "CONVERTED" | "CANCELLED";
+export type BillingBatchSourceTypeT = "SERVICE_ENTRY" | "TIME_ENTRY" | "EXPENSE" | "MANUAL_ADJUSTMENT";
+
+export interface BillingBatch {
+  id: string;
+  client_service_file_id: string;
+  currency: ServiceLedgerCurrencyCode;
+  status: BillingBatchStatusT;
+  period_start: string | null;
+  period_end: string | null;
+  total_amount: number;
+  sales_document_id: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Write-once snapshot line — never updated after insert. */
+export interface BillingBatchItem {
+  id: string;
+  batch_id: string;
+  source_type: BillingBatchSourceTypeT;
+  source_id: string | null;
+  description: string;
+  amount: number;
+  currency: ServiceLedgerCurrencyCode;
+  line_no: number;
+  created_at: string;
 }
