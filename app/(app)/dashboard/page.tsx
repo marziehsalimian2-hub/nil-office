@@ -15,6 +15,8 @@ import { getInvoiceSummary } from "@/lib/dashboard/invoices";
 import { getCorrespondenceSummary } from "@/lib/dashboard/correspondence";
 import { getFollowupsSummary } from "@/lib/dashboard/followups";
 import { getRecentActivity } from "@/lib/dashboard/activity";
+import { getServiceLedgerSummary } from "@/lib/dashboard/serviceLedger";
+import { resolvePeriod } from "@/lib/service-ledger/period";
 import { DIRECTION_LABEL, type CorrStatus } from "@/lib/enums";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 
@@ -46,7 +48,9 @@ export default async function DashboardPage() {
   const contractExpiryDays = settings?.dashboard_contract_expiry_days ?? 30;
   const projectEndingSoonDays = settings?.dashboard_project_ending_soon_days ?? 14;
 
-  const [attention, today, financial, crm, projects, contracts, invoices, correspondence, followups, activity] = await Promise.all([
+  const thisMonth = resolvePeriod("this_month");
+
+  const [attention, today, financial, crm, projects, contracts, invoices, correspondence, followups, activity, serviceLedger] = await Promise.all([
     unwrap(getAttentionItems(supabase, profile, { contractExpiryDays }), "attention"),
     unwrap(getTodaySummary(supabase, profile.id, profile), "today"),
     unwrap(getFinancialSummary(supabase, profile), "financial"),
@@ -57,6 +61,7 @@ export default async function DashboardPage() {
     unwrap(getCorrespondenceSummary(supabase), "correspondence"),
     unwrap(getFollowupsSummary(supabase), "followups"),
     unwrap(getRecentActivity(supabase), "activity"),
+    unwrap(getServiceLedgerSummary(supabase, profile, thisMonth), "serviceLedger"),
   ]);
 
   const quick = [
@@ -210,7 +215,24 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {/* H. مکاتبات و پیگیری‌ها */}
+      {/* H. خدمات مشتریان */}
+      {serviceLedger && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-ink-muted">خدمات مشتریان (این ماه)</h2>
+          <div className="mb-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatCard label="مشتریان فعال" value={toFaDigits(serviceLedger.activeClientsCount)} href="/service-ledger/portfolio" />
+            <StatCard label="خدمات این ماه" value={toFaDigits(serviceLedger.servicesThisPeriodCount)} href="/service-ledger/portfolio" />
+            <StatCard label="مجموع ساعات" value={toFaDigits(Math.round(serviceLedger.hoursThisPeriodTotal))} />
+            <StatCard label="نیازمند صورتحساب" value={toFaDigits(serviceLedger.clientsRequiringBillingCount)} tone="warn" href="/service-ledger/billing-batches" />
+          </div>
+          <Card>
+            <p className="mb-3 text-sm font-medium text-ink">کار صورتحساب‌نشده (به تفکیک واحد پول)</p>
+            <CurrencyAmountList amounts={serviceLedger.unbilledByCurrency} emptyText="کار صورتحساب‌نشده‌ای وجود ندارد." />
+          </Card>
+        </section>
+      )}
+
+      {/* I. مکاتبات و پیگیری‌ها */}
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-medium text-ink-muted">مکاتبات و پیگیری‌ها</h2>
         <div className="mb-3 grid grid-cols-2 gap-4 lg:grid-cols-4">

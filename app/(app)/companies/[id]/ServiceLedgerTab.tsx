@@ -11,8 +11,10 @@ import { bulkMarkServiceExpensesReadyToBill, waiveServiceExpense } from "@/app/a
 import { QuickAddServiceEntry } from "./QuickAddServiceEntry";
 import { Field, FormError } from "@/components/form";
 import { Card } from "@/components/ui";
+import { PeriodFilter } from "@/components/PeriodFilter";
 import { formatJalali } from "@/lib/jalali";
 import { formatMoney } from "@/lib/money";
+import type { PeriodPreset } from "@/lib/service-ledger/period";
 import {
   CLIENT_SERVICE_STATUS,
   CLIENT_SERVICE_STATUS_LABEL,
@@ -31,6 +33,8 @@ import type {
   TimeEntry,
   Expense,
   ServiceLedgerClaimableAmountRow,
+  ServiceLedgerPeriodSummaryRow,
+  ServiceLedgerProfitabilityRow,
 } from "@/lib/types/database";
 
 type Opt = { id: string; label: string };
@@ -218,6 +222,117 @@ function ClaimableSummaryCard({ rows }: { rows: ServiceLedgerClaimableAmountRow[
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+/**
+ * The period-scoped Executive Summary (spec §23/§24/§26) — distinct from
+ * ClaimableSummaryCard above, which is the always-current LIFETIME total.
+ * This card is date-filtered via PeriodFilter's own `?period=` query
+ * param convention, and — only for ADMIN-tier service_ledger_role —
+ * shows Client Profitability, rendering "اطلاعات کافی برای محاسبه
+ * سودآوری وجود ندارد" per currency whenever get_client_service_profitability
+ * reports data_complete=false (never silently treating a missing
+ * internal cost rate as zero cost).
+ */
+function PeriodExecutiveSummaryCard({
+  periodParam,
+  periodSummary,
+  canViewProfitability,
+  profitability,
+}: {
+  periodParam: PeriodPreset;
+  periodSummary: ServiceLedgerPeriodSummaryRow[];
+  canViewProfitability: boolean;
+  profitability: ServiceLedgerProfitabilityRow[];
+}) {
+  return (
+    <Card>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-ink">خلاصهٔ اجرایی بازه</p>
+      </div>
+      <div className="mb-4">
+        <PeriodFilter current={periodParam} />
+      </div>
+      {periodSummary.length === 0 ? (
+        <p className="text-sm text-ink-muted">در این بازه خدمتی ثبت نشده است.</p>
+      ) : (
+        <div className="space-y-3">
+          {periodSummary.map((r) => (
+            <div key={r.currency_code} className="rounded-lg border border-paper-line bg-paper/40 p-3">
+              <p className="mb-2 text-xs font-medium text-ink-muted" dir="ltr">
+                {r.currency_code}
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+                <div>
+                  <p className="text-ink-muted">حق‌الزحمه</p>
+                  <p className="tnum text-ink">{formatMoney(r.service_fee)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">ارزش زمان</p>
+                  <p className="tnum text-ink">{formatMoney(r.billable_time_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">هزینهٔ قابل بازپرداخت</p>
+                  <p className="tnum text-ink">{formatMoney(r.reimbursable_expense_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">صورتحساب‌شده</p>
+                  <p className="tnum text-status-final">{formatMoney(r.invoiced_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">صورتحساب‌نشده</p>
+                  <p className="tnum font-medium text-seal">{formatMoney(r.unbilled_amount)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canViewProfitability && (
+        <div className="mt-5 border-t border-paper-line pt-4">
+          <p className="mb-3 text-sm font-medium text-ink">سودآوری (محرمانه)</p>
+          {profitability.length === 0 ? (
+            <p className="text-sm text-ink-muted">در این بازه دادهٔ سودآوری وجود ندارد.</p>
+          ) : (
+            <div className="space-y-3">
+              {profitability.map((p) => (
+                <div key={p.currency_code} className="rounded-lg border border-paper-line bg-paper/40 p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-muted" dir="ltr">
+                    {p.currency_code}
+                  </p>
+                  {!p.data_complete ? (
+                    <p className="text-xs text-status-waiting">اطلاعات کافی برای محاسبه سودآوری وجود ندارد.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                      <div>
+                        <p className="text-ink-muted">درآمد</p>
+                        <p className="tnum text-ink">{formatMoney(p.revenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink-muted">هزینهٔ داخلی زمان</p>
+                        <p className="tnum text-ink">{formatMoney(p.internal_time_cost)}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink-muted">هزینهٔ مستقیم غیرقابل‌بازپرداخت</p>
+                        <p className="tnum text-ink">{formatMoney(p.non_reimbursed_direct_cost)}</p>
+                      </div>
+                      <div>
+                        <p className="text-ink-muted">حاشیهٔ سود</p>
+                        <p className={`tnum font-medium ${p.contribution_margin >= 0 ? "text-status-final" : "text-status-cancelled"}`}>
+                          {formatMoney(p.contribution_margin)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -489,6 +604,10 @@ export function ServiceLedgerTab({
   arrangements,
   entries,
   claimableSummary,
+  periodParam,
+  periodSummary,
+  canViewProfitability,
+  profitability,
 }: {
   companyId: string;
   serviceFile: ClientServiceFile | null;
@@ -498,6 +617,10 @@ export function ServiceLedgerTab({
   arrangements: ServiceArrangement[];
   entries: ServiceEntryRow[];
   claimableSummary: ServiceLedgerClaimableAmountRow[];
+  periodParam: PeriodPreset;
+  periodSummary: ServiceLedgerPeriodSummaryRow[];
+  canViewProfitability: boolean;
+  profitability: ServiceLedgerProfitabilityRow[];
 }) {
   if (!serviceFile) {
     return <StartServiceFile companyId={companyId} canManage={canManage} />;
@@ -507,6 +630,12 @@ export function ServiceLedgerTab({
     <div className="space-y-6">
       <ClientServiceFileHeader companyId={companyId} file={serviceFile} canManage={canManage} profiles={profiles} />
       <ClaimableSummaryCard rows={claimableSummary} />
+      <PeriodExecutiveSummaryCard
+        periodParam={periodParam}
+        periodSummary={periodSummary}
+        canViewProfitability={canViewProfitability}
+        profitability={profitability}
+      />
       {canManage && (
         <QuickAddServiceEntry
           companyId={companyId}
