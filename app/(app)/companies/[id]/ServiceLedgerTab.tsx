@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Pencil, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { createClientServiceFile, updateClientServiceFile } from "@/app/actions/service-ledger-files";
 import { createServiceArrangement } from "@/app/actions/service-arrangements";
-import { deleteServiceEntry } from "@/app/actions/service-entries";
+import { deleteServiceEntry, bulkMarkServiceEntriesReadyToBill, waiveServiceEntry } from "@/app/actions/service-entries";
+import { bulkMarkServiceExpensesReadyToBill, waiveServiceExpense } from "@/app/actions/service-expenses";
 import { QuickAddServiceEntry } from "./QuickAddServiceEntry";
 import { Field, FormError } from "@/components/form";
 import { Card } from "@/components/ui";
@@ -301,9 +303,31 @@ function ArrangementsCard({
   );
 }
 
-function ServiceEntriesCard({ companyId, entries }: { companyId: string; entries: ServiceEntryRow[] }) {
+/** key format matches the Phase 2 plan's unified selection set — "ENTRY:<id>" / "EXPENSE:<id>", split into the two bulk calls on submit. */
+function ServiceEntriesCard({ companyId, entries, canManage }: { companyId: string; entries: ServiceEntryRow[]; canManage: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string>();
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleCheck(key: string) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function remove(id: string) {
     if (!confirm("حذف این خدمت؟")) return;
@@ -316,9 +340,69 @@ function ServiceEntriesCard({ companyId, entries }: { companyId: string; entries
     });
   }
 
+  function waive(kind: "ENTRY" | "EXPENSE", id: string) {
+    const reason = window.prompt("دلیل بخشش این ردیف چیست؟");
+    if (!reason || !reason.trim()) return;
+    const fd = new FormData();
+    fd.append("id", id);
+    fd.append("company_id", companyId);
+    fd.append("reason", reason.trim());
+    startTransition(async () => {
+      const action = kind === "ENTRY" ? waiveServiceEntry : waiveServiceExpense;
+      const res = await action(null, fd);
+      if (res && "error" in res && res.error) setError(res.error);
+      else {
+        setError(undefined);
+        router.refresh();
+      }
+    });
+  }
+
+  function markReady() {
+    const entryIds = [...checked].filter((k) => k.startsWith("ENTRY:")).map((k) => k.slice(6));
+    const expenseIds = [...checked].filter((k) => k.startsWith("EXPENSE:")).map((k) => k.slice(8));
+    startTransition(async () => {
+      let anyError: string | undefined;
+      if (entryIds.length > 0) {
+        const fd = new FormData();
+        fd.append("company_id", companyId);
+        fd.append("ids", JSON.stringify(entryIds));
+        const res = await bulkMarkServiceEntriesReadyToBill(null, fd);
+        if (res && "error" in res && res.error) anyError = res.error;
+      }
+      if (expenseIds.length > 0) {
+        const fd = new FormData();
+        fd.append("company_id", companyId);
+        fd.append("ids", JSON.stringify(expenseIds));
+        const res = await bulkMarkServiceExpensesReadyToBill(null, fd);
+        if (res && "error" in res && res.error) anyError = res.error;
+      }
+      if (anyError) setError(anyError);
+      else {
+        setError(undefined);
+        setChecked(new Set());
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <Card>
-      <p className="mb-3 text-sm font-medium text-ink">خدمات ثبت‌شده</p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-ink">خدمات ثبت‌شده</p>
+        <Link href="/service-ledger/billing-batches" className="text-xs text-seal hover:underline">
+          مشاهدهٔ دسته‌های صورتحساب
+        </Link>
+      </div>
+      <FormError message={error} />
+      {canManage && checked.size > 0 && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg border border-paper-line bg-paper/40 p-3">
+          <span className="text-xs text-ink-muted">{checked.size} ردیف انتخاب‌شده</span>
+          <button type="button" disabled={pending} className="btn-seal !py-1.5 text-xs" onClick={markReady}>
+            علامت‌گذاری به‌عنوان آمادهٔ صورتحساب
+          </button>
+        </div>
+      )}
       {entries.length === 0 ? (
         <p className="text-sm text-ink-muted">هنوز خدمتی برای این مشتری ثبت نشده است.</p>
       ) : (
@@ -327,24 +411,66 @@ function ServiceEntriesCard({ companyId, entries }: { companyId: string; entries
             const category = Array.isArray(e.service_categories) ? e.service_categories[0] : e.service_categories;
             const totalMinutes = e.time_entries.reduce((sum, t) => sum + t.duration_minutes, 0);
             const totalExpense = e.expenses.reduce((sum, x) => sum + Number(x.amount), 0);
+            const entryKey = `ENTRY:${e.id}`;
+            const isOpen = expanded.has(e.id);
+            const canWaive = e.billing_status === "BILLABLE" || e.billing_status === "READY_TO_BILL";
             return (
-              <li key={e.id} className="flex items-start gap-3 py-2.5">
-                <div className="flex-1">
-                  <p className="text-sm text-ink">
-                    <span className="text-ink-muted">{category?.name ?? "—"}</span> — {e.title}
-                  </p>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                    <span className="tnum">{formatJalali(e.service_date)}</span>
-                    <span>{SERVICE_ENTRY_STATUS_LABEL[e.status]}</span>
-                    <span className={`badge bg-paper ${BILLING_STATUS_TONE[e.billing_status]}`}>{BILLING_STATUS_LABEL[e.billing_status]}</span>
-                    {totalMinutes > 0 && <span className="tnum">{Math.round(totalMinutes)} دقیقه</span>}
-                    {totalExpense > 0 && <span className="tnum">هزینه: {formatMoney(totalExpense)}</span>}
-                    {Number(e.service_fee) > 0 && <span className="tnum">حق‌الزحمه: {formatMoney(e.service_fee)}</span>}
-                  </p>
+              <li key={e.id} className="py-2.5">
+                <div className="flex items-start gap-3">
+                  {canManage && (
+                    <input type="checkbox" className="mt-1 h-4 w-4 accent-[#9a6a2e]" checked={checked.has(entryKey)} onChange={() => toggleCheck(entryKey)} />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-sm text-ink">
+                      <span className="text-ink-muted">{category?.name ?? "—"}</span> — {e.title}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                      <span className="tnum">{formatJalali(e.service_date)}</span>
+                      <span>{SERVICE_ENTRY_STATUS_LABEL[e.status]}</span>
+                      <span className={`badge bg-paper ${BILLING_STATUS_TONE[e.billing_status]}`}>{BILLING_STATUS_LABEL[e.billing_status]}</span>
+                      {totalMinutes > 0 && <span className="tnum">{Math.round(totalMinutes)} دقیقه</span>}
+                      {totalExpense > 0 && <span className="tnum">هزینه: {formatMoney(totalExpense)}</span>}
+                      {Number(e.service_fee) > 0 && <span className="tnum">حق‌الزحمه: {formatMoney(e.service_fee)}</span>}
+                    </p>
+                    {e.waived_reason && <p className="mt-0.5 text-xs text-ink-muted">دلیل بخشش: {e.waived_reason}</p>}
+                  </div>
+                  {e.expenses.length > 0 && (
+                    <button type="button" className="btn-quiet p-1.5" aria-label="نمایش هزینه‌ها" onClick={() => toggleExpand(e.id)}>
+                      {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                  )}
+                  {canManage && canWaive && (
+                    <button type="button" disabled={pending} className="btn-quiet p-1.5 text-xs" onClick={() => waive("ENTRY", e.id)}>
+                      بخشش
+                    </button>
+                  )}
+                  <button type="button" disabled={pending} className="btn-quiet p-1.5 text-status-cancelled" aria-label="حذف" onClick={() => remove(e.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <button type="button" disabled={pending} className="btn-quiet p-1.5 text-status-cancelled" aria-label="حذف" onClick={() => remove(e.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {isOpen && e.expenses.length > 0 && (
+                  <ul className="mr-7 mt-2 space-y-2 border-r-2 border-paper-line pr-3">
+                    {e.expenses.map((x) => {
+                      const xKey = `EXPENSE:${x.id}`;
+                      const xCanWaive = x.billing_status === "BILLABLE" || x.billing_status === "READY_TO_BILL";
+                      return (
+                        <li key={x.id} className="flex items-center gap-3">
+                          {canManage && (
+                            <input type="checkbox" className="h-4 w-4 accent-[#9a6a2e]" checked={checked.has(xKey)} onChange={() => toggleCheck(xKey)} />
+                          )}
+                          <span className="flex-1 text-xs text-ink">{x.description}</span>
+                          <span className="tnum text-xs text-ink-muted">{formatMoney(x.amount)}</span>
+                          <span className={`badge bg-paper ${BILLING_STATUS_TONE[x.billing_status]}`}>{BILLING_STATUS_LABEL[x.billing_status]}</span>
+                          {canManage && xCanWaive && (
+                            <button type="button" disabled={pending} className="btn-quiet p-1 text-xs" onClick={() => waive("EXPENSE", x.id)}>
+                              بخشش
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
@@ -390,7 +516,7 @@ export function ServiceLedgerTab({
         />
       )}
       <ArrangementsCard companyId={companyId} clientServiceFileId={serviceFile.id} arrangements={arrangements} />
-      <ServiceEntriesCard companyId={companyId} entries={entries} />
+      <ServiceEntriesCard companyId={companyId} entries={entries} canManage={canManage} />
     </div>
   );
 }

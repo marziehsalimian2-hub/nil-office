@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { persianError, CURRENCY } from "@/lib/enums";
-import { serviceEntrySchema, quickAddServiceEntrySchema } from "@/lib/validation-service-ledger";
+import { serviceEntrySchema, quickAddServiceEntrySchema, waiveServiceEntrySchema } from "@/lib/validation-service-ledger";
 
 type ServiceLedgerCurrency = (typeof CURRENCY)[number];
 import { addTimeEntryDraftCore } from "@/app/actions/service-time-entries";
@@ -174,6 +174,44 @@ export async function deleteServiceEntry(_p: ActionState, f: FormData): Promise<
   if (!id) return { error: "شناسهٔ خدمت نامعتبر است." };
   const { supabase } = await ctx();
   const { error } = await supabase.from("service_entries").delete().eq("id", id);
+  if (error) return { error: persianError(error.message) };
+  if (companyId) revalidatePath(`/companies/${companyId}`);
+  return null;
+}
+
+/**
+ * Bulk BILLABLE -> READY_TO_BILL (Phase 2 spec §35: "Mark Ready To Bill
+ * ... for چند Item"). A thin wrapper — RLS + tg_service_entry_billing_status_guard
+ * (0088) do the real gating (require can_approve_service_entry(), among
+ * other adjacency rules), this action just turns a checked id list into
+ * one `.in()` update.
+ */
+export async function bulkMarkServiceEntriesReadyToBill(_p: ActionState, f: FormData): Promise<ActionState> {
+  const companyId = String(f.get("company_id") ?? "");
+  let ids: string[];
+  try {
+    ids = JSON.parse(String(f.get("ids") ?? "[]"));
+  } catch {
+    return { error: "شناسه‌های نامعتبر." };
+  }
+  if (!Array.isArray(ids) || ids.length === 0) return { error: "هیچ خدمتی انتخاب نشده است." };
+  const { supabase } = await ctx();
+  const { error } = await supabase.from("service_entries").update({ billing_status: "READY_TO_BILL" }).in("id", ids);
+  if (error) return { error: persianError(error.message) };
+  if (companyId) revalidatePath(`/companies/${companyId}`);
+  return null;
+}
+
+/** BILLABLE/READY_TO_BILL -> WAIVED with a required reason — mirrors void_cheque's "reason + actor + timestamp, row is self-documenting" shape. The generic tg_audit trigger (already wired) captures this as an audited change automatically. */
+export async function waiveServiceEntry(_p: ActionState, f: FormData): Promise<ActionState> {
+  const companyId = String(f.get("company_id") ?? "");
+  const parsed = waiveServiceEntrySchema.safeParse(entries(f));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const { supabase, userId } = await ctx();
+  const { error } = await supabase
+    .from("service_entries")
+    .update({ billing_status: "WAIVED", waived_reason: parsed.data.reason, waived_by: userId, waived_at: new Date().toISOString() })
+    .eq("id", parsed.data.id);
   if (error) return { error: persianError(error.message) };
   if (companyId) revalidatePath(`/companies/${companyId}`);
   return null;
