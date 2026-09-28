@@ -30,7 +30,7 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
@@ -38,6 +38,7 @@ export type CrmRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ProjectRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type TradeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ChequeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type ServiceLedgerRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -51,6 +52,7 @@ export interface Profile {
   project_role: ProjectRoleT | null;
   trade_role: TradeRoleT | null;
   cheque_role: ChequeRoleT | null;
+  service_ledger_role: ServiceLedgerRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -1243,3 +1245,162 @@ export type TradeBuyerViewResult =
       };
     }
   | { ok: false; error: "INVALID_LINK" | "ACCESS_REVOKED" | "ACCESS_EXPIRED" | "OFFER_NOT_PUBLISHED" };
+
+// =====================================================================
+// Client Service Ledger — Phase 1
+// =====================================================================
+export type ClientServiceStatusT = "ACTIVE" | "ON_HOLD" | "CLOSED" | "ARCHIVED";
+export type ServiceArrangementTypeT =
+  | "RETAINER"
+  | "FIXED_FEE"
+  | "HOURLY"
+  | "PER_SERVICE"
+  | "PROJECT_BASED"
+  | "CONTRACT_INCLUDED"
+  | "CUSTOM";
+export type ServiceArrangementStatusT = "DRAFT" | "ACTIVE" | "SUSPENDED" | "COMPLETED" | "CANCELLED";
+export type BillingCycleT = "MONTHLY" | "QUARTERLY" | "ANNUAL" | "ONE_TIME";
+export type ServiceEntryStatusT = "DRAFT" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+/** Only the first 4 are reachable in Phase 1 (see the migration's CHECK constraint) — the rest exist for forward-compatibility with billing batches (Phase 2+). */
+export type BillingStatusT =
+  | "NON_BILLABLE"
+  | "INCLUDED"
+  | "BILLABLE"
+  | "READY_TO_BILL"
+  | "INVOICED"
+  | "PARTIALLY_SETTLED"
+  | "SETTLED"
+  | "WAIVED";
+export type ExpensePaidByT = "NIL" | "CLIENT" | "EMPLOYEE" | "OTHER";
+export type ServiceLedgerCurrencyCode = "IRR" | "TOMAN" | "USD" | "EUR" | "AED" | "TRY" | "CNY";
+
+export interface ServiceCategory {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientServiceFile {
+  id: string;
+  company_id: string;
+  status: ClientServiceStatusT;
+  relationship_manager: string | null;
+  default_currency: ServiceLedgerCurrencyCode;
+  opened_at: string;
+  closed_at: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceArrangement {
+  id: string;
+  client_service_file_id: string;
+  title: string;
+  arrangement_type: ServiceArrangementTypeT;
+  contract_id: string | null;
+  project_id: string | null;
+  currency: ServiceLedgerCurrencyCode;
+  fixed_fee: number | null;
+  hourly_rate: number | null;
+  billing_cycle: BillingCycleT | null;
+  included_hours: number | null;
+  included_services_description: string | null;
+  status: ServiceArrangementStatusT;
+  started_at: string | null;
+  ended_at: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceEntry {
+  id: string;
+  client_service_file_id: string;
+  service_arrangement_id: string | null;
+  contract_id: string | null;
+  project_id: string | null;
+  task_id: string | null;
+  crm_activity_id: string | null;
+  service_date: string;
+  service_category_id: string;
+  title: string;
+  description: string | null;
+  performed_by: string;
+  status: ServiceEntryStatusT;
+  billing_status: BillingStatusT;
+  billing_method: string | null;
+  currency: ServiceLedgerCurrencyCode;
+  service_fee: number;
+  is_billable: boolean;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  service_entry_id: string;
+  performed_by: string;
+  work_date: string;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_minutes: number;
+  description: string | null;
+  billable: boolean;
+  hourly_rate_snapshot: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Confidential — only visible to the employee it was logged for or an ADMIN-tier service_ledger_role (RLS-enforced, see 0086_service_ledger_rls.sql). */
+export interface TimeEntryInternalCost {
+  time_entry_id: string;
+  internal_cost_rate_snapshot: number | null;
+  internal_cost_amount: number | null;
+  created_at: string;
+}
+
+/** Confidential rate-management table — ADMIN-tier service_ledger_role only. */
+export interface InternalCostRate {
+  profile_id: string;
+  hourly_cost_rate: number;
+  currency: ServiceLedgerCurrencyCode;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface Expense {
+  id: string;
+  service_entry_id: string;
+  expense_date: string;
+  category_id: string | null;
+  description: string;
+  amount: number;
+  currency: ServiceLedgerCurrencyCode;
+  paid_by: ExpensePaidByT;
+  payment_id: string | null;
+  accounting_reference: string | null;
+  is_reimbursable: boolean;
+  reimbursable_amount: number | null;
+  billing_status: BillingStatusT;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Row shape returned by get_service_entry_claimable_amount() / get_client_service_claimable_summary() — grouped by currency_code, never summed across currencies. */
+export interface ServiceLedgerClaimableAmountRow {
+  currency_code: string;
+  service_fee: number;
+  billable_time_amount: number;
+  reimbursable_expense_amount: number;
+  claimable_total: number;
+}

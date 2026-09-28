@@ -6,6 +6,9 @@ import { insertFollowupDraftCore } from "@/app/actions/entities";
 import { createChequeDraftCore, prepareChequeCore } from "@/app/actions/cheques";
 import { createAndFinalizeLetterCore, createAndRegisterIncomingCore } from "@/app/actions/correspondence";
 import { createAndIssueInvoiceCore } from "@/app/actions/invoices";
+import { quickAddServiceEntryCore } from "@/app/actions/service-entries";
+import { addTimeEntryDraftCore } from "@/app/actions/service-time-entries";
+import { addServiceExpenseDraftCore } from "@/app/actions/service-expenses";
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -31,6 +34,9 @@ const WRITE_EXECUTORS: Record<
   CREATE_LETTER_DRAFT: (payload, supabase, userId) => createAndFinalizeLetterCore(supabase, userId, payload as never),
   REGISTER_INCOMING_LETTER: (payload, supabase, userId) => createAndRegisterIncomingCore(supabase, userId, payload as never),
   CREATE_INVOICE_DRAFT: (payload, supabase, userId) => createAndIssueInvoiceCore(supabase, userId, payload as never),
+  CREATE_SERVICE_ENTRY_DRAFT: (payload, supabase, userId) => quickAddServiceEntryCore(supabase, userId, payload as never),
+  ADD_TIME_ENTRY_DRAFT: (payload, supabase, userId) => addTimeEntryDraftCore(supabase, userId, payload as never),
+  ADD_SERVICE_EXPENSE_DRAFT: (payload, supabase, userId) => addServiceExpenseDraftCore(supabase, userId, payload as never),
 };
 
 /**

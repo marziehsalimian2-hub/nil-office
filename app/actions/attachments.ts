@@ -14,8 +14,12 @@ import {
 
 export type ActionState = { error?: string } | null;
 
-// entity_type -> { nav path, DB table used to confirm the target exists }
-const ENTITY_MAP: Record<string, { path: string; table: string }> = {
+// entity_type -> { nav path, DB table used to confirm the target exists,
+// optional parentIdField for an entity that lives inside a PARENT's own
+// route (e.g. a company's "خدمات" tab) rather than at its own top-level
+// URL — when set, the revalidated path uses that form field's value
+// instead of the entity's own id. }
+const ENTITY_MAP: Record<string, { path: string; table: string; parentIdField?: string }> = {
   CORRESPONDENCE: { path: "/correspondence", table: "correspondence" },
   DOCUMENT: { path: "/documents", table: "documents" },
   CASE: { path: "/cases", table: "cases" },
@@ -26,6 +30,8 @@ const ENTITY_MAP: Record<string, { path: string; table: string }> = {
   PROJECT: { path: "/projects", table: "projects" },
   TASK: { path: "/tasks", table: "tasks" },
   CHEQUE: { path: "/cheques", table: "cheques" },
+  SERVICE_ENTRY: { path: "/companies", table: "service_entries", parentIdField: "company_id" },
+  SERVICE_EXPENSE: { path: "/companies", table: "expenses", parentIdField: "company_id" },
 };
 
 /** Upload a file to the private bucket and record its metadata. */
@@ -92,7 +98,8 @@ export async function uploadAttachment(_prev: ActionState, formData: FormData): 
     return { error: persianError(metaErr.message) };
   }
 
-  revalidatePath(`${target.path}/${entityId}`);
+  const revalidateId = target.parentIdField ? String(formData.get(target.parentIdField) ?? entityId) : entityId;
+  revalidatePath(`${target.path}/${revalidateId}`);
   return null;
 }
 
