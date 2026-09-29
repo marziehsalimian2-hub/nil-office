@@ -8,6 +8,11 @@ import {
   SERVICE_ENTRY_STATUS,
   BILLING_STATUS_PHASE1,
   EXPENSE_PAID_BY,
+  REPORT_TYPE,
+  REPORT_DETAIL_LEVEL,
+  REPORT_SECTION,
+  REPORT_FIELD,
+  REPORT_TEMPLATE_SCOPE,
 } from "@/lib/enums";
 
 const optText = z.string().trim().optional().transform((v) => (v === "" ? undefined : v));
@@ -180,3 +185,64 @@ export const manualAdjustmentItemSchema = z.object({
   description: z.string().trim().min(1, "شرح ردیف الزامی است."),
   amount: z.coerce.number().min(0, "مبلغ نمی‌تواند منفی باشد."),
 });
+
+/* ============================ Phase 4 — PDF Report Builder ==================== */
+
+/** Sections/fields are submitted as a JSON-stringified array (matches BatchCandidatesCard's own FormData+JSON.stringify convention) — parsed and validated against the REPORT_SECTION/REPORT_FIELD enum here, one shared parser for both schemas below. */
+function jsonEnumArray<T extends readonly [string, ...string[]]>(allowed: T, emptyMessage: string) {
+  return z.string().transform((raw, ctx) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "داده نامعتبر است." });
+      return z.NEVER;
+    }
+    const result = z.array(z.enum(allowed)).min(1, emptyMessage).safeParse(parsed);
+    if (!result.success) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error.issues[0]?.message ?? "داده نامعتبر است." });
+      return z.NEVER;
+    }
+    return result.data;
+  });
+}
+
+const reportSectionsField = jsonEnumArray(REPORT_SECTION, "حداقل یک بخش را انتخاب کنید.");
+const reportFieldsField = jsonEnumArray(REPORT_FIELD, "حداقل یک ستون را انتخاب کنید.");
+
+/** The Report Builder's Configure step — shared shape for both "Preview" and "Generate" submissions (§54: same configuration, only the persistence step differs between the two actions). */
+export const reportBuilderSchema = z.object({
+  client_service_file_id: z.string().uuid(),
+  report_type: z.enum(REPORT_TYPE),
+  period_start: isoDate,
+  period_end: isoDate,
+  title: z.string().trim().min(1, "عنوان گزارش الزامی است."),
+  introduction: optText,
+  final_note: optText,
+  selected_sections: reportSectionsField,
+  selected_fields: reportFieldsField,
+  detail_level: z.enum(REPORT_DETAIL_LEVEL),
+  show_logo: z.coerce.boolean().default(true),
+  show_page_numbers: z.coerce.boolean().default(true),
+  template_id: optUuid,
+});
+
+export const reportTemplateSchema = z
+  .object({
+    template_name: z.string().trim().min(1, "نام قالب الزامی است."),
+    scope: z.enum(REPORT_TEMPLATE_SCOPE),
+    company_id: optUuid,
+    report_type: z.enum(REPORT_TYPE),
+    selected_sections: reportSectionsField,
+    selected_fields: reportFieldsField,
+    detail_level: z.enum(REPORT_DETAIL_LEVEL),
+    default_title: optText,
+    default_introduction: optText,
+    default_final_note: optText,
+    show_logo: z.coerce.boolean().default(true),
+    show_page_numbers: z.coerce.boolean().default(true),
+  })
+  .refine((d) => d.scope === "GLOBAL" || !!d.company_id, {
+    message: "برای قالب اختصاصی، انتخاب مشتری الزامی است.",
+    path: ["company_id"],
+  });
