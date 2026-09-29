@@ -1443,3 +1443,46 @@ export interface BillingBatchItem {
   line_no: number;
   created_at: string;
 }
+
+// =====================================================================
+// Client Service Ledger — Phase 3 (Executive Reporting)
+// =====================================================================
+
+/** Row shape returned by get_client_service_period_summary() — grouped by currency_code. */
+export interface ServiceLedgerPeriodSummaryRow {
+  currency_code: string;
+  service_fee: number;
+  billable_time_amount: number;
+  reimbursable_expense_amount: number;
+  invoiced_amount: number;
+  unbilled_amount: number;
+}
+
+/** Row shape returned by get_client_service_profitability() — confidential, ADMIN-tier service_ledger_role only. */
+export interface ServiceLedgerProfitabilityRow {
+  currency_code: string;
+  revenue: number;
+  internal_time_cost: number;
+  non_reimbursed_direct_cost: number;
+  contribution_margin: number;
+  /** false whenever any contributing billable time entry has no internal_cost_rates snapshot — render "insufficient data", never trust the number. */
+  data_complete: boolean;
+}
+
+/** Row shape returned by get_service_ledger_portfolio_counts() — one row per ACTIVE client_service_file, single-valued only. */
+export interface ServiceLedgerPortfolioCountsRow {
+  client_service_file_id: string;
+  company_id: string;
+  company_name: string;
+  services_count: number;
+  hours_total: number;
+  requires_billing: boolean;
+}
+
+/** Row shape returned by get_service_ledger_portfolio_money() — one row per (client, currency). */
+export interface ServiceLedgerPortfolioMoneyRow {
+  client_service_file_id: string;
+  currency_code: string;
+  unbilled_amount: number;
+  reimbursable_outstanding_amount: number;
+}

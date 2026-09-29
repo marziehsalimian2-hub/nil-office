@@ -17,19 +17,29 @@ import { SALES_DOCUMENT_STATUS_LABEL, SALES_DOCUMENT_STATUS_TONE, type SalesDocu
 import { CORR_STATUS_LABEL, CORR_STATUS_TONE, type CorrStatus } from "@/lib/enums";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatBytes } from "@/lib/utils";
+import { resolvePeriod, type PeriodPreset } from "@/lib/service-ledger/period";
 import type {
   Company, CompanyContact, CrmCompanyRole, CrmActivity, Attachment,
   Contract, SalesDocument, Correspondence, Case, Followup,
   ClientServiceFile, ServiceArrangement, ServiceCategory, ServiceEntry, TimeEntry, Expense,
-  ServiceLedgerClaimableAmountRow,
+  ServiceLedgerClaimableAmountRow, ServiceLedgerPeriodSummaryRow, ServiceLedgerProfitabilityRow,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CompanyDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+}) {
   const { id } = await params;
+  const { period: periodParam, from, to } = await searchParams;
+  const period = resolvePeriod(periodParam ?? "this_month", from, to);
   const supabase = await createClient();
   const profile = await requireProfile();
+  const canViewProfitability = profile.role === "ADMIN" || profile.service_ledger_role === "ADMIN";
   const canEditCrm = profile.role === "ADMIN" || (profile.crm_role != null && profile.crm_role !== "VIEW");
   const canManageServices = profile.role === "ADMIN" || (profile.service_ledger_role != null && profile.service_ledger_role !== "VIEW");
 
@@ -80,8 +90,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   let serviceArrangements: unknown[] = [];
   let serviceEntries: unknown[] = [];
   let claimableSummary: unknown[] = [];
+  let periodSummary: ServiceLedgerPeriodSummaryRow[] = [];
+  let profitability: ServiceLedgerProfitabilityRow[] = [];
   if (serviceFileRow) {
-    const [arrRes, entRes, sumRes] = await Promise.all([
+    const [arrRes, entRes, sumRes, periodRes, profitRes] = await Promise.all([
       supabase
         .from("service_arrangements")
         .select("*")
@@ -93,10 +105,24 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
         .eq("client_service_file_id", serviceFileRow.id)
         .order("service_date", { ascending: false }),
       supabase.rpc("get_client_service_claimable_summary", { p_client_service_file_id: serviceFileRow.id }),
+      supabase.rpc("get_client_service_period_summary", {
+        p_client_service_file_id: serviceFileRow.id,
+        p_period_start: period.start,
+        p_period_end: period.end,
+      }),
+      canViewProfitability
+        ? supabase.rpc("get_client_service_profitability", {
+            p_client_service_file_id: serviceFileRow.id,
+            p_period_start: period.start,
+            p_period_end: period.end,
+          })
+        : Promise.resolve({ data: [] }),
     ]);
     serviceArrangements = arrRes.data ?? [];
     serviceEntries = entRes.data ?? [];
     claimableSummary = sumRes.data ?? [];
+    periodSummary = (periodRes.data ?? []) as ServiceLedgerPeriodSummaryRow[];
+    profitability = (profitRes.data ?? []) as ServiceLedgerProfitabilityRow[];
   }
 
   const profileOpts = ((profiles ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, label: p.full_name ?? "—" }));
@@ -303,6 +329,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
         })[]
       }
       claimableSummary={claimableSummary as ServiceLedgerClaimableAmountRow[]}
+      periodParam={(periodParam as PeriodPreset) ?? "this_month"}
+      periodSummary={periodSummary}
+      canViewProfitability={canViewProfitability}
+      profitability={profitability}
     />
   );
 
