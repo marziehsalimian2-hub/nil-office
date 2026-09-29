@@ -43,16 +43,21 @@ export async function updateSession(request: NextRequest) {
   // handlers do all authorization from the token itself; nothing here
   // should ever bounce an anonymous buyer to /login.
   const isTradePortal = path.startsWith("/offer/");
-  // Telegram webhook — no Supabase session exists for it (Telegram
-  // carries no cookies at all), and it has no login page to redirect to
-  // in the first place. It does its own authentication entirely inline
-  // (webhook-secret header, then allowlist, then identity mapping —
-  // lib/assistant/telegram/security.ts/identity.ts), same shape as the
-  // Buyer Portal's own token-based auth replacing a Supabase session.
-  // Without this carve-out, every webhook POST was silently redirected
-  // to /login (a 307) and Telegram logged it as "Wrong response from
-  // the webhook" — found live, not caught in review, see git history.
-  const isTelegramWebhook = path === "/api/telegram/webhook";
+  // Telegram webhooks — no Supabase session exists for either (Telegram
+  // carries no cookies at all), and neither has a login page to redirect
+  // to in the first place. Each does its own authentication entirely
+  // inline (webhook-secret header, then either the internal allowlist +
+  // identity mapping — lib/assistant/telegram/security.ts/identity.ts —
+  // or, for the external bot, no allowlist at all by design — see
+  // lib/external-bot/telegram/security.ts), same shape as the Buyer
+  // Portal's own token-based auth replacing a Supabase session.
+  // Without this carve-out, every webhook POST is silently redirected
+  // to /login (a 307) and Telegram logs it as "Wrong response from the
+  // webhook" — found live for the internal bot originally (see git
+  // history), and reproduced live for the external bot's own separate
+  // path when it was first wired up, since this check only ever
+  // matched the internal bot's exact path.
+  const isTelegramWebhook = path === "/api/telegram/webhook" || path === "/api/telegram/external-webhook";
   // Set by requireProfile() when the signed-in user has no active profile.
   // Must NOT be bounced back to /dashboard below, or the two redirects loop forever.
   const isInactiveNotice = path === "/login" && request.nextUrl.searchParams.get("inactive") === "1";
