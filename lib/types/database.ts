@@ -53,6 +53,7 @@ export interface Profile {
   trade_role: TradeRoleT | null;
   cheque_role: ChequeRoleT | null;
   service_ledger_role: ServiceLedgerRoleT | null;
+  external_correspondence_role: ExternalCorrespondenceRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -1571,4 +1572,70 @@ export interface ClientServiceReportInvoiceRow {
   issue_date: string | null;
   total_amount: number;
   currency_code: string;
+}
+
+// =====================================================================
+// External Correspondence Telegram Bot — Phase 1
+// =====================================================================
+export type ExternalIntakeStatusT =
+  | "DRAFT" | "SUBMITTED" | "PENDING_REVIEW" | "ACCEPTED" | "REJECTED"
+  | "NEEDS_INFORMATION" | "REGISTERED" | "UNDER_REVIEW" | "REPLIED" | "CLOSED";
+export type ExternalSenderTypeT = "INDIVIDUAL" | "ORGANIZATION";
+export type ExternalCorrespondenceRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+
+export interface ExternalIntake {
+  id: string;
+  status: ExternalIntakeStatusT;
+  sender_type: ExternalSenderTypeT | null;
+  sender_full_name: string | null;
+  sender_position: string | null;
+  sender_mobile: string | null;
+  sender_email: string | null;
+  sender_org_name_raw: string | null;
+  telegram_user_id: number;
+  telegram_chat_id: number;
+  subject: string | null;
+  description: string | null;
+  tracking_code: string;
+  official_correspondence_id: string | null;
+  assigned_to: string | null;
+  case_id: string | null;
+  company_id: string | null;
+  internal_note: string | null;
+  public_reject_reason: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  registered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExternalIntakeDocument {
+  id: string;
+  intake_id: string;
+  storage_path: string;
+  file_name_sanitized: string;
+  declared_mime: string;
+  detected_signature: string | null;
+  size_bytes: number;
+  sha256_hash: string;
+  is_original: boolean;
+  uploaded_at: string;
+}
+
+export type ExternalIntakeEventTypeT =
+  | "SUBMISSION_CREATED" | "FILE_UPLOADED" | "SUBMISSION_SUBMITTED" | "REVIEW_OPENED"
+  | "ACCEPTED" | "REJECTED" | "NEEDS_INFORMATION" | "ADDITIONAL_INFO_RECEIVED"
+  | "OFFICIAL_CORRESPONDENCE_REGISTERED" | "COMPANY_LINKED" | "CASE_LINKED"
+  | "FOLLOWUP_CREATED" | "ASSIGNED" | "REPLY_ISSUED" | "REPLY_DELIVERED" | "STATUS_CHANGED";
+
+export interface ExternalIntakeEvent {
+  id: string;
+  intake_id: string;
+  event_type: ExternalIntakeEventTypeT;
+  actor_type: "EXTERNAL_TELEGRAM_USER" | "INTERNAL_USER" | "SYSTEM";
+  actor_telegram_user_id: number | null;
+  actor_profile_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 }

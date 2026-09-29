@@ -39,9 +39,10 @@ const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 const DEFAULT_ATTACHMENT_PROMPT = "این تصویر/سند را بررسی کن — اگر نامهٔ واردهاست، اطلاعات آن را استخراج کن.";
 
 /** Actions whose successful confirmation results in an official document that should be delivered to Telegram (spec §13/§21). Every other action (tasks, followups, cheques, ...) is a no-op here. */
-const DOCUMENT_ACTIONS: Record<string, "LETTER" | "INVOICE"> = {
+const DOCUMENT_ACTIONS: Record<string, "LETTER" | "INVOICE" | "SERVICE_REPORT"> = {
   CREATE_LETTER_DRAFT: "LETTER",
   CREATE_INVOICE_DRAFT: "INVOICE",
+  PREPARE_CLIENT_SERVICE_REPORT: "SERVICE_REPORT",
 };
 
 /** Every HIGH-risk action that assigns an official display_number — used to build a confirmation reply that actually states the number (not just "ثبت شد"), and to let the model's OWN history know what really happened (see buildConfirmationOutcomeText below). */
@@ -224,7 +225,7 @@ async function deliverDocumentPdf(
     const { buffer, fileName, displayNumber } = await buildDocumentPdf(sessionClient, kind, resultId);
     const sent = await sendDocument(chatId, buffer, fileName);
     if (sent) return;
-    const label = kind === "LETTER" ? "نامه" : "فاکتور";
+    const label = kind === "LETTER" ? "نامه" : kind === "INVOICE" ? "فاکتور" : "گزارش";
     await sendMessage(
       chatId,
       `${label} در NIL Office با شماره ${displayNumber ?? "-"} ثبت شد، اما ارسال فایل در تلگرام ناموفق بود.`,
@@ -238,7 +239,7 @@ async function deliverDocumentPdf(
 
 async function buildDocumentPdf(
   sessionClient: Awaited<ReturnType<typeof getSessionClientForProfile>>,
-  kind: "LETTER" | "INVOICE",
+  kind: "LETTER" | "INVOICE" | "SERVICE_REPORT",
   id: string,
 ): Promise<{ buffer: Buffer; fileName: string; displayNumber: string | null }> {
   if (kind === "LETTER") {
@@ -246,9 +247,21 @@ async function buildDocumentPdf(
     const { buffer, fileName } = await buildLetterPdfForCorrespondence(sessionClient, id);
     return { buffer, fileName, displayNumber: data?.display_number ?? null };
   }
-  const { data } = await sessionClient.from("sales_documents").select("display_number").eq("id", id).single();
-  const { buffer, fileName } = await buildInvoicePdf(sessionClient, id);
-  return { buffer, fileName, displayNumber: data?.display_number ?? null };
+  if (kind === "INVOICE") {
+    const { data } = await sessionClient.from("sales_documents").select("display_number").eq("id", id).single();
+    const { buffer, fileName } = await buildInvoicePdf(sessionClient, id);
+    return { buffer, fileName, displayNumber: data?.display_number ?? null };
+  }
+  // SERVICE_REPORT — unlike LETTER/INVOICE, the PDF is already generated
+  // and archived (Phase 4's client_service_reports.storage_path); this
+  // just downloads the existing bytes, no rendering call at delivery
+  // time, and reports carry no display_number.
+  const { data: report, error } = await sessionClient.from("client_service_reports").select("storage_path, file_name").eq("id", id).single();
+  if (error || !report) throw new Error("گزارش یافت نشد.");
+  const { data: file, error: downloadErr } = await sessionClient.storage.from("nil-files").download(report.storage_path);
+  if (downloadErr || !file) throw new Error("بازیابی فایل گزارش ناموفق بود.");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return { buffer, fileName: report.file_name, displayNumber: null };
 }
 
 async function findOrCreateTelegramConversation(sessionClient: Awaited<ReturnType<typeof getSessionClientForProfile>>, profileId: string): Promise<string> {
@@ -356,8 +369,9 @@ async function handleCallbackQuery(cb: NonNullable<TelegramUpdate["callback_quer
   if (cb.data.startsWith("resend:")) {
     const [, kind, resendId] = cb.data.split(":");
     await answerCallbackQuery(cb.id);
-    if ((kind === "LETTER" || kind === "INVOICE") && resendId) {
-      await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, kind === "LETTER" ? "CREATE_LETTER_DRAFT" : "CREATE_INVOICE_DRAFT", resendId);
+    if ((kind === "LETTER" || kind === "INVOICE" || kind === "SERVICE_REPORT") && resendId) {
+      const actionName = kind === "LETTER" ? "CREATE_LETTER_DRAFT" : kind === "INVOICE" ? "CREATE_INVOICE_DRAFT" : "PREPARE_CLIENT_SERVICE_REPORT";
+      await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, actionName, resendId);
     }
     return;
   }

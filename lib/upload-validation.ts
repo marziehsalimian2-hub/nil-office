@@ -156,6 +156,49 @@ export function validateImageUpload(
   return { ok: true };
 }
 
+// ---------------------------------------------------------------------
+// External Correspondence Telegram Bot upload (spec §10/§11) — the
+// STRICTEST validator in this file. PDF/JPEG/PNG only (no Office
+// formats — this codebase has no magic-byte check for OOXML containers
+// beyond DOCX's own ZIP signature, and the risk bar for an anonymous,
+// previously-unauthenticated sender is higher than any authenticated
+// internal user's own upload). 10 MB cap, matching the Trade Portal
+// buyer-upload precedent for the same threat class (external, one-off
+// document, not a large internal scan).
+// ---------------------------------------------------------------------
+export const MAX_EXTERNAL_CORRESPONDENCE_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const EXTERNAL_CORRESPONDENCE_EXT_MIME: Record<string, string[]> = {
+  pdf: ["application/pdf"],
+  jpg: ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png: ["image/png"],
+};
+
+export function validateExternalCorrespondenceUpload(
+  fileName: string,
+  mimeType: string | null | undefined,
+  size: number,
+): UploadCheck {
+  if (!fileName || size <= 0) return { ok: false, error: "فایلی انتخاب نشده است." };
+  if (size > MAX_EXTERNAL_CORRESPONDENCE_UPLOAD_BYTES)
+    return { ok: false, error: "حجم فایل بیش از حد مجاز (۱۰ مگابایت) است." };
+
+  const ext = extensionOf(fileName);
+  if (!ext || !(ext in EXTERNAL_CORRESPONDENCE_EXT_MIME))
+    return { ok: false, error: "فقط فایل PDF، JPG یا PNG مجاز است." };
+
+  const mime = (mimeType || "").trim().toLowerCase();
+  if (mime && !EXTERNAL_CORRESPONDENCE_EXT_MIME[ext].includes(mime))
+    return { ok: false, error: "نوع فایل با پسوند آن هم‌خوان نیست." };
+
+  return { ok: true };
+}
+
+/** Verify an external-correspondence upload's leading bytes match its extension (pdf/jpg/png only — always signature-checkable, unlike the generic validator's wider extension set). */
+export function checkExternalCorrespondenceSignature(ext: string, bytes: Uint8Array): boolean {
+  return checkSignature(ext, bytes);
+}
+
 /**
  * Validate a file by name, browser MIME and size.
  * - extension must be in the allow-list

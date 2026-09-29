@@ -6,10 +6,21 @@ import { resolveDatePhrase } from "@/lib/assistant/dates";
 import type { ActionContext, ActionDefinition, ResultCard } from "./types";
 import type { ServiceLedgerClaimableAmountRow } from "@/lib/types/database";
 
-/** Resolves a company_id (already found via SEARCH_COMPANY — never guessed) to its Client Service File. Throws a clear Persian message if none exists yet — Phase 1 only lets a human open one from the company's own "خدمات" tab; the Assistant never creates the file itself. */
-async function requireClientServiceFile(ctx: ActionContext, companyId: string) {
-  const { data } = await ctx.supabase.from("client_service_files").select("id, default_currency").eq("company_id", companyId).single();
-  if (!data) throw new Error("برای این شرکت هنوز پروندهٔ خدمات مشتری باز نشده است — ابتدا از تب «خدمات» در صفحهٔ شرکت آن را باز کنید.");
+/** Resolves a company_id (already found via SEARCH_COMPANY — never guessed) to its Client Service File. Throws a clear Persian message if none exists yet — Phase 1 only lets a human open one from the company's own "خدمات" tab; the Assistant never creates the file itself. Exported for reuse by serviceLedgerReports.ts (Phase 6). */
+export async function requireClientServiceFile(ctx: ActionContext, companyId: string) {
+  const { data, error } = await ctx.supabase.from("client_service_files").select("id, default_currency").eq("company_id", companyId).single();
+  if (!data) {
+    // PGRST116 = genuinely zero rows (the expected, common case — no
+    // file opened yet). Anything else here (auth/permission/connection
+    // errors) would otherwise be silently masked behind the same
+    // generic "no file" message — log it so a live report of "the file
+    // clearly exists but the assistant says it doesn't" is diagnosable
+    // from `pm2 logs nil-office` instead of unexplainable.
+    if (error && error.code !== "PGRST116") {
+      console.error("[assistant] requireClientServiceFile query failed", { companyId, error });
+    }
+    throw new Error("برای این شرکت هنوز پروندهٔ خدمات مشتری باز نشده است — ابتدا از تب «خدمات» در صفحهٔ شرکت آن را باز کنید.");
+  }
   return data as { id: string; default_currency: string };
 }
 

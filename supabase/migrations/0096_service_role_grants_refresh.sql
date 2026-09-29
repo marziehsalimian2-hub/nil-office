@@ -1,0 +1,43 @@
+-- =====================================================================
+-- NIL Office — 0096_service_role_grants_refresh.sql
+--
+-- Root cause of a live bug (2026-09-29): GET_CLIENT_SERVICE_PERIOD_NUMBERS
+-- and GET_CLIENT_SERVICE_SUMMARY both reported "no client service file"
+-- over Telegram for a company that visibly had an ACTIVE one on the
+-- web — confirmed via direct REST call returning a genuine Postgres
+-- 42501 "permission denied for table client_service_files" (not an
+-- RLS-driven empty result; RLS doesn't even apply to service_role,
+-- which has bypassrls — this was Postgres's separate, independent
+-- object-privilege layer).
+--
+-- 0072_service_role_base_grants.sql already explains the mechanism:
+-- `grant ... on all tables in schema public to service_role` is a
+-- ONE-TIME snapshot over whatever tables existed at the moment it ran
+-- — it is NOT retroactive to tables created by later migrations. Every
+-- single Client Service Ledger table (0082-0095, all of Phases 1-6)
+-- was created AFTER 0072 and therefore never received this grant. The
+-- web UI never surfaced this because it uses the caller's own
+-- `authenticated`-role session (granted per-table by each migration
+-- itself); only the Telegram channel (service_role, per
+-- lib/assistant/telegram/session.ts's documented RLS-bypass trade-off)
+-- was ever affected, and this is the first time a Client Service
+-- Ledger action was actually exercised over Telegram rather than web
+-- chat — which is why it went unnoticed through 6 phases of otherwise
+-- successful live testing.
+--
+-- Re-running the exact same blanket grant catches every table created
+-- since 0072, not just this module's — the safest fix, since we don't
+-- have a complete list of what else might be silently missing this.
+-- Also adds the equivalent for function EXECUTE, defensively — no
+-- direct proof any RPC is broken (Postgres functions default to
+-- PUBLIC-executable, which likely already covered every existing
+-- .rpc() call so far), but the risk of leaving it unaddressed is
+-- exactly this same failure mode resurfacing for some report/action
+-- RPC not yet exercised over Telegram. Neither grant expands what
+-- service_role can actually reach — it already bypasses RLS project-
+-- wide; this only satisfies Postgres's separate object-privilege check
+-- (identical reasoning to 0072's own header comment).
+-- =====================================================================
+
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant execute on all functions in schema public to service_role;
