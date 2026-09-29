@@ -137,9 +137,27 @@ export const quickAddServiceEntrySchema = z.object({
   title: z.string().trim().min(1, "عنوان خدمت الزامی است."),
   service_date: isoDate,
   duration_minutes: z.coerce.number().min(1, "مدت‌زمان باید حداقل ۱ دقیقه باشد."),
+  service_fee: optAmount,
+  hourly_rate: optAmount,
   expense_amount: optAmount,
   expense_description: optText,
+  expense_is_reimbursable: z.coerce.boolean().default(false),
   currency: z.enum(CURRENCY).default("IRR"),
+});
+
+/** Lightweight follow-up edit — adjust a service_entry's fee and/or its first time entry's hourly rate, without re-submitting the whole entry (mirrors bulkMarkServiceEntriesReadyToBill's "thin, targeted action" style). */
+export const updateServiceEntryFinancialsSchema = z.object({
+  id: z.string().uuid(),
+  service_fee: optAmount,
+  time_entry_id: optUuid,
+  hourly_rate: optAmount,
+});
+
+/** Lightweight follow-up edit — mark an already-logged expense as reimbursable (or not), after the fact. */
+export const updateExpenseReimbursableSchema = z.object({
+  id: z.string().uuid(),
+  is_reimbursable: z.coerce.boolean().default(false),
+  reimbursable_amount: optAmount,
 });
 
 /* ============================ Phase 2 — Billing Batches ==================== */

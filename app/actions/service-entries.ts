@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { persianError, CURRENCY } from "@/lib/enums";
-import { serviceEntrySchema, quickAddServiceEntrySchema, waiveServiceEntrySchema } from "@/lib/validation-service-ledger";
+import {
+  serviceEntrySchema,
+  quickAddServiceEntrySchema,
+  waiveServiceEntrySchema,
+  updateServiceEntryFinancialsSchema,
+} from "@/lib/validation-service-ledger";
 
 type ServiceLedgerCurrency = (typeof CURRENCY)[number];
 import { addTimeEntryDraftCore } from "@/app/actions/service-time-entries";
@@ -77,8 +82,12 @@ export type QuickAddServiceEntryInput = {
   /** Optional for the Assistant path (a user may describe a service with no time yet); the web Quick Add form always provides it. */
   duration_minutes?: number;
   currency: ServiceLedgerCurrency;
+  /** Optional — Quick Add's own form omits these unless the user fills them in; both default to "no fee/no rate yet, set it later" rather than a fabricated 0-is-meaningful value would imply. */
+  service_fee?: number;
+  hourly_rate?: number;
   expense_amount?: number;
   expense_description?: string;
+  expense_is_reimbursable?: boolean;
 };
 
 /**
@@ -118,7 +127,7 @@ export async function quickAddServiceEntryCore(
     billing_status: "NON_BILLABLE",
     billing_method: undefined,
     currency: d.currency,
-    service_fee: 0,
+    service_fee: d.service_fee ?? 0,
     is_billable: true,
     notes: undefined,
   });
@@ -132,12 +141,13 @@ export async function quickAddServiceEntryCore(
       duration_minutes: d.duration_minutes,
       description: undefined,
       billable: true,
-      hourly_rate_snapshot: undefined,
+      hourly_rate_snapshot: d.hourly_rate,
     });
     if ("error" in timeResult) return timeResult;
   }
 
   if (d.expense_amount && d.expense_amount > 0) {
+    const isReimbursable = d.expense_is_reimbursable ?? false;
     await addServiceExpenseDraftCore(supabase, userId, {
       service_entry_id: entryResult.data.id,
       expense_date: d.service_date,
@@ -148,8 +158,8 @@ export async function quickAddServiceEntryCore(
       paid_by: "NIL",
       payment_id: undefined,
       accounting_reference: undefined,
-      is_reimbursable: false,
-      reimbursable_amount: undefined,
+      is_reimbursable: isReimbursable,
+      reimbursable_amount: isReimbursable ? d.expense_amount : undefined,
       billing_status: "NON_BILLABLE",
     });
   }
@@ -213,6 +223,38 @@ export async function waiveServiceEntry(_p: ActionState, f: FormData): Promise<A
     .update({ billing_status: "WAIVED", waived_reason: parsed.data.reason, waived_by: userId, waived_at: new Date().toISOString() })
     .eq("id", parsed.data.id);
   if (error) return { error: persianError(error.message) };
+  if (companyId) revalidatePath(`/companies/${companyId}`);
+  return null;
+}
+
+/**
+ * Lightweight follow-up edit for an entry created through Quick Add
+ * (which never asks for a fee/rate at all) — sets service_fee and,
+ * if the entry already has a time entry, that time entry's own
+ * hourly_rate_snapshot. Two small updates rather than reusing the full
+ * updateServiceEntry/serviceEntrySchema, which would force re-submitting
+ * every field just to add one number.
+ */
+export async function updateServiceEntryFinancials(_p: ActionState, f: FormData): Promise<ActionState> {
+  const companyId = String(f.get("company_id") ?? "");
+  const parsed = updateServiceEntryFinancialsSchema.safeParse(entries(f));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const { supabase } = await ctx();
+
+  const { error } = await supabase
+    .from("service_entries")
+    .update({ service_fee: parsed.data.service_fee ?? 0 })
+    .eq("id", parsed.data.id);
+  if (error) return { error: persianError(error.message) };
+
+  if (parsed.data.time_entry_id) {
+    const { error: timeErr } = await supabase
+      .from("time_entries")
+      .update({ hourly_rate_snapshot: parsed.data.hourly_rate ?? null })
+      .eq("id", parsed.data.time_entry_id);
+    if (timeErr) return { error: persianError(timeErr.message) };
+  }
+
   if (companyId) revalidatePath(`/companies/${companyId}`);
   return null;
 }
