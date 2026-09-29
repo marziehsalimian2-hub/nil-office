@@ -9,15 +9,18 @@ import {
   SALES_DOCUMENT_TYPE_LABEL,
   SALES_DOCUMENT_STATUS_LABEL,
   BILLING_STATUS_LABEL,
+  persianError,
   type Currency,
   type ReportField,
   type ReportDetailLevel,
+  type ReportFamily,
 } from "@/lib/enums";
-import { renderClientServiceReportPdf, type CurrencyLine, type TableRow } from "@/lib/pdf/renderClientServiceReportPdf";
+import { renderClientServiceReportPdf, type CurrencyLine, type ProfitabilityLine, type TableRow } from "@/lib/pdf/renderClientServiceReportPdf";
 import type {
   ClientServiceReportEntryRow,
   ClientServiceReportInvoiceRow,
   ServiceLedgerPeriodSummaryRow,
+  ServiceLedgerProfitabilityRow,
 } from "@/lib/types/database";
 
 const EXT_TO_MIME: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" };
@@ -41,6 +44,11 @@ function currencyLinesFrom(rows: { currency_code: string; amount: number }[]): C
   return rows.filter((r) => r.amount !== 0).map((r) => ({ currencyLabel: CURRENCY_LABEL[r.currency_code as Currency] ?? r.currency_code, amount: formatMoney(r.amount) }));
 }
 
+/** Never renders a fabricated number for a currency whose data_complete=false (mirrors ServiceLedgerTab.tsx's own "اطلاعات کافی برای محاسبه سودآوری وجود ندارد" — same rule, same wording, not a new message for the same concept). */
+function profitabilityLinesFrom(rows: { currency_code: string; amount: number; data_complete: boolean }[]): ProfitabilityLine[] {
+  return rows.map((r) => ({ currencyLabel: CURRENCY_LABEL[r.currency_code as Currency] ?? r.currency_code, amount: formatMoney(r.amount), dataComplete: r.data_complete }));
+}
+
 function durationLabel(minutes: number): string {
   if (!minutes) return "—";
   const h = Math.floor(minutes / 60);
@@ -53,12 +61,14 @@ function durationLabel(minutes: number): string {
 
 export type ReportBuilderParams = {
   client_service_file_id: string;
+  report_family: ReportFamily;
   report_type: string;
   period_start: string;
   period_end: string;
   title: string;
   introduction?: string;
   final_note?: string;
+  custom_notes?: string;
   selected_sections: string[];
   selected_fields: string[];
   detail_level: ReportDetailLevel;
@@ -89,8 +99,13 @@ export async function buildClientServiceReportPdf(
     ["SERVICES_PERFORMED", "TIME_SPENT", "CONTRACTS_RELATED", "PROJECTS_RELATED", "DIRECT_EXPENSES", "DOCUMENTS_REFERENCE"].includes(s),
   );
   const needsInvoices = params.selected_sections.some((s) => ["INVOICES_PROFORMAS", "AMOUNTS_RECEIVED"].includes(s));
+  const needsProfitability =
+    params.report_family === "INTERNAL" &&
+    params.selected_sections.some((s) =>
+      ["INTERNAL_TIME_COST", "DIRECT_NIL_COST", "REVENUE", "REIMBURSED_COST", "UNREIMBURSED_COST", "CONTRIBUTION_MARGIN", "PROFITABILITY_ANALYSIS"].includes(s),
+    );
 
-  const [{ data: settings }, { data: summaryData }, { data: entriesData }, { data: invoicesData }] = await Promise.all([
+  const [{ data: settings }, { data: summaryData }, { data: entriesData }, { data: invoicesData }, profitabilityRes] = await Promise.all([
     supabase.from("app_settings").select("letterhead_path").eq("id", 1).single(),
     supabase.rpc("get_client_service_period_summary", {
       p_client_service_file_id: params.client_service_file_id,
@@ -111,11 +126,26 @@ export async function buildClientServiceReportPdf(
           p_period_end: params.period_end,
         })
       : Promise.resolve({ data: [] as ClientServiceReportInvoiceRow[] }),
+    needsProfitability
+      ? supabase.rpc("get_client_service_profitability", {
+          p_client_service_file_id: params.client_service_file_id,
+          p_period_start: params.period_start,
+          p_period_end: params.period_end,
+        })
+      : Promise.resolve({ data: [] as ServiceLedgerProfitabilityRow[], error: null }),
   ]);
+
+  // get_client_service_profitability is SECURITY DEFINER and raises
+  // NOT_AUTHORIZED for anyone lacking can_view_internal_cost() — this
+  // is the real authorization backstop for an INTERNAL report (the UI
+  // never even offers the option to an unauthorized user, but this is
+  // what actually blocks a crafted request).
+  if (profitabilityRes.error) throw new Error(persianError(profitabilityRes.error.message));
 
   const summary = (summaryData ?? []) as ServiceLedgerPeriodSummaryRow[];
   const entries = (entriesData ?? []) as ClientServiceReportEntryRow[];
   const invoices = (invoicesData ?? []) as ClientServiceReportInvoiceRow[];
+  const profitability = (profitabilityRes.data ?? []) as ServiceLedgerProfitabilityRow[];
 
   const letterheadDataUri = params.show_logo ? await pathToDataUri(supabase, settings?.letterhead_path) : null;
 
@@ -145,6 +175,17 @@ export async function buildClientServiceReportPdf(
   }
 
   const totalMinutes = entries.reduce((sum, e) => sum + Number(e.duration_minutes), 0);
+
+  // Reimbursed cost isn't a column get_client_service_profitability
+  // returns directly — it's derivable from data already fetched here:
+  // (every expense) minus (the non-reimbursed portion) = the
+  // reimbursed portion. No second SQL rollup needed for one derived
+  // number, same reasoning as the DIRECT_EXPENSES total above.
+  const reimbursedCostRows = profitability.map((r) => ({
+    currency_code: r.currency_code,
+    amount: (directExpenseByCurrency.get(r.currency_code) ?? 0) - Number(r.non_reimbursed_direct_cost),
+    data_complete: r.data_complete,
+  }));
 
   const fieldCells: Record<ReportField, (e: ClientServiceReportEntryRow) => string> = {
     DATE: (e) => formatJalali(e.service_date),
@@ -196,10 +237,11 @@ export async function buildClientServiceReportPdf(
     detailLevelLabel: REPORT_DETAIL_LEVEL_LABEL[params.detail_level],
     introduction: params.introduction ?? null,
     finalNote: params.final_note ?? null,
-    customNotes: null,
+    customNotes: params.custom_notes ?? null,
     showLogo: params.show_logo,
     showPageNumbers: params.show_page_numbers,
     letterheadDataUri,
+    reportFamily: params.report_family,
     sectionOrder: params.selected_sections,
     servicesCountLabel: `${toFaDigits(entries.length)} خدمت انجام‌شده در این بازه`,
     servicesColumns,
@@ -212,6 +254,11 @@ export async function buildClientServiceReportPdf(
     invoicedTotals: currencyLinesFrom(summary.map((r) => ({ currency_code: r.currency_code, amount: Number(r.invoiced_amount) }))),
     unbilledTotals: currencyLinesFrom(summary.map((r) => ({ currency_code: r.currency_code, amount: Number(r.unbilled_amount) }))),
     receivedTotals: currencyLinesFrom(Array.from(receivedByCurrency, ([currency_code, amount]) => ({ currency_code, amount }))),
+    revenueTotals: profitabilityLinesFrom(profitability.map((r) => ({ currency_code: r.currency_code, amount: Number(r.revenue), data_complete: r.data_complete }))),
+    internalTimeCostTotals: profitabilityLinesFrom(profitability.map((r) => ({ currency_code: r.currency_code, amount: Number(r.internal_time_cost), data_complete: r.data_complete }))),
+    reimbursedCostTotals: profitabilityLinesFrom(reimbursedCostRows),
+    unreimbursedCostTotals: profitabilityLinesFrom(profitability.map((r) => ({ currency_code: r.currency_code, amount: Number(r.non_reimbursed_direct_cost), data_complete: r.data_complete }))),
+    contributionMarginTotals: profitabilityLinesFrom(profitability.map((r) => ({ currency_code: r.currency_code, amount: Number(r.contribution_margin), data_complete: r.data_complete }))),
     contractTitles,
     projectTitles,
     invoicesColumns,

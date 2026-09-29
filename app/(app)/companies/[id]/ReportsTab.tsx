@@ -20,6 +20,7 @@ export function ReportsTab({
   reports,
   defaultTemplate,
   profiles,
+  canViewProfitability,
 }: {
   companyId: string;
   clientServiceFileId: string;
@@ -27,6 +28,7 @@ export function ReportsTab({
   reports: ClientServiceReport[];
   defaultTemplate: ClientServiceReportTemplate | null;
   profiles: Opt[];
+  canViewProfitability: boolean;
 }) {
   const profileName = new Map(profiles.map((p) => [p.id, p.label]));
 
@@ -47,6 +49,11 @@ export function ReportsTab({
             <Link href={`/companies/${companyId}/reports/new`} className="btn-primary gap-1.5 !py-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" /> گزارش جدید
             </Link>
+            {canViewProfitability && (
+              <Link href={`/companies/${companyId}/reports/new?family=INTERNAL`} className="btn-quiet gap-1.5 p-1.5 text-xs text-status-cancelled">
+                گزارش مدیریتی داخلی (محرمانه)
+              </Link>
+            )}
           </div>
         )}
       </div>

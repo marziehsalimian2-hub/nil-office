@@ -983,6 +983,33 @@ export const REPORT_FIELD_LABEL: Record<ReportField, string> = {
   BILLING_STATUS: "وضعیت صورتحساب",
 };
 
+export const REPORT_FAMILY = ["CLIENT", "INTERNAL"] as const;
+export type ReportFamily = (typeof REPORT_FAMILY)[number];
+export const REPORT_FAMILY_LABEL: Record<ReportFamily, string> = {
+  CLIENT: "گزارش مشتری", INTERNAL: "گزارش مدیریتی داخلی (محرمانه)",
+};
+
+/** Phase 5 — Internal Management Report only (spec §51). Matches allowed_report_sections('INTERNAL')'s extra 8 keys 1:1 (migration 0095). Never selectable for report_family='CLIENT' — enforced both client-side (ReportBuilderForm only renders these when family=INTERNAL) and at the DB trigger. */
+export const REPORT_SECTION_INTERNAL = [
+  "INTERNAL_TIME_COST", "DIRECT_NIL_COST", "REVENUE", "REIMBURSED_COST",
+  "UNREIMBURSED_COST", "CONTRIBUTION_MARGIN", "PROFITABILITY_ANALYSIS", "INTERNAL_NOTES",
+] as const;
+export type ReportSectionInternal = (typeof REPORT_SECTION_INTERNAL)[number];
+export const REPORT_SECTION_INTERNAL_LABEL: Record<ReportSectionInternal, string> = {
+  INTERNAL_TIME_COST: "هزینهٔ داخلی زمان",
+  DIRECT_NIL_COST: "هزینهٔ مستقیم NIL",
+  REVENUE: "درآمد",
+  REIMBURSED_COST: "هزینهٔ بازپرداخت‌شده",
+  UNREIMBURSED_COST: "هزینهٔ بازپرداخت‌نشده",
+  CONTRIBUTION_MARGIN: "حاشیهٔ مشارکت",
+  PROFITABILITY_ANALYSIS: "تحلیل سودآوری",
+  INTERNAL_NOTES: "یادداشت داخلی (محرمانه)",
+};
+
+/** Union of client + internal section keys — used for schema validation (a value like REVENUE must be accepted for an INTERNAL-family submission, not just tolerated by the DB trigger). */
+export const ALL_REPORT_SECTIONS = [...REPORT_SECTION, ...REPORT_SECTION_INTERNAL] as const;
+export const ALL_REPORT_SECTION_LABEL: Record<string, string> = { ...REPORT_SECTION_LABEL, ...REPORT_SECTION_INTERNAL_LABEL };
+
 /** Default section/field selection per preset (§46 — a preset is only a DEFAULT, user can change it before generating). */
 export const REPORT_TYPE_DEFAULT_SECTIONS: Record<ReportType, ReportSection[]> = {
   CLIENT_PERFORMANCE_REPORT: ["COVER_PAGE", "EXECUTIVE_SUMMARY", "SERVICES_PERFORMED", "TIME_SPENT", "PERIOD_SUMMARY", "FINAL_SUMMARY"],

@@ -14,12 +14,18 @@ import {
   REPORT_TYPE_DEFAULT_FIELDS,
   REPORT_SECTION,
   REPORT_SECTION_LABEL,
+  REPORT_SECTION_INTERNAL,
+  REPORT_SECTION_INTERNAL_LABEL,
+  REPORT_FAMILY,
+  REPORT_FAMILY_LABEL,
   REPORT_FIELD,
   REPORT_FIELD_LABEL,
   REPORT_DETAIL_LEVEL,
   REPORT_DETAIL_LEVEL_LABEL,
   type ReportType,
   type ReportSection,
+  type ReportSectionInternal,
+  type ReportFamily,
   type ReportField,
   type ReportDetailLevel,
 } from "@/lib/enums";
@@ -43,13 +49,19 @@ export function ReportBuilderForm({
   clientServiceFileId,
   templates,
   initialTemplateId,
+  initialFamily,
+  canViewProfitability,
 }: {
   companyId: string;
   clientServiceFileId: string;
   templates: ClientServiceReportTemplate[];
   initialTemplateId?: string;
+  initialFamily?: ReportFamily;
+  canViewProfitability: boolean;
 }) {
   const router = useRouter();
+  const [reportFamily, setReportFamily] = useState<ReportFamily>(initialFamily ?? "CLIENT");
+  const [customNotes, setCustomNotes] = useState("");
   const [reportType, setReportType] = useState<ReportType>("CLIENT_PERFORMANCE_REPORT");
   const [periodStart, setPeriodStart] = useState(firstOfMonthIso());
   const [periodEnd, setPeriodEnd] = useState(todayIsoClient());
@@ -57,6 +69,7 @@ export function ReportBuilderForm({
   const [introduction, setIntroduction] = useState("");
   const [finalNote, setFinalNote] = useState("");
   const [sections, setSections] = useState<Set<ReportSection>>(new Set(REPORT_TYPE_DEFAULT_SECTIONS.CLIENT_PERFORMANCE_REPORT));
+  const [internalSections, setInternalSections] = useState<Set<ReportSectionInternal>>(new Set());
   const [fields, setFields] = useState<Set<ReportField>>(new Set(REPORT_TYPE_DEFAULT_FIELDS.CLIENT_PERFORMANCE_REPORT));
   const [detailLevel, setDetailLevel] = useState<ReportDetailLevel>("STANDARD");
   const [showLogo, setShowLogo] = useState(true);
@@ -73,13 +86,16 @@ export function ReportBuilderForm({
   const [newTemplateScope, setNewTemplateScope] = useState<"GLOBAL" | "CLIENT">("CLIENT");
 
   const templateById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
+  const templatesForFamily = useMemo(() => templates.filter((t) => t.report_family === reportFamily), [templates, reportFamily]);
 
   function applyTemplate(id: string) {
     const t = templateById.get(id);
     if (!t) return;
     setTemplateId(t.id);
+    setReportFamily(t.report_family);
     setReportType(t.report_type as ReportType);
-    setSections(new Set(t.selected_sections as ReportSection[]));
+    setSections(new Set((t.selected_sections as string[]).filter((s): s is ReportSection => (REPORT_SECTION as readonly string[]).includes(s))));
+    setInternalSections(new Set((t.selected_sections as string[]).filter((s): s is ReportSectionInternal => (REPORT_SECTION_INTERNAL as readonly string[]).includes(s))));
     setFields(new Set(t.selected_fields as ReportField[]));
     setDetailLevel(t.detail_level);
     setShowLogo(t.show_logo);
@@ -87,6 +103,7 @@ export function ReportBuilderForm({
     if (t.default_title) setTitle(t.default_title);
     if (t.default_introduction) setIntroduction(t.default_introduction);
     if (t.default_final_note) setFinalNote(t.default_final_note);
+    if (t.default_custom_notes) setCustomNotes(t.default_custom_notes);
   }
 
   useEffect(() => {
@@ -109,6 +126,14 @@ export function ReportBuilderForm({
       return next;
     });
   }
+  function toggleInternalSection(s: ReportSectionInternal) {
+    setInternalSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  }
   function toggleField(f: ReportField) {
     setFields((prev) => {
       const next = new Set(prev);
@@ -121,13 +146,16 @@ export function ReportBuilderForm({
   function buildFormData(): FormData {
     const fd = new FormData();
     fd.append("client_service_file_id", clientServiceFileId);
+    fd.append("report_family", reportFamily);
     fd.append("report_type", reportType);
     fd.append("period_start", periodStart);
     fd.append("period_end", periodEnd);
     fd.append("title", title);
     if (introduction) fd.append("introduction", introduction);
     if (finalNote) fd.append("final_note", finalNote);
-    fd.append("selected_sections", JSON.stringify([...sections]));
+    if (customNotes) fd.append("custom_notes", customNotes);
+    const allSections = reportFamily === "INTERNAL" ? [...sections, ...internalSections] : [...sections];
+    fd.append("selected_sections", JSON.stringify(allSections));
     fd.append("selected_fields", JSON.stringify([...fields]));
     fd.append("detail_level", detailLevel);
     if (showLogo) fd.append("show_logo", "true");
@@ -180,6 +208,7 @@ export function ReportBuilderForm({
     fd.append("default_title", title);
     if (introduction) fd.append("default_introduction", introduction);
     if (finalNote) fd.append("default_final_note", finalNote);
+    if (customNotes) fd.append("default_custom_notes", customNotes);
     startTransition(async () => {
       const res = await createReportTemplate(null, fd);
       if (res && "error" in res && res.error) setError(res.error);
@@ -217,6 +246,7 @@ export function ReportBuilderForm({
     fd.append("default_title", title);
     if (introduction) fd.append("default_introduction", introduction);
     if (finalNote) fd.append("default_final_note", finalNote);
+    if (customNotes) fd.append("default_custom_notes", customNotes);
     startTransition(async () => {
       const res = await saveChangesToTemplate(null, fd);
       if (res && "error" in res && res.error) setError(res.error);
@@ -228,12 +258,29 @@ export function ReportBuilderForm({
     <div className="space-y-4">
       <FormError message={error} />
 
+      {canViewProfitability && (
+        <Card className="space-y-2">
+          <p className="text-sm font-medium text-ink">نوع گزارش</p>
+          <div className="flex gap-4">
+            {REPORT_FAMILY.map((f) => (
+              <label key={f} className="flex items-center gap-2 text-sm text-ink">
+                <input type="radio" name="report_family" checked={reportFamily === f} onChange={() => { setReportFamily(f); setTemplateId(undefined); }} className="h-4 w-4 accent-[#9a6a2e]" />
+                {REPORT_FAMILY_LABEL[f]}
+              </label>
+            ))}
+          </div>
+          {reportFamily === "INTERNAL" && (
+            <p className="text-xs text-status-cancelled">این گزارش محرمانه است و هرگز نباید برای مشتری ارسال شود.</p>
+          )}
+        </Card>
+      )}
+
       <Card className="space-y-3">
-        {templates.length > 0 && (
+        {templatesForFamily.length > 0 && (
           <Field label="بارگذاری از قالب ذخیره‌شده">
             <select className="input" value={templateId ?? ""} onChange={(e) => (e.target.value ? applyTemplate(e.target.value) : setTemplateId(undefined))}>
               <option value="">— بدون قالب —</option>
-              {templates.map((t) => (
+              {templatesForFamily.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.template_name} {t.scope === "GLOBAL" ? "(سراسری)" : ""}
                 </option>
@@ -283,6 +330,9 @@ export function ReportBuilderForm({
         <Field label="توضیح پایانی (اختیاری)">
           <textarea className="input" rows={2} value={finalNote} onChange={(e) => setFinalNote(e.target.value)} />
         </Field>
+        <Field label={reportFamily === "INTERNAL" ? "یادداشت داخلی (محرمانه)" : "یادداشت سفارشی (اختیاری)"}>
+          <textarea className="input" rows={2} value={customNotes} onChange={(e) => setCustomNotes(e.target.value)} />
+        </Field>
 
         <div className="flex flex-wrap gap-4 pt-1">
           <label className="flex items-center gap-2 text-sm text-ink-muted">
@@ -307,6 +357,20 @@ export function ReportBuilderForm({
           ))}
         </div>
       </Card>
+
+      {reportFamily === "INTERNAL" && (
+        <Card>
+          <p className="mb-2 text-sm font-medium text-status-cancelled">بخش‌های محرمانهٔ مدیریتی</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {REPORT_SECTION_INTERNAL.map((s) => (
+              <label key={s} className="flex items-center gap-2 text-sm text-ink">
+                <input type="checkbox" checked={internalSections.has(s)} onChange={() => toggleInternalSection(s)} className="h-4 w-4 accent-[#9a6a2e]" />
+                {REPORT_SECTION_INTERNAL_LABEL[s]}
+              </label>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <p className="mb-2 text-sm font-medium text-ink">ستون‌های جدول خدمات</p>
