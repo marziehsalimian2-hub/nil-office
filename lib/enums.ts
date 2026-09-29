@@ -1023,3 +1023,80 @@ export const REPORT_TYPE_DEFAULT_FIELDS: Record<ReportType, ReportField[]> = {
   CLIENT_FULL_REPORT: [...REPORT_FIELD],
   CUSTOM_REPORT: ["DATE", "SERVICE_TITLE"],
 };
+
+/* ============================ External Correspondence Telegram Bot — Phase 1 =========================== */
+
+export const EXTERNAL_CORRESPONDENCE_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type ExternalCorrespondenceRole = (typeof EXTERNAL_CORRESPONDENCE_ROLE)[number];
+export const EXTERNAL_CORRESPONDENCE_ROLE_LABEL: Record<ExternalCorrespondenceRole, string> = {
+  VIEW: "مشاهده", CREATE: "بررسی", APPROVE: "ثبت/رد", ADMIN: "مدیر",
+};
+
+export const EXTERNAL_INTAKE_STATUS = [
+  "DRAFT", "SUBMITTED", "PENDING_REVIEW", "ACCEPTED", "REJECTED",
+  "NEEDS_INFORMATION", "REGISTERED", "UNDER_REVIEW", "REPLIED", "CLOSED",
+] as const;
+export type ExternalIntakeStatus = (typeof EXTERNAL_INTAKE_STATUS)[number];
+/** Internal-facing labels (full detail — shown only in the NIL Office review UI, never to the external sender). */
+export const EXTERNAL_INTAKE_STATUS_LABEL: Record<ExternalIntakeStatus, string> = {
+  DRAFT: "پیش‌نویس",
+  SUBMITTED: "ارسال‌شده",
+  PENDING_REVIEW: "در انتظار بررسی",
+  ACCEPTED: "پذیرفته‌شده",
+  REJECTED: "رد‌شده",
+  NEEDS_INFORMATION: "نیازمند اطلاعات تکمیلی",
+  REGISTERED: "ثبت‌شده",
+  UNDER_REVIEW: "در حال بررسی",
+  REPLIED: "پاسخ‌داده‌شده",
+  CLOSED: "مختومه",
+};
+export const EXTERNAL_INTAKE_STATUS_TONE: Record<ExternalIntakeStatus, string> = {
+  DRAFT: "status-draft",
+  SUBMITTED: "status-review",
+  PENDING_REVIEW: "status-waiting",
+  ACCEPTED: "status-review",
+  REJECTED: "status-cancelled",
+  NEEDS_INFORMATION: "status-waiting",
+  REGISTERED: "status-final",
+  UNDER_REVIEW: "status-review",
+  REPLIED: "status-final",
+  CLOSED: "status-final",
+};
+/** Public-safe labels only (spec §33) — the bot NEVER shows internal workflow nuance (e.g. UNDER_REVIEW/ACCEPTED collapse into the same "در حال بررسی" the sender already understands). */
+export const EXTERNAL_INTAKE_PUBLIC_STATUS_LABEL: Record<ExternalIntakeStatus, string> = {
+  DRAFT: "در حال تکمیل",
+  SUBMITTED: "دریافت شد",
+  PENDING_REVIEW: "در انتظار بررسی",
+  ACCEPTED: "در حال بررسی",
+  REJECTED: "قابل ثبت نیست",
+  NEEDS_INFORMATION: "نیازمند اطلاعات تکمیلی",
+  REGISTERED: "ثبت شد",
+  UNDER_REVIEW: "در حال بررسی",
+  REPLIED: "پاسخ صادر شد",
+  CLOSED: "مختومه",
+};
+
+export const EXTERNAL_SENDER_TYPE = ["INDIVIDUAL", "ORGANIZATION"] as const;
+export type ExternalSenderType = (typeof EXTERNAL_SENDER_TYPE)[number];
+export const EXTERNAL_SENDER_TYPE_LABEL: Record<ExternalSenderType, string> = {
+  INDIVIDUAL: "شخص حقیقی", ORGANIZATION: "شرکت یا سازمان",
+};
+
+export const EXTERNAL_INTAKE_EVENT_TYPE_LABEL: Record<string, string> = {
+  SUBMISSION_CREATED: "ایجاد پیش‌نویس",
+  FILE_UPLOADED: "بارگذاری فایل",
+  SUBMISSION_SUBMITTED: "ارسال مکاتبه",
+  REVIEW_OPENED: "شروع بررسی",
+  ACCEPTED: "پذیرفته‌شد",
+  REJECTED: "رد شد",
+  NEEDS_INFORMATION: "درخواست اطلاعات تکمیلی",
+  ADDITIONAL_INFO_RECEIVED: "دریافت اطلاعات تکمیلی",
+  OFFICIAL_CORRESPONDENCE_REGISTERED: "ثبت رسمی مکاتبه",
+  COMPANY_LINKED: "پیوند به شرکت",
+  CASE_LINKED: "پیوند به پرونده",
+  FOLLOWUP_CREATED: "ایجاد پیگیری",
+  ASSIGNED: "تعیین مسئول",
+  REPLY_ISSUED: "صدور پاسخ",
+  REPLY_DELIVERED: "ارسال پاسخ",
+  STATUS_CHANGED: "تغییر وضعیت",
+};
