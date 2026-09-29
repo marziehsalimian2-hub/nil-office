@@ -13,6 +13,8 @@ import {
 } from "@/lib/pdf/pdfShared";
 
 export type CurrencyLine = { currencyLabel: string; amount: string };
+/** Like CurrencyLine but carries data_complete — renders "اطلاعات کافی برای محاسبه سودآوری وجود ندارد" instead of the amount when false, never a fabricated number (spec's own non-negotiable rule, already shipped identically in ServiceLedgerTab.tsx). */
+export type ProfitabilityLine = { currencyLabel: string; amount: string; dataComplete: boolean };
 export type TableRow = { cells: string[] };
 
 /**
@@ -42,6 +44,8 @@ export type ClientServiceReportPdfInput = {
   showLogo: boolean;
   showPageNumbers: boolean;
   letterheadDataUri: string | null;
+  /** 'INTERNAL' triggers the confidential banner (cover + footer) — Phase 5. */
+  reportFamily: "CLIENT" | "INTERNAL";
 
   /** Ordered, already filtered to sections that were both selected AND produce content. */
   sectionOrder: string[];
@@ -59,6 +63,13 @@ export type ClientServiceReportPdfInput = {
   invoicedTotals: CurrencyLine[];
   unbilledTotals: CurrencyLine[];
   receivedTotals: CurrencyLine[];
+
+  /** Phase 5 — Internal Management Report only; empty arrays for a CLIENT-family report. */
+  revenueTotals: ProfitabilityLine[];
+  internalTimeCostTotals: ProfitabilityLine[];
+  reimbursedCostTotals: ProfitabilityLine[];
+  unreimbursedCostTotals: ProfitabilityLine[];
+  contributionMarginTotals: ProfitabilityLine[];
 
   contractTitles: string[];
   projectTitles: string[];
@@ -102,12 +113,31 @@ const SECTION_TITLE: Record<string, string> = {
   PERIOD_SUMMARY: "خلاصهٔ بازه",
   CUSTOM_NOTES: "یادداشت",
   FINAL_SUMMARY: "جمع‌بندی پایانی",
+  INTERNAL_TIME_COST: "هزینهٔ داخلی زمان",
+  DIRECT_NIL_COST: "هزینهٔ مستقیم NIL",
+  REVENUE: "درآمد",
+  REIMBURSED_COST: "هزینهٔ بازپرداخت‌شده",
+  UNREIMBURSED_COST: "هزینهٔ بازپرداخت‌نشده",
+  CONTRIBUTION_MARGIN: "حاشیهٔ مشارکت",
+  PROFITABILITY_ANALYSIS: "تحلیل سودآوری",
+  INTERNAL_NOTES: "یادداشت داخلی (محرمانه)",
 };
 
 function currencyLinesTable(rows: CurrencyLine[]): string {
   if (rows.length === 0) return `<p class="muted">داده‌ای برای این بازه ثبت نشده است.</p>`;
   return `<table class="kv"><tbody>${rows
     .map((r) => `<tr><td class="k">${esc(r.currencyLabel)}</td><td class="v">${esc(r.amount)}</td></tr>`)
+    .join("")}</tbody></table>`;
+}
+
+function profitabilityLinesTable(rows: ProfitabilityLine[]): string {
+  if (rows.length === 0) return `<p class="muted">داده‌ای برای این بازه ثبت نشده است.</p>`;
+  return `<table class="kv"><tbody>${rows
+    .map((r) =>
+      r.dataComplete
+        ? `<tr><td class="k">${esc(r.currencyLabel)}</td><td class="v">${esc(r.amount)}</td></tr>`
+        : `<tr><td class="k">${esc(r.currencyLabel)}</td><td class="v muted">اطلاعات کافی برای محاسبه وجود ندارد</td></tr>`,
+    )
     .join("")}</tbody></table>`;
 }
 
@@ -173,6 +203,28 @@ function buildSectionHtml(key: string, input: ClientServiceReportPdfInput): stri
       return input.customNotes ? `<p class="prose">${esc(input.customNotes).replace(/\n/g, "<br/>")}</p>` : "";
     case "FINAL_SUMMARY":
       return input.finalNote ? `<p class="prose">${esc(input.finalNote).replace(/\n/g, "<br/>")}</p>` : "";
+    case "INTERNAL_TIME_COST":
+      return profitabilityLinesTable(input.internalTimeCostTotals);
+    case "DIRECT_NIL_COST":
+      return currencyLinesTable(input.directExpenseTotals);
+    case "REVENUE":
+      return profitabilityLinesTable(input.revenueTotals);
+    case "REIMBURSED_COST":
+      return profitabilityLinesTable(input.reimbursedCostTotals);
+    case "UNREIMBURSED_COST":
+      return profitabilityLinesTable(input.unreimbursedCostTotals);
+    case "CONTRIBUTION_MARGIN":
+      return profitabilityLinesTable(input.contributionMarginTotals);
+    case "PROFITABILITY_ANALYSIS":
+      return `
+        <div class="grid2">
+          <div><p class="sub">درآمد</p>${profitabilityLinesTable(input.revenueTotals)}</div>
+          <div><p class="sub">هزینهٔ داخلی زمان</p>${profitabilityLinesTable(input.internalTimeCostTotals)}</div>
+          <div><p class="sub">هزینهٔ بازپرداخت‌نشده</p>${profitabilityLinesTable(input.unreimbursedCostTotals)}</div>
+          <div><p class="sub">حاشیهٔ مشارکت</p>${profitabilityLinesTable(input.contributionMarginTotals)}</div>
+        </div>`;
+    case "INTERNAL_NOTES":
+      return input.customNotes ? `<p class="prose">${esc(input.customNotes).replace(/\n/g, "<br/>")}</p>` : "";
     default:
       return "";
   }
@@ -212,6 +264,7 @@ function buildReportHtml(input: ClientServiceReportPdfInput): string {
   .cover .client { font-size: 15px; margin-bottom: 3mm; }
   .cover .period { font-size: 13px; color: #444; margin-bottom: 3mm; }
   .cover .generated { font-size: 11px; color: #777; margin-top: 10mm; }
+  .cover .confidential { display: inline-block; margin-bottom: 6mm; padding: 1.5mm 4mm; border: 1pt solid #a33; border-radius: 2mm; color: #a33; font-size: 12px; font-weight: 700; }
   .intro { margin-bottom: 5mm; white-space: pre-wrap; }
   .block { break-inside: avoid; page-break-inside: avoid; margin-bottom: 6mm; }
   .block h2 { font-size: 13.5px; font-weight: 700; border-bottom: 0.5pt solid #1a1a1a33; padding-bottom: 1.5mm; margin-bottom: 3mm; }
@@ -234,6 +287,7 @@ function buildReportHtml(input: ClientServiceReportPdfInput): string {
 <body>
   ${showCover ? `
   <div class="cover">
+    ${input.reportFamily === "INTERNAL" ? `<div class="confidential">⚠ محرمانه — گزارش مدیریتی داخلی</div><br/>` : ""}
     <div class="company">شرکت مدیریت راهبردی نیل</div>
     <div class="title">${esc(input.title)}</div>
     <div class="client">${esc(input.companyName)}</div>
@@ -247,7 +301,7 @@ function buildReportHtml(input: ClientServiceReportPdfInput): string {
 }
 
 /** Small transparent snippet rendered by Chromium so Persian text shaping is correct — same reasoning as the existing renderers' header-field snippets. */
-function buildFooterHtml(pageIndex: number, pageCount: number, companyName: string): string {
+function buildFooterHtml(pageIndex: number, pageCount: number, companyName: string, reportFamily: "CLIENT" | "INTERNAL"): string {
   return `<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
@@ -256,10 +310,11 @@ function buildFooterHtml(pageIndex: number, pageCount: number, companyName: stri
   ${FONT_FACE}
   html, body { margin: 0; padding: 0; background: transparent; }
   body { font-family: "BNazanin", sans-serif; direction: rtl; color: #666; font-size: 10px; display: flex; justify-content: space-between; align-items: center; height: 100%; padding: 0 4px; }
+  .confidential { color: #a33; font-weight: 700; }
 </style>
 </head>
 <body>
-  <span>${esc(companyName)}</span>
+  <span${reportFamily === "INTERNAL" ? ` class="confidential"` : ""}>${reportFamily === "INTERNAL" ? "محرمانه — " : ""}${esc(companyName)}</span>
   <span>صفحهٔ ${faDigits(pageIndex + 1)} از ${faDigits(pageCount)}</span>
 </body>
 </html>`;
@@ -288,7 +343,7 @@ export async function renderClientServiceReportPdf(input: ClientServiceReportPdf
         await drawFullPageBackground(outDoc, outPage, input.letterheadDataUri);
       }
       if (input.showPageNumbers) {
-        const footerPng = await renderSnippetPng(browser, buildFooterHtml(pageIndex, pageCount, input.companyName), FOOTER_WIDTH_PX, FOOTER_HEIGHT_PX);
+        const footerPng = await renderSnippetPng(browser, buildFooterHtml(pageIndex, pageCount, input.companyName, input.reportFamily), FOOTER_WIDTH_PX, FOOTER_HEIGHT_PX);
         const embedded = await outDoc.embedPng(footerPng);
         const w = FOOTER_WIDTH_PX * PX_TO_PT;
         const h = FOOTER_HEIGHT_PX * PX_TO_PT;

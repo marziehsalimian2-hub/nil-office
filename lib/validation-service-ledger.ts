@@ -10,9 +10,10 @@ import {
   EXPENSE_PAID_BY,
   REPORT_TYPE,
   REPORT_DETAIL_LEVEL,
-  REPORT_SECTION,
+  ALL_REPORT_SECTIONS,
   REPORT_FIELD,
   REPORT_TEMPLATE_SCOPE,
+  REPORT_FAMILY,
 } from "@/lib/enums";
 
 const optText = z.string().trim().optional().transform((v) => (v === "" ? undefined : v));
@@ -207,18 +208,20 @@ function jsonEnumArray<T extends readonly [string, ...string[]]>(allowed: T, emp
   });
 }
 
-const reportSectionsField = jsonEnumArray(REPORT_SECTION, "حداقل یک بخش را انتخاب کنید.");
+const reportSectionsField = jsonEnumArray(ALL_REPORT_SECTIONS, "حداقل یک بخش را انتخاب کنید.");
 const reportFieldsField = jsonEnumArray(REPORT_FIELD, "حداقل یک ستون را انتخاب کنید.");
 
 /** The Report Builder's Configure step — shared shape for both "Preview" and "Generate" submissions (§54: same configuration, only the persistence step differs between the two actions). */
 export const reportBuilderSchema = z.object({
   client_service_file_id: z.string().uuid(),
+  report_family: z.enum(REPORT_FAMILY).default("CLIENT"),
   report_type: z.enum(REPORT_TYPE),
   period_start: isoDate,
   period_end: isoDate,
   title: z.string().trim().min(1, "عنوان گزارش الزامی است."),
   introduction: optText,
   final_note: optText,
+  custom_notes: optText,
   selected_sections: reportSectionsField,
   selected_fields: reportFieldsField,
   detail_level: z.enum(REPORT_DETAIL_LEVEL),
@@ -232,6 +235,7 @@ export const reportTemplateSchema = z
     template_name: z.string().trim().min(1, "نام قالب الزامی است."),
     scope: z.enum(REPORT_TEMPLATE_SCOPE),
     company_id: optUuid,
+    report_family: z.enum(REPORT_FAMILY).default("CLIENT"),
     report_type: z.enum(REPORT_TYPE),
     selected_sections: reportSectionsField,
     selected_fields: reportFieldsField,
@@ -239,6 +243,7 @@ export const reportTemplateSchema = z
     default_title: optText,
     default_introduction: optText,
     default_final_note: optText,
+    default_custom_notes: optText,
     show_logo: z.coerce.boolean().default(true),
     show_page_numbers: z.coerce.boolean().default(true),
   })

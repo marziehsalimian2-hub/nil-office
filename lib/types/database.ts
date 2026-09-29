@@ -1506,6 +1506,7 @@ export interface ClientServiceReport {
   title: string;
   introduction: string | null;
   final_note: string | null;
+  custom_notes: string | null;
   selected_sections: string[];
   selected_fields: string[];
   detail_level: ReportDetailLevelT;
@@ -1533,6 +1534,7 @@ export interface ClientServiceReportTemplate {
   default_title: string | null;
   default_introduction: string | null;
   default_final_note: string | null;
+  default_custom_notes: string | null;
   show_logo: boolean;
   show_page_numbers: boolean;
   is_active: boolean;

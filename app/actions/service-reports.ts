@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
 import { reportBuilderSchema } from "@/lib/validation-service-ledger";
 import { buildClientServiceReportPdf, type ReportBuilderParams } from "@/lib/pdf/clientServiceReportData";
-import { REPORT_SECTION, REPORT_FIELD } from "@/lib/enums";
+import { REPORT_SECTION, ALL_REPORT_SECTIONS, REPORT_FIELD } from "@/lib/enums";
 
 export type ActionState = { error?: string } | null;
 
@@ -23,8 +23,9 @@ async function ctx() {
 const entries = (f: FormData) => Object.fromEntries(f.entries());
 
 /** Defense in depth ahead of the DB trigger (tg_enforce_report_field_security, migration 0093) — same habit this codebase already has on other security-sensitive paths (e.g. billing batch guards re-validated in convert_billing_batch_to_sales_document despite RLS already gating insert). */
-function assertAllowedSelection(sections: string[], fields: string[]) {
-  const badSection = sections.find((s) => !(REPORT_SECTION as readonly string[]).includes(s));
+function assertAllowedSelection(reportFamily: string, sections: string[], fields: string[]) {
+  const allowedSections: readonly string[] = reportFamily === "INTERNAL" ? ALL_REPORT_SECTIONS : REPORT_SECTION;
+  const badSection = sections.find((s) => !allowedSections.includes(s));
   const badField = fields.find((f) => !(REPORT_FIELD as readonly string[]).includes(f));
   if (badSection || badField) throw new Error("CONFIDENTIAL_FIELD_NOT_ALLOWED");
 }
@@ -44,7 +45,7 @@ export async function generateClientServiceReportCore(
   userId: string,
   payload: ReportBuilderParams & { template_id?: string },
 ): Promise<{ data: { id: string } } | { error: string }> {
-  assertAllowedSelection(payload.selected_sections, payload.selected_fields);
+  assertAllowedSelection(payload.report_family, payload.selected_sections, payload.selected_fields);
 
   let templateVersion: number | null = null;
   if (payload.template_id) {
@@ -68,12 +69,14 @@ export async function generateClientServiceReportCore(
     .insert({
       id: reportId,
       client_service_file_id: payload.client_service_file_id,
+      report_family: payload.report_family,
       report_type: payload.report_type,
       period_start: payload.period_start,
       period_end: payload.period_end,
       title: payload.title,
       introduction: payload.introduction || null,
       final_note: payload.final_note || null,
+      custom_notes: payload.custom_notes || null,
       selected_sections: payload.selected_sections,
       selected_fields: payload.selected_fields,
       detail_level: payload.detail_level,

@@ -358,6 +358,7 @@ export default async function CompanyDetailPage({
       reports={reports}
       defaultTemplate={defaultTemplate}
       profiles={profileOpts}
+      canViewProfitability={canViewProfitability}
     />
   ) : (
     <Card>
