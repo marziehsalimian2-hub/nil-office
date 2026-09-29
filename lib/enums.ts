@@ -906,3 +906,93 @@ export type BillingBatchSourceType = (typeof BILLING_BATCH_SOURCE_TYPE)[number];
 export const BILLING_BATCH_SOURCE_TYPE_LABEL: Record<BillingBatchSourceType, string> = {
   SERVICE_ENTRY: "حق‌الزحمهٔ خدمت", TIME_ENTRY: "زمان صرف‌شده", EXPENSE: "هزینه", MANUAL_ADJUSTMENT: "ردیف دستی",
 };
+
+/* ============================ Client Service Ledger — Phase 4 (PDF Report Builder) =========================== */
+
+export const REPORT_TYPE = ["CLIENT_PERFORMANCE_REPORT", "CLIENT_FINANCIAL_REPORT", "CLIENT_FULL_REPORT", "CUSTOM_REPORT"] as const;
+export type ReportType = (typeof REPORT_TYPE)[number];
+export const REPORT_TYPE_LABEL: Record<ReportType, string> = {
+  CLIENT_PERFORMANCE_REPORT: "گزارش عملکرد مشتری",
+  CLIENT_FINANCIAL_REPORT: "گزارش مالی مشتری",
+  CLIENT_FULL_REPORT: "گزارش کامل مشتری",
+  CUSTOM_REPORT: "گزارش سفارشی",
+};
+
+export const REPORT_DETAIL_LEVEL = ["SUMMARY", "STANDARD", "DETAILED"] as const;
+export type ReportDetailLevel = (typeof REPORT_DETAIL_LEVEL)[number];
+export const REPORT_DETAIL_LEVEL_LABEL: Record<ReportDetailLevel, string> = {
+  SUMMARY: "خلاصه", STANDARD: "استاندارد", DETAILED: "کامل",
+};
+
+export const REPORT_TEMPLATE_SCOPE = ["GLOBAL", "CLIENT"] as const;
+export type ReportTemplateScope = (typeof REPORT_TEMPLATE_SCOPE)[number];
+export const REPORT_TEMPLATE_SCOPE_LABEL: Record<ReportTemplateScope, string> = {
+  GLOBAL: "سراسری (همهٔ مشتریان)", CLIENT: "اختصاصی این مشتری",
+};
+
+/** Matches allowed_report_sections()'s SQL array 1:1 (migration 0093) — client and server must never drift. */
+export const REPORT_SECTION = [
+  "COVER_PAGE", "EXECUTIVE_SUMMARY", "SERVICES_PERFORMED", "SERVICE_DATE", "SERVICE_CATEGORY",
+  "SERVICE_DESCRIPTION", "SERVICE_PERFORMER", "TIME_SPENT", "CONTRACTS_RELATED", "PROJECTS_RELATED",
+  "DIRECT_EXPENSES", "REIMBURSABLE_EXPENSES", "SERVICE_FEES", "CLAIMABLE_AMOUNTS", "INVOICES_PROFORMAS",
+  "AMOUNTS_RECEIVED", "OUTSTANDING_AMOUNT", "BILLING_SUMMARY", "DOCUMENTS_REFERENCE", "PERIOD_SUMMARY",
+  "CUSTOM_NOTES", "FINAL_SUMMARY",
+] as const;
+export type ReportSection = (typeof REPORT_SECTION)[number];
+export const REPORT_SECTION_LABEL: Record<ReportSection, string> = {
+  COVER_PAGE: "صفحهٔ عنوان",
+  EXECUTIVE_SUMMARY: "خلاصهٔ مدیریتی",
+  SERVICES_PERFORMED: "خدمات انجام‌شده",
+  SERVICE_DATE: "تاریخ خدمت",
+  SERVICE_CATEGORY: "دسته‌بندی خدمت",
+  SERVICE_DESCRIPTION: "شرح خدمت",
+  SERVICE_PERFORMER: "انجام‌دهندهٔ خدمت",
+  TIME_SPENT: "زمان صرف‌شده",
+  CONTRACTS_RELATED: "قراردادهای مرتبط",
+  PROJECTS_RELATED: "پروژه‌های مرتبط",
+  DIRECT_EXPENSES: "هزینه‌های مستقیم",
+  REIMBURSABLE_EXPENSES: "هزینه‌های قابل بازپرداخت",
+  SERVICE_FEES: "حق‌الزحمه‌های خدمات",
+  CLAIMABLE_AMOUNTS: "مبالغ قابل مطالبه",
+  INVOICES_PROFORMAS: "فاکتورها / پیش‌فاکتورها",
+  AMOUNTS_RECEIVED: "مبالغ وصول‌شده",
+  OUTSTANDING_AMOUNT: "مانده",
+  BILLING_SUMMARY: "خلاصهٔ صورتحساب",
+  DOCUMENTS_REFERENCE: "ارجاع مستندات",
+  PERIOD_SUMMARY: "خلاصهٔ بازه",
+  CUSTOM_NOTES: "یادداشت سفارشی",
+  FINAL_SUMMARY: "جمع‌بندی پایانی",
+};
+
+/** Matches allowed_report_sections()'s field portion 1:1 — the "Services Performed" table's selectable columns. */
+export const REPORT_FIELD = [
+  "DATE", "CATEGORY", "SERVICE_TITLE", "DESCRIPTION", "PERFORMER",
+  "DURATION", "SERVICE_FEE", "EXPENSE", "CLAIMABLE_AMOUNT", "BILLING_STATUS",
+] as const;
+export type ReportField = (typeof REPORT_FIELD)[number];
+export const REPORT_FIELD_LABEL: Record<ReportField, string> = {
+  DATE: "تاریخ",
+  CATEGORY: "دسته‌بندی",
+  SERVICE_TITLE: "عنوان خدمت",
+  DESCRIPTION: "شرح",
+  PERFORMER: "انجام‌دهنده",
+  DURATION: "مدت‌زمان",
+  SERVICE_FEE: "حق‌الزحمه",
+  EXPENSE: "هزینه",
+  CLAIMABLE_AMOUNT: "مبلغ قابل مطالبه",
+  BILLING_STATUS: "وضعیت صورتحساب",
+};
+
+/** Default section/field selection per preset (§46 — a preset is only a DEFAULT, user can change it before generating). */
+export const REPORT_TYPE_DEFAULT_SECTIONS: Record<ReportType, ReportSection[]> = {
+  CLIENT_PERFORMANCE_REPORT: ["COVER_PAGE", "EXECUTIVE_SUMMARY", "SERVICES_PERFORMED", "TIME_SPENT", "PERIOD_SUMMARY", "FINAL_SUMMARY"],
+  CLIENT_FINANCIAL_REPORT: ["COVER_PAGE", "EXECUTIVE_SUMMARY", "SERVICE_FEES", "DIRECT_EXPENSES", "REIMBURSABLE_EXPENSES", "CLAIMABLE_AMOUNTS", "BILLING_SUMMARY", "OUTSTANDING_AMOUNT", "FINAL_SUMMARY"],
+  CLIENT_FULL_REPORT: [...REPORT_SECTION],
+  CUSTOM_REPORT: ["COVER_PAGE", "EXECUTIVE_SUMMARY", "FINAL_SUMMARY"],
+};
+export const REPORT_TYPE_DEFAULT_FIELDS: Record<ReportType, ReportField[]> = {
+  CLIENT_PERFORMANCE_REPORT: ["DATE", "CATEGORY", "SERVICE_TITLE", "PERFORMER", "DURATION"],
+  CLIENT_FINANCIAL_REPORT: ["DATE", "SERVICE_TITLE", "SERVICE_FEE", "EXPENSE", "CLAIMABLE_AMOUNT", "BILLING_STATUS"],
+  CLIENT_FULL_REPORT: [...REPORT_FIELD],
+  CUSTOM_REPORT: ["DATE", "SERVICE_TITLE"],
+};

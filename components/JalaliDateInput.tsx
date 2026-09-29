@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatJalali, parseJalali, toEnDigits } from "@/lib/jalali";
 
 /**
@@ -11,14 +11,22 @@ export function JalaliDateInput({
   name,
   defaultISO,
   required,
+  onChange,
 }: {
   name: string;
   defaultISO?: string | null;
   required?: boolean;
+  /** Optional — for callers that need the resolved ISO value in their own state (e.g. building a fetch FormData outside a native form submit), not just the hidden form field. Every other caller omits this and relies on the hidden input alone. */
+  onChange?: (iso: string) => void;
 }) {
   const [text, setText] = useState(defaultISO ? formatJalali(defaultISO, false) : "");
   const iso = text.trim() ? parseJalali(text) : "";
   const invalid = text.trim() !== "" && iso === null;
+
+  useEffect(() => {
+    onChange?.(iso ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iso]);
 
   return (
     <div>

@@ -1295,6 +1295,7 @@ export interface ClientServiceFile {
   created_by: string;
   created_at: string;
   updated_at: string;
+  default_report_template_id: string | null;
 }
 
 export interface ServiceArrangement {
@@ -1485,4 +1486,87 @@ export interface ServiceLedgerPortfolioMoneyRow {
   currency_code: string;
   unbilled_amount: number;
   reimbursable_outstanding_amount: number;
+}
+
+// =====================================================================
+// Client Service Ledger — Phase 4 (PDF Report Builder + Saved Templates)
+// =====================================================================
+export type ReportFamilyT = "CLIENT" | "INTERNAL";
+export type ReportTypeT = "CLIENT_PERFORMANCE_REPORT" | "CLIENT_FINANCIAL_REPORT" | "CLIENT_FULL_REPORT" | "CUSTOM_REPORT";
+export type ReportDetailLevelT = "SUMMARY" | "STANDARD" | "DETAILED";
+export type ReportTemplateScopeT = "GLOBAL" | "CLIENT";
+
+export interface ClientServiceReport {
+  id: string;
+  client_service_file_id: string;
+  report_family: ReportFamilyT;
+  report_type: ReportTypeT;
+  period_start: string;
+  period_end: string;
+  title: string;
+  introduction: string | null;
+  final_note: string | null;
+  selected_sections: string[];
+  selected_fields: string[];
+  detail_level: ReportDetailLevelT;
+  show_logo: boolean;
+  show_page_numbers: boolean;
+  template_id: string | null;
+  template_version: number | null;
+  data_as_of: string;
+  generated_by: string;
+  generated_at: string;
+  storage_path: string;
+  file_name: string;
+}
+
+export interface ClientServiceReportTemplate {
+  id: string;
+  template_name: string;
+  scope: ReportTemplateScopeT;
+  company_id: string | null;
+  report_family: ReportFamilyT;
+  report_type: ReportTypeT;
+  selected_sections: string[];
+  selected_fields: string[];
+  detail_level: ReportDetailLevelT;
+  default_title: string | null;
+  default_introduction: string | null;
+  default_final_note: string | null;
+  show_logo: boolean;
+  show_page_numbers: boolean;
+  is_active: boolean;
+  version: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Row shape returned by get_client_service_report_entries() — one row per service_entries row in range, client-safe columns only (no internal cost data in the query at all). */
+export interface ClientServiceReportEntryRow {
+  service_entry_id: string;
+  service_date: string;
+  category_name: string;
+  title: string;
+  description: string | null;
+  performer_name: string | null;
+  duration_minutes: number;
+  service_fee: number;
+  expense_amount: number;
+  claimable_amount: number;
+  billing_status: string;
+  currency_code: string;
+  contract_title: string | null;
+  project_title: string | null;
+}
+
+/** Row shape returned by get_client_service_report_invoices() — reads the existing sales_documents engine directly through the billing_batches bridge, never a parallel invoiced/received truth. */
+export interface ClientServiceReportInvoiceRow {
+  sales_document_id: string;
+  doc_type: "PROFORMA" | "INVOICE";
+  display_number: string | null;
+  status: string;
+  issue_date: string | null;
+  total_amount: number;
+  currency_code: string;
 }

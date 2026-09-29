@@ -10,6 +10,7 @@ import { EditableCompanyBaseCard, EditableCompanyCrmCard } from "./EditableCompa
 import { ContactsTab } from "./ContactsTab";
 import { ActivitiesTab } from "./ActivitiesTab";
 import { ServiceLedgerTab } from "./ServiceLedgerTab";
+import { ReportsTab } from "./ReportsTab";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_TONE, type ContractStatus } from "@/lib/enums";
@@ -23,6 +24,7 @@ import type {
   Contract, SalesDocument, Correspondence, Case, Followup,
   ClientServiceFile, ServiceArrangement, ServiceCategory, ServiceEntry, TimeEntry, Expense,
   ServiceLedgerClaimableAmountRow, ServiceLedgerPeriodSummaryRow, ServiceLedgerProfitabilityRow,
+  ClientServiceReport, ClientServiceReportTemplate,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -92,8 +94,10 @@ export default async function CompanyDetailPage({
   let claimableSummary: unknown[] = [];
   let periodSummary: ServiceLedgerPeriodSummaryRow[] = [];
   let profitability: ServiceLedgerProfitabilityRow[] = [];
+  let reports: ClientServiceReport[] = [];
+  let defaultTemplate: ClientServiceReportTemplate | null = null;
   if (serviceFileRow) {
-    const [arrRes, entRes, sumRes, periodRes, profitRes] = await Promise.all([
+    const [arrRes, entRes, sumRes, periodRes, profitRes, reportsRes, defaultTplRes] = await Promise.all([
       supabase
         .from("service_arrangements")
         .select("*")
@@ -117,12 +121,22 @@ export default async function CompanyDetailPage({
             p_period_end: period.end,
           })
         : Promise.resolve({ data: [] }),
+      supabase
+        .from("client_service_reports")
+        .select("*")
+        .eq("client_service_file_id", serviceFileRow.id)
+        .order("generated_at", { ascending: false }),
+      serviceFileRow.default_report_template_id
+        ? supabase.from("client_service_report_templates").select("*").eq("id", serviceFileRow.default_report_template_id).single()
+        : Promise.resolve({ data: null }),
     ]);
     serviceArrangements = arrRes.data ?? [];
     serviceEntries = entRes.data ?? [];
     claimableSummary = sumRes.data ?? [];
     periodSummary = (periodRes.data ?? []) as ServiceLedgerPeriodSummaryRow[];
     profitability = (profitRes.data ?? []) as ServiceLedgerProfitabilityRow[];
+    reports = (reportsRes.data ?? []) as ClientServiceReport[];
+    defaultTemplate = (defaultTplRes.data ?? null) as ClientServiceReportTemplate | null;
   }
 
   const profileOpts = ((profiles ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, label: p.full_name ?? "—" }));
@@ -336,6 +350,21 @@ export default async function CompanyDetailPage({
     />
   );
 
+  const reportsTab = serviceFileRow ? (
+    <ReportsTab
+      companyId={id}
+      clientServiceFileId={serviceFileRow.id}
+      canManage={canManageServices}
+      reports={reports}
+      defaultTemplate={defaultTemplate}
+      profiles={profileOpts}
+    />
+  ) : (
+    <Card>
+      <p className="text-sm text-ink-muted">برای این مشتری هنوز پروندهٔ خدماتی ایجاد نشده است.</p>
+    </Card>
+  );
+
   const documentsTab = (
     <Card>
       <p className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">
@@ -379,6 +408,7 @@ export default async function CompanyDetailPage({
           { label: "فرصت‌های تجاری", content: opportunitiesTab },
           { label: "فعالیت‌ها", content: activitiesTab },
           { label: "خدمات", content: servicesTab },
+          { label: "گزارش‌ها", content: reportsTab },
           { label: "مکاتبات", content: correspondenceTab },
           { label: "پرونده‌ها", content: casesTab },
           { label: "قراردادها", content: contractsTab },
