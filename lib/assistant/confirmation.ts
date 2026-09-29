@@ -9,6 +9,7 @@ import { createAndIssueInvoiceCore } from "@/app/actions/invoices";
 import { quickAddServiceEntryCore } from "@/app/actions/service-entries";
 import { addTimeEntryDraftCore } from "@/app/actions/service-time-entries";
 import { addServiceExpenseDraftCore } from "@/app/actions/service-expenses";
+import { generateClientServiceReportCore } from "@/app/actions/service-reports";
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -37,6 +38,7 @@ const WRITE_EXECUTORS: Record<
   CREATE_SERVICE_ENTRY_DRAFT: (payload, supabase, userId) => quickAddServiceEntryCore(supabase, userId, payload as never),
   ADD_TIME_ENTRY_DRAFT: (payload, supabase, userId) => addTimeEntryDraftCore(supabase, userId, payload as never),
   ADD_SERVICE_EXPENSE_DRAFT: (payload, supabase, userId) => addServiceExpenseDraftCore(supabase, userId, payload as never),
+  PREPARE_CLIENT_SERVICE_REPORT: (payload, supabase, userId) => generateClientServiceReportCore(supabase, userId, payload as never),
 };
 
 /**

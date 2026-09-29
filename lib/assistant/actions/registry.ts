@@ -16,6 +16,7 @@ import { tradeActions } from "./trade";
 import { chequeActions } from "./cheque";
 import { invoiceActions } from "./invoice";
 import { serviceLedgerActions } from "./serviceLedger";
+import { serviceLedgerReportsActions } from "./serviceLedgerReports";
 
 /**
  * The complete Action Registry — the ONLY set of operations the LLM can
@@ -62,6 +63,7 @@ export const ACTION_REGISTRY: ActionDefinition<any>[] = [
   ...chequeActions,
   ...invoiceActions,
   ...serviceLedgerActions,
+  ...serviceLedgerReportsActions,
 ];
 
 const registryByName = new Map(ACTION_REGISTRY.map((a) => [a.name, a]));
