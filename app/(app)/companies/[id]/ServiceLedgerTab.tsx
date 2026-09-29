@@ -6,8 +6,8 @@ import Link from "next/link";
 import { Pencil, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { createClientServiceFile, updateClientServiceFile } from "@/app/actions/service-ledger-files";
 import { createServiceArrangement } from "@/app/actions/service-arrangements";
-import { deleteServiceEntry, bulkMarkServiceEntriesReadyToBill, waiveServiceEntry } from "@/app/actions/service-entries";
-import { bulkMarkServiceExpensesReadyToBill, waiveServiceExpense } from "@/app/actions/service-expenses";
+import { deleteServiceEntry, bulkMarkServiceEntriesReadyToBill, waiveServiceEntry, updateServiceEntryFinancials } from "@/app/actions/service-entries";
+import { bulkMarkServiceExpensesReadyToBill, waiveServiceExpense, updateExpenseReimbursable } from "@/app/actions/service-expenses";
 import { QuickAddServiceEntry } from "./QuickAddServiceEntry";
 import { Field, FormError } from "@/components/form";
 import { Card } from "@/components/ui";
@@ -419,12 +419,127 @@ function ArrangementsCard({
 }
 
 /** key format matches the Phase 2 plan's unified selection set — "ENTRY:<id>" / "EXPENSE:<id>", split into the two bulk calls on submit. */
+/** Follow-up edit for an entry created through Quick Add without a fee/rate — one submit updates service_fee and (if the entry has a time entry) that time entry's hourly_rate_snapshot together. */
+function EditEntryFinancialsForm({
+  companyId,
+  entry,
+  onDone,
+}: {
+  companyId: string;
+  entry: ServiceEntryRow;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string>();
+  const timeEntryId = entry.time_entries[0]?.id;
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const res = await updateServiceEntryFinancials(null, fd);
+      if (res && "error" in res && res.error) setError(res.error);
+      else {
+        setError(undefined);
+        router.refresh();
+        onDone();
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mr-7 mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-paper-line bg-paper/40 p-2">
+      <input type="hidden" name="id" value={entry.id} />
+      <input type="hidden" name="company_id" value={companyId} />
+      {timeEntryId && <input type="hidden" name="time_entry_id" value={timeEntryId} />}
+      <FormError message={error} />
+      <Field label="حق‌الزحمه">
+        <input type="number" name="service_fee" min={0} step="any" defaultValue={entry.service_fee || undefined} className="input tnum w-32" />
+      </Field>
+      {timeEntryId && (
+        <Field label="نرخ ساعتی">
+          <input type="number" name="hourly_rate" min={0} step="any" defaultValue={entry.time_entries[0]?.hourly_rate_snapshot ?? undefined} className="input tnum w-32" />
+        </Field>
+      )}
+      <button type="submit" disabled={pending} className="btn-seal !py-1.5 text-xs">
+        {pending ? "در حال ذخیره…" : "ذخیره"}
+      </button>
+      <button type="button" disabled={pending} className="btn-quiet !py-1.5 text-xs" onClick={onDone}>
+        انصراف
+      </button>
+    </form>
+  );
+}
+
+/** Follow-up edit for an expense created through Quick Add without is_reimbursable set. */
+function EditExpenseReimbursableForm({
+  companyId,
+  expense,
+  onDone,
+}: {
+  companyId: string;
+  expense: Expense;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string>();
+  const [isReimbursable, setIsReimbursable] = useState(expense.is_reimbursable);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const res = await updateExpenseReimbursable(null, fd);
+      if (res && "error" in res && res.error) setError(res.error);
+      else {
+        setError(undefined);
+        router.refresh();
+        onDone();
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-lg border border-paper-line bg-paper/40 p-2">
+      <input type="hidden" name="id" value={expense.id} />
+      <input type="hidden" name="company_id" value={companyId} />
+      <FormError message={error} />
+      <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+        <input
+          type="checkbox"
+          name="is_reimbursable"
+          value="true"
+          className="h-4 w-4 accent-[#9a6a2e]"
+          checked={isReimbursable}
+          onChange={(e) => setIsReimbursable(e.target.checked)}
+        />
+        قابل بازپرداخت از مشتری
+      </label>
+      {isReimbursable && (
+        <Field label="مبلغ قابل بازپرداخت">
+          <input type="number" name="reimbursable_amount" min={0} step="any" defaultValue={expense.reimbursable_amount ?? expense.amount} className="input tnum w-32" />
+        </Field>
+      )}
+      <button type="submit" disabled={pending} className="btn-seal !py-1.5 text-xs">
+        {pending ? "در حال ذخیره…" : "ذخیره"}
+      </button>
+      <button type="button" disabled={pending} className="btn-quiet !py-1.5 text-xs" onClick={onDone}>
+        انصراف
+      </button>
+    </form>
+  );
+}
+
 function ServiceEntriesCard({ companyId, entries, canManage }: { companyId: string; entries: ServiceEntryRow[]; canManage: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>();
+  const [editingEntry, setEditingEntry] = useState<string>();
+  const [editingExpense, setEditingExpense] = useState<string>();
 
   function toggleExpand(id: string) {
     setExpanded((prev) => {
@@ -554,6 +669,11 @@ function ServiceEntriesCard({ companyId, entries, canManage }: { companyId: stri
                       {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
                   )}
+                  {canManage && (
+                    <button type="button" disabled={pending} className="btn-quiet p-1.5 text-xs" onClick={() => setEditingEntry(editingEntry === e.id ? undefined : e.id)}>
+                      ویرایش مبلغ
+                    </button>
+                  )}
                   {canManage && canWaive && (
                     <button type="button" disabled={pending} className="btn-quiet p-1.5 text-xs" onClick={() => waive("ENTRY", e.id)}>
                       بخشش
@@ -563,23 +683,42 @@ function ServiceEntriesCard({ companyId, entries, canManage }: { companyId: stri
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
+                {editingEntry === e.id && (
+                  <EditEntryFinancialsForm companyId={companyId} entry={e} onDone={() => setEditingEntry(undefined)} />
+                )}
                 {isOpen && e.expenses.length > 0 && (
                   <ul className="mr-7 mt-2 space-y-2 border-r-2 border-paper-line pr-3">
                     {e.expenses.map((x) => {
                       const xKey = `EXPENSE:${x.id}`;
                       const xCanWaive = x.billing_status === "BILLABLE" || x.billing_status === "READY_TO_BILL";
                       return (
-                        <li key={x.id} className="flex items-center gap-3">
-                          {canManage && (
-                            <input type="checkbox" className="h-4 w-4 accent-[#9a6a2e]" checked={checked.has(xKey)} onChange={() => toggleCheck(xKey)} />
-                          )}
-                          <span className="flex-1 text-xs text-ink">{x.description}</span>
-                          <span className="tnum text-xs text-ink-muted">{formatMoney(x.amount)}</span>
-                          <span className={`badge bg-paper ${BILLING_STATUS_TONE[x.billing_status]}`}>{BILLING_STATUS_LABEL[x.billing_status]}</span>
-                          {canManage && xCanWaive && (
-                            <button type="button" disabled={pending} className="btn-quiet p-1 text-xs" onClick={() => waive("EXPENSE", x.id)}>
-                              بخشش
-                            </button>
+                        <li key={x.id}>
+                          <div className="flex items-center gap-3">
+                            {canManage && (
+                              <input type="checkbox" className="h-4 w-4 accent-[#9a6a2e]" checked={checked.has(xKey)} onChange={() => toggleCheck(xKey)} />
+                            )}
+                            <span className="flex-1 text-xs text-ink">{x.description}</span>
+                            <span className="tnum text-xs text-ink-muted">{formatMoney(x.amount)}</span>
+                            {x.is_reimbursable && <span className="badge bg-paper status-waiting">قابل بازپرداخت</span>}
+                            <span className={`badge bg-paper ${BILLING_STATUS_TONE[x.billing_status]}`}>{BILLING_STATUS_LABEL[x.billing_status]}</span>
+                            {canManage && (
+                              <button
+                                type="button"
+                                disabled={pending}
+                                className="btn-quiet p-1 text-xs"
+                                onClick={() => setEditingExpense(editingExpense === x.id ? undefined : x.id)}
+                              >
+                                ویرایش بازپرداخت
+                              </button>
+                            )}
+                            {canManage && xCanWaive && (
+                              <button type="button" disabled={pending} className="btn-quiet p-1 text-xs" onClick={() => waive("EXPENSE", x.id)}>
+                                بخشش
+                              </button>
+                            )}
+                          </div>
+                          {editingExpense === x.id && (
+                            <EditExpenseReimbursableForm companyId={companyId} expense={x} onDone={() => setEditingExpense(undefined)} />
                           )}
                         </li>
                       );

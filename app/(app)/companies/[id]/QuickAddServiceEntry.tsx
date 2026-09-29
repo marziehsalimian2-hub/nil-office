@@ -98,6 +98,14 @@ export function QuickAddServiceEntry({
           </Field>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="حق‌الزحمهٔ اختیاری" hint="مبلغ ثابت خدمت، در صورت وجود">
+            <input type="number" name="service_fee" min={0} step="any" className="input tnum" />
+          </Field>
+          <Field label="نرخ ساعتی اختیاری" hint="برای محاسبهٔ ارزش زمان صرف‌شده">
+            <input type="number" name="hourly_rate" min={0} step="any" className="input tnum" />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label="هزینهٔ اختیاری">
             <input type="number" name="expense_amount" min={0} step="any" className="input tnum" />
           </Field>
@@ -105,6 +113,10 @@ export function QuickAddServiceEntry({
             <input name="expense_description" className="input" />
           </Field>
         </div>
+        <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <input type="checkbox" name="expense_is_reimbursable" value="true" className="h-4 w-4 accent-[#9a6a2e]" />
+          هزینه قابل بازپرداخت از مشتری است
+        </label>
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={pending} className="btn-primary">
             {pending ? "در حال ذخیره…" : "ثبت"}

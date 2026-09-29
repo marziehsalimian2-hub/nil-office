@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
-import { expenseSchema, waiveExpenseSchema } from "@/lib/validation-service-ledger";
+import { expenseSchema, waiveExpenseSchema, updateExpenseReimbursableSchema } from "@/lib/validation-service-ledger";
 
 export type ActionState = { error?: string } | null;
 
@@ -68,6 +68,38 @@ export async function bulkMarkServiceExpensesReadyToBill(_p: ActionState, f: For
   if (!Array.isArray(ids) || ids.length === 0) return { error: "هیچ هزینه‌ای انتخاب نشده است." };
   const { supabase } = await ctx();
   const { error } = await supabase.from("expenses").update({ billing_status: "READY_TO_BILL" }).in("id", ids);
+  if (error) return { error: persianError(error.message) };
+  if (companyId) revalidatePath(`/companies/${companyId}`);
+  return null;
+}
+
+/**
+ * Lightweight follow-up edit for an expense created through Quick Add
+ * (which previously always hardcoded is_reimbursable=false) — flips it
+ * reimbursable and sets the reimbursable_amount, defaulting to the
+ * expense's own amount when the caller checks the box without typing a
+ * different figure.
+ */
+export async function updateExpenseReimbursable(_p: ActionState, f: FormData): Promise<ActionState> {
+  const companyId = String(f.get("company_id") ?? "");
+  const parsed = updateExpenseReimbursableSchema.safeParse(entries(f));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const { supabase } = await ctx();
+
+  let reimbursableAmount = parsed.data.reimbursable_amount;
+  if (parsed.data.is_reimbursable && reimbursableAmount === undefined) {
+    const { data: expense, error: fetchErr } = await supabase.from("expenses").select("amount").eq("id", parsed.data.id).single();
+    if (fetchErr) return { error: persianError(fetchErr.message) };
+    reimbursableAmount = expense.amount;
+  }
+
+  const { error } = await supabase
+    .from("expenses")
+    .update({
+      is_reimbursable: parsed.data.is_reimbursable,
+      reimbursable_amount: parsed.data.is_reimbursable ? reimbursableAmount : undefined,
+    })
+    .eq("id", parsed.data.id);
   if (error) return { error: persianError(error.message) };
   if (companyId) revalidatePath(`/companies/${companyId}`);
   return null;
