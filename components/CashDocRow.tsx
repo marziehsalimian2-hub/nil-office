@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Download } from "lucide-react";
 import { updateReceipt, updatePayment, setReceiptAllocations, setPaymentAllocations, type ActionState } from "@/app/actions/accounting";
 import { PostDocButton } from "@/components/PostDocButton";
 import { VerifyDocButton } from "@/components/VerifyDocButton";
@@ -197,6 +197,18 @@ export function CashDocRow({
               <Pencil className="h-3.5 w-3.5" /> ویرایش
             </button>
             {row.verified_at ? <PostDocButton id={row.id} kind={kind} /> : <VerifyDocButton id={row.id} kind={kind} />}
+          </div>
+        )}
+        {row.status === "POSTED" && (
+          <div className="flex items-center justify-end gap-2">
+            <a
+              href={`/api/${isReceipt ? "receipts" : "payments"}/${row.id}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className="btn-quiet !py-1 text-xs"
+            >
+              <Download className="h-3.5 w-3.5" /> دانلود PDF
+            </a>
           </div>
         )}
       </td>

@@ -264,7 +264,7 @@ function PeriodExecutiveSummaryCard({
               <p className="mb-2 text-xs font-medium text-ink-muted" dir="ltr">
                 {r.currency_code}
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-7">
                 <div>
                   <p className="text-ink-muted">حق‌الزحمه</p>
                   <p className="tnum text-ink">{formatMoney(r.service_fee)}</p>
@@ -284,6 +284,14 @@ function PeriodExecutiveSummaryCard({
                 <div>
                   <p className="text-ink-muted">صورتحساب‌نشده</p>
                   <p className="tnum font-medium text-seal">{formatMoney(r.unbilled_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">وصول‌شده</p>
+                  <p className="tnum text-status-received">{formatMoney(r.received_amount)}</p>
+                </div>
+                <div>
+                  <p className="text-ink-muted">مانده وصول</p>
+                  <p className="tnum font-medium text-seal">{formatMoney(r.invoiced_amount - r.received_amount)}</p>
                 </div>
               </div>
             </div>
