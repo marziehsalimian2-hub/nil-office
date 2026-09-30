@@ -11,8 +11,10 @@ import { ContactsTab } from "./ContactsTab";
 import { ActivitiesTab } from "./ActivitiesTab";
 import { ServiceLedgerTab } from "./ServiceLedgerTab";
 import { ReportsTab } from "./ReportsTab";
+import { FinancialTab } from "./FinancialTab";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
+import { getDisplayUnit } from "@/app/actions/accounting-options";
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_TONE, type ContractStatus } from "@/lib/enums";
 import { SALES_DOCUMENT_STATUS_LABEL, SALES_DOCUMENT_STATUS_TONE, type SalesDocumentStatus } from "@/lib/enums";
 import { CORR_STATUS_LABEL, CORR_STATUS_TONE, type CorrStatus } from "@/lib/enums";
@@ -25,6 +27,7 @@ import type {
   ClientServiceFile, ServiceArrangement, ServiceCategory, ServiceEntry, TimeEntry, Expense,
   ServiceLedgerClaimableAmountRow, ServiceLedgerPeriodSummaryRow, ServiceLedgerProfitabilityRow,
   ClientServiceReport, ClientServiceReportTemplate,
+  CompanyFinancialSummaryRow, CompanyFinancialActivityRow,
 } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +89,12 @@ export default async function CompanyDetailPage({
     supabase.from("profiles").select("id, full_name").eq("is_active", true),
     supabase.from("client_service_files").select("*").eq("company_id", id).maybeSingle(),
     supabase.from("service_categories").select("id, name").eq("is_active", true).order("name"),
+  ]);
+
+  const [{ data: financialSummary }, { data: financialActivity }, unit] = await Promise.all([
+    supabase.rpc("get_company_financial_summary", { p_company_id: id }),
+    supabase.rpc("get_company_financial_activity", { p_company_id: id }),
+    getDisplayUnit(),
   ]);
 
   const serviceFileRow = (serviceFile ?? null) as ClientServiceFile | null;
@@ -184,6 +193,14 @@ export default async function CompanyDetailPage({
   );
 
   const peopleTab = <ContactsTab companyId={id} contacts={(contacts ?? []) as CompanyContact[]} />;
+
+  const financialTab = (
+    <FinancialTab
+      summary={(financialSummary ?? []) as CompanyFinancialSummaryRow[]}
+      activity={(financialActivity ?? []) as CompanyFinancialActivityRow[]}
+      unit={unit}
+    />
+  );
 
   const opportunitiesTab = (
     <Card>
@@ -405,6 +422,7 @@ export default async function CompanyDetailPage({
       <Tabs
         tabs={[
           { label: "نمای کلی", content: overviewTab },
+          { label: "مالی", content: financialTab },
           { label: "افراد", content: peopleTab },
           { label: "فرصت‌های تجاری", content: opportunitiesTab },
           { label: "فعالیت‌ها", content: activitiesTab },

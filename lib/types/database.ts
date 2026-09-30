@@ -612,6 +612,26 @@ export interface ContractFinancialSummary {
   outstanding_amount: number;
 }
 
+export interface CompanyFinancialActivityRow {
+  source: "RECEIPT" | "PAYMENT" | "JOURNAL_LINE";
+  id: string;
+  document_date: string;
+  document_number: string | null;
+  description: string | null;
+  amount: number;
+  direction: "IN" | "OUT";
+  status: PostingStatusT;
+  currency_code: string | null;
+  journal_entry_id: string | null;
+}
+
+export interface CompanyFinancialSummaryRow {
+  currency_code: string;
+  received_amount: number;
+  paid_amount: number;
+  outstanding_invoices_amount: number;
+}
+
 /* ============================ Invoices/Proforma =========================== */
 
 export type SalesDocumentTypeT = "PROFORMA" | "INVOICE";
@@ -1482,6 +1502,7 @@ export interface ServiceLedgerPeriodSummaryRow {
   reimbursable_expense_amount: number;
   invoiced_amount: number;
   unbilled_amount: number;
+  received_amount: number;
 }
 
 /** Row shape returned by get_client_service_profitability() — confidential, ADMIN-tier service_ledger_role only. */
