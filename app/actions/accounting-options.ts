@@ -12,8 +12,8 @@ export async function loadAccountingOptions() {
     supabase.from("fiscal_years").select("id, title, status").order("start_date", { ascending: false }),
     supabase.from("companies").select("id, legal_name").order("legal_name"),
     supabase.from("cases").select("id, case_code, title").order("created_at", { ascending: false }),
-    supabase.from("contracts").select("id, display_number, external_contract_number, title").order("created_at", { ascending: false }),
-    supabase.from("sales_documents").select("id, display_number, customer_legal_name_snapshot").eq("type", "INVOICE").order("created_at", { ascending: false }),
+    supabase.from("contracts").select("id, display_number, external_contract_number, title, total_amount").order("created_at", { ascending: false }),
+    supabase.from("sales_documents").select("id, display_number, customer_legal_name_snapshot, total_amount").eq("type", "INVOICE").order("created_at", { ascending: false }),
   ]);
   return {
     postingAccounts: (postingAccounts.data ?? []) as Pick<Account, "id" | "code" | "name" | "account_type">[],
@@ -23,8 +23,8 @@ export async function loadAccountingOptions() {
     fiscalYears: (fyears.data ?? []) as Pick<FiscalYear, "id" | "title" | "status">[],
     companies: (companies.data ?? []) as Pick<Company, "id" | "legal_name">[],
     cases: (cases.data ?? []) as Pick<Case, "id" | "case_code" | "title">[],
-    contracts: (contracts.data ?? []) as Pick<Contract, "id" | "display_number" | "external_contract_number" | "title">[],
-    salesDocuments: (salesDocuments.data ?? []) as Pick<SalesDocument, "id" | "display_number" | "customer_legal_name_snapshot">[],
+    contracts: (contracts.data ?? []) as Pick<Contract, "id" | "display_number" | "external_contract_number" | "title" | "total_amount">[],
+    salesDocuments: (salesDocuments.data ?? []) as Pick<SalesDocument, "id" | "display_number" | "customer_legal_name_snapshot" | "total_amount">[],
   };
 }
 

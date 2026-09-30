@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
-import { updateReceipt, updatePayment, type ActionState } from "@/app/actions/accounting";
+import { updateReceipt, updatePayment, setReceiptAllocations, setPaymentAllocations, type ActionState } from "@/app/actions/accounting";
 import { PostDocButton } from "@/components/PostDocButton";
+import { VerifyDocButton } from "@/components/VerifyDocButton";
+import { AllocationEditor, type AllocationRow } from "@/components/AllocationEditor";
 import { Field, FormError } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -13,6 +15,7 @@ import { formatMoney, type DisplayUnit } from "@/lib/money";
 import { formatJalali } from "@/lib/jalali";
 
 type Opt = { id: string; label: string };
+type TargetOpt = { id: string; label: string; total_amount: number };
 type Row = {
   id: string;
   date: string;
@@ -29,6 +32,8 @@ type Row = {
   case_id: string | null;
   contract_id: string | null;
   fiscal_year_id: string | null;
+  verified_at: string | null;
+  display_number: string | null;
 };
 
 export function CashDocRow({
@@ -41,6 +46,8 @@ export function CashDocRow({
   companies,
   cases,
   contracts,
+  salesDocuments,
+  allocations,
   fiscalYears,
 }: {
   kind: "receipt" | "payment";
@@ -51,15 +58,19 @@ export function CashDocRow({
   details: Opt[];
   companies: Opt[];
   cases: Opt[];
-  contracts: Opt[];
+  contracts: TargetOpt[];
+  salesDocuments: TargetOpt[];
+  allocations: AllocationRow[];
   fiscalYears: Opt[];
 }) {
   const router = useRouter();
   const isReceipt = kind === "receipt";
   const updateAction: (p: ActionState, f: FormData) => Promise<ActionState> = isReceipt ? updateReceipt : updatePayment;
+  const setAllocationsAction: (p: ActionState, f: FormData) => Promise<ActionState> = isReceipt ? setReceiptAllocations : setPaymentAllocations;
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [editAmount, setEditAmount] = useState(row.amount > 0 ? String(row.amount) : "");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,11 +79,19 @@ export function CashDocRow({
       const res = await updateAction(null, formData);
       if (res && "error" in res && res.error) {
         setError(res.error);
-      } else {
-        setError(undefined);
-        setEditing(false);
-        router.refresh();
+        return;
       }
+      const allocFd = new FormData();
+      allocFd.set("id", row.id);
+      allocFd.set("allocations", String(formData.get("allocations") ?? "[]"));
+      const allocRes = await setAllocationsAction(null, allocFd);
+      if (allocRes && "error" in allocRes && allocRes.error) {
+        setError(allocRes.error);
+        return;
+      }
+      setError(undefined);
+      setEditing(false);
+      router.refresh();
     });
   }
 
@@ -95,7 +114,7 @@ export function CashDocRow({
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="مبلغ" required><MoneyInput name="amount" required defaultValue={row.amount > 0 ? String(row.amount) : ""} /></Field>
+              <Field label="مبلغ" required><MoneyInput name="amount" required value={editAmount} onChange={setEditAmount} /></Field>
               <Field label="روش"><input name="method" className="input" defaultValue={row.method ?? ""} /></Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -142,6 +161,15 @@ export function CashDocRow({
               </select>
             </Field>
             <Field label="شرح"><input name="description" className="input" defaultValue={row.description ?? ""} /></Field>
+            <Field label="تخصیص مبلغ" hint="با ثبت قطعی، وضعیت اسناد هدف به‌طور خودکار به‌روزرسانی می‌شود">
+              <AllocationEditor
+                sourceAmount={Number(editAmount) || undefined}
+                salesDocuments={salesDocuments}
+                contracts={contracts}
+                unit={unit}
+                initial={allocations}
+              />
+            </Field>
             <div className="flex gap-3">
               <button type="submit" disabled={pending} className="btn-primary !py-1.5 text-sm">{pending ? "در حال ذخیره…" : "ذخیره تغییرات"}</button>
               <button type="button" disabled={pending} className="btn-quiet !py-1.5 text-sm" onClick={() => setEditing(false)}>انصراف</button>
@@ -158,14 +186,17 @@ export function CashDocRow({
       <td className="px-4 py-3 text-ink">{row.counterparty ?? "—"}</td>
       <td className="px-4 py-3 text-ink-muted">{row.description ?? "—"}</td>
       <td className="px-4 py-3 text-left tnum" dir="ltr">{formatMoney(row.amount, unit)}</td>
-      <td className="px-4 py-3"><span className={`badge ${POSTING_STATUS_TONE[row.status]}`}>{POSTING_STATUS_LABEL[row.status]}</span></td>
+      <td className="px-4 py-3">
+        <span className={`badge ${POSTING_STATUS_TONE[row.status]}`}>{POSTING_STATUS_LABEL[row.status]}</span>
+        {row.display_number && <span className="mr-2 tnum text-xs text-ink-muted" dir="ltr">{row.display_number}</span>}
+      </td>
       <td className="px-4 py-3">
         {row.status === "DRAFT" && (
           <div className="flex items-center justify-end gap-2">
             <button type="button" className="btn-quiet !py-1 text-xs" onClick={() => setEditing(true)}>
               <Pencil className="h-3.5 w-3.5" /> ویرایش
             </button>
-            <PostDocButton id={row.id} kind={kind} />
+            {row.verified_at ? <PostDocButton id={row.id} kind={kind} /> : <VerifyDocButton id={row.id} kind={kind} />}
           </div>
         )}
       </td>

@@ -3,8 +3,9 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { CashDocRow } from "@/components/CashDocRow";
+import type { AllocationRow } from "@/components/AllocationEditor";
 import { getDisplayUnit, loadAccountingOptions } from "@/app/actions/accounting-options";
-import type { Receipt } from "@/lib/types/database";
+import type { Receipt, CashAllocation } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,23 @@ export default async function ReceiptsPage() {
   const { data } = await supabase.from("receipts").select("*").order("receipt_date", { ascending: false }).limit(100);
   const rows = (data ?? []) as Receipt[];
 
+  const { data: allocData } = rows.length
+    ? await supabase.from("cash_allocations").select("*").eq("source_kind", "RECEIPT").in("source_id", rows.map((r) => r.id))
+    : { data: [] };
+  const allocationsByReceipt = new Map<string, AllocationRow[]>();
+  for (const a of (allocData ?? []) as CashAllocation[]) {
+    const list = allocationsByReceipt.get(a.source_id) ?? [];
+    list.push({ target_type: a.target_type, target_id: a.target_id ?? "", amount: String(a.amount), description: a.description ?? "" });
+    allocationsByReceipt.set(a.source_id, list);
+  }
+
   const banks = opts.banks.map((b) => ({ id: b.id, label: b.account_title }));
   const accounts = opts.postingAccounts.map((a) => ({ id: a.id, label: `${a.code} — ${a.name}` }));
   const details = opts.details.map((d) => ({ id: d.id, label: d.name }));
   const companies = opts.companies.map((c) => ({ id: c.id, label: c.legal_name }));
   const cases = opts.cases.map((c) => ({ id: c.id, label: `${c.case_code} — ${c.title}` }));
-  const contracts = opts.contracts.map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title }));
+  const contracts = opts.contracts.map((c) => ({ id: c.id, label: c.display_number ?? c.external_contract_number ?? c.title, total_amount: c.total_amount }));
+  const salesDocuments = opts.salesDocuments.map((s) => ({ id: s.id, label: `${s.display_number ?? "پیش‌نویس"} — ${s.customer_legal_name_snapshot}`, total_amount: s.total_amount }));
   const fiscalYears = opts.fiscalYears.map((f) => ({ id: f.id, label: f.title }));
 
   return (
@@ -49,6 +61,8 @@ export default async function ReceiptsPage() {
                   companies={companies}
                   cases={cases}
                   contracts={contracts}
+                  salesDocuments={salesDocuments}
+                  allocations={allocationsByReceipt.get(r.id) ?? []}
                   fiscalYears={fiscalYears}
                   row={{
                     id: r.id,
@@ -66,6 +80,8 @@ export default async function ReceiptsPage() {
                     case_id: r.case_id,
                     contract_id: r.contract_id,
                     fiscal_year_id: r.fiscal_year_id,
+                    verified_at: r.verified_at,
+                    display_number: r.display_number,
                   }}
                 />
               ))}

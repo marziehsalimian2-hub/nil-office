@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ACCOUNT_TYPE, ACCOUNT_NATURE, DETAIL_KIND, ACCOUNTING_ROLE } from "@/lib/enums";
+import { ACCOUNT_TYPE, ACCOUNT_NATURE, DETAIL_KIND, ACCOUNTING_ROLE, ALLOCATION_TARGET_TYPE } from "@/lib/enums";
 
 const optText = z.string().trim().optional().transform((v) => (v === "" ? undefined : v));
 const optUuid = z.string().uuid().optional().or(z.literal("").transform(() => undefined));
@@ -75,7 +75,6 @@ export const cashDocSchema = z.object({
   company_id: optUuid,
   case_id: optUuid,
   contract_id: optUuid,
-  sales_document_id: optUuid,
   fiscal_year_id: z.string().uuid("سال مالی را انتخاب کنید."),
 });
 
@@ -83,3 +82,12 @@ export const accountingRoleSchema = z.object({
   user_id: z.string().uuid(),
   accounting_role: z.enum(ACCOUNTING_ROLE).nullish(),
 });
+
+export const cashAllocationSchema = z
+  .object({
+    target_type: z.enum(ALLOCATION_TARGET_TYPE),
+    target_id: z.string().uuid().nullable(),
+    amount: z.coerce.number().positive("مبلغ تخصیص باید بزرگ‌تر از صفر باشد."),
+    description: optText,
+  })
+  .refine((a) => (a.target_type === "ON_ACCOUNT") === (a.target_id === null), "هدف تخصیص نامعتبر است.");

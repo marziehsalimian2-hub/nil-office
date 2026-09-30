@@ -1,20 +1,25 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { type ActionState } from "@/app/actions/accounting";
 import { Field, FormError, SubmitButton } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
 import { MoneyInput } from "@/components/MoneyInput";
+import { AllocationEditor } from "@/components/AllocationEditor";
+import type { DisplayUnit } from "@/lib/money";
 
 type Opt = { id: string; label: string };
+type TargetOpt = { id: string; label: string; total_amount: number };
 export function CashDocForm({
-  kind, action, banks, accounts, details, companies, cases, contracts, salesDocuments, fiscalYears,
+  kind, action, banks, accounts, details, companies, cases, contracts, salesDocuments, fiscalYears, unit,
 }: {
   kind: "receipt" | "payment";
   action: (p: ActionState, f: FormData) => Promise<ActionState>;
-  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[]; contracts: Opt[]; salesDocuments?: Opt[]; fiscalYears: Opt[];
+  banks: Opt[]; accounts: Opt[]; details: Opt[]; companies: Opt[]; cases: Opt[];
+  contracts: TargetOpt[]; salesDocuments?: TargetOpt[]; fiscalYears: Opt[]; unit: DisplayUnit;
 }) {
   const [state, run] = useActionState<ActionState, FormData>(action, null);
+  const [amount, setAmount] = useState("");
   const isReceipt = kind === "receipt";
   return (
     <form action={run} className="space-y-5">
@@ -30,7 +35,7 @@ export function CashDocForm({
           <Field label={isReceipt ? "دریافت‌کننده از" : "پرداخت به"}><input name="counterparty" className="input" /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="مبلغ" required><MoneyInput name="amount" required /></Field>
+          <Field label="مبلغ" required><MoneyInput name="amount" required value={amount} onChange={setAmount} /></Field>
           <Field label="روش"><input name="method" className="input" placeholder="کارت‌به‌کارت، چک، نقدی…" /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -67,21 +72,20 @@ export function CashDocForm({
             </select>
           </Field>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="قرارداد مرتبط">
-            <select name="contract_id" className="input" defaultValue=""><option value="">—</option>
-              {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
-            </select>
-          </Field>
-          {isReceipt && (
-            <Field label="سند فروش مرتبط" hint="با ثبت قطعی این دریافت، وضعیت فاکتور به‌طور خودکار به‌روزرسانی می‌شود">
-              <select name="sales_document_id" className="input" defaultValue=""><option value="">—</option>
-                {(salesDocuments ?? []).map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
-              </select>
-            </Field>
-          )}
-        </div>
+        <Field label="قرارداد مرتبط">
+          <select name="contract_id" className="input" defaultValue=""><option value="">—</option>
+            {contracts.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
+          </select>
+        </Field>
         <Field label="شرح"><input name="description" className="input" /></Field>
+        <Field label="تخصیص مبلغ" hint="با ثبت قطعی، وضعیت اسناد هدف به‌طور خودکار به‌روزرسانی می‌شود">
+          <AllocationEditor
+            sourceAmount={Number(amount) || undefined}
+            salesDocuments={salesDocuments ?? []}
+            contracts={contracts}
+            unit={unit}
+          />
+        </Field>
       </div>
       <div className="flex gap-3">
         <SubmitButton variant="primary">{isReceipt ? "ثبت دریافت" : "ثبت پرداخت"}</SubmitButton>

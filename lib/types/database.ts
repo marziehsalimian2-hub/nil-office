@@ -330,6 +330,8 @@ export interface SearchResult {
 /* ============================ Accounting ================================= */
 
 export type PostingStatusT = "DRAFT" | "POSTED" | "REVERSED";
+export type AllocationTargetTypeT = "SALES_DOCUMENT" | "CONTRACT" | "ON_ACCOUNT";
+export type CashDocumentKindT = "RECEIPT" | "PAYMENT";
 export type AccountTypeT = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
 export type AccountNatureT = "DEBIT" | "CREDIT";
 export type FiscalYearStatusT = "OPEN" | "CLOSED";
@@ -451,6 +453,11 @@ export interface Receipt {
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -475,9 +482,26 @@ export interface Payment {
   fiscal_year_id: string | null;
   status: PostingStatusT;
   journal_entry_id: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CashAllocation {
+  id: string;
+  source_kind: CashDocumentKindT;
+  source_id: string;
+  target_type: AllocationTargetTypeT;
+  target_id: string | null;
+  amount: number;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface TrialBalanceRow {
