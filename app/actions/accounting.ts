@@ -13,6 +13,7 @@ import {
   journalLineSchema,
   cashDocSchema,
   accountingRoleSchema,
+  cashAllocationSchema,
 } from "@/lib/validation-accounting";
 
 export type ActionState = { error?: string } | null;
@@ -239,13 +240,25 @@ async function createCashDoc(table: "receipts" | "payments", f: FormData): Promi
     company_id: d.company_id ?? null,
     case_id: d.case_id ?? null,
     contract_id: d.contract_id ?? null,
-    sales_document_id: d.sales_document_id ?? null,
     fiscal_year_id: d.fiscal_year_id,
     status: "DRAFT",
     created_by: userId,
   };
-  const { error } = await supabase.from(table).insert(row);
+  const { data: inserted, error } = await supabase.from(table).insert(row).select("id").single();
   if (error) return { error: persianError(error.message) };
+
+  const rawAllocations = String(f.get("allocations") ?? "[]");
+  if (rawAllocations !== "[]") {
+    const fd2 = new FormData();
+    fd2.set("id", inserted.id);
+    fd2.set("allocations", rawAllocations);
+    const allocResult = await setAllocations(table, fd2);
+    if (allocResult?.error) {
+      await supabase.from(table).delete().eq("id", inserted.id);
+      return allocResult;
+    }
+  }
+
   revalidatePath(`/accounting/${table}`);
   redirect(`/accounting/${table}`);
 }
@@ -286,7 +299,6 @@ async function updateCashDoc(table: "receipts" | "payments", f: FormData): Promi
     company_id: d.company_id ?? null,
     case_id: d.case_id ?? null,
     contract_id: d.contract_id ?? null,
-    sales_document_id: d.sales_document_id ?? null,
     fiscal_year_id: d.fiscal_year_id,
   };
   const { error } = await supabase.from(table).update(row).eq("id", id);
@@ -300,6 +312,61 @@ export async function updateReceipt(_p: ActionState, f: FormData) {
 }
 export async function updatePayment(_p: ActionState, f: FormData) {
   return updateCashDoc("payments", f);
+}
+
+/** Replaces a receipt/payment's full allocation set — only while still DRAFT (enforced by the RPC). */
+async function setAllocations(table: "receipts" | "payments", f: FormData): Promise<ActionState> {
+  const id = String(f.get("id") ?? "");
+  if (!id) return { error: "شناسه سند نامعتبر است." };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(f.get("allocations") ?? "[]"));
+  } catch {
+    return { error: "تخصیص‌ها نامعتبر است." };
+  }
+  if (!Array.isArray(raw)) return { error: "تخصیص‌ها نامعتبر است." };
+
+  const allocations = [];
+  for (const a of raw) {
+    const parsed = cashAllocationSchema.safeParse(a);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+    allocations.push(parsed.data);
+  }
+
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("set_cash_allocations", {
+    p_source_kind: table === "receipts" ? "RECEIPT" : "PAYMENT",
+    p_source_id: id,
+    p_allocations: allocations,
+  });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath(`/accounting/${table}`);
+  return null;
+}
+
+export async function setReceiptAllocations(_p: ActionState, f: FormData) {
+  return setAllocations("receipts", f);
+}
+export async function setPaymentAllocations(_p: ActionState, f: FormData) {
+  return setAllocations("payments", f);
+}
+
+export async function verifyReceipt(_p: ActionState, f: FormData): Promise<ActionState> {
+  const id = String(f.get("id") ?? "");
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("verify_receipt", { p_receipt_id: id });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/accounting/receipts");
+  return null;
+}
+export async function verifyPayment(_p: ActionState, f: FormData): Promise<ActionState> {
+  const id = String(f.get("id") ?? "");
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("verify_payment", { p_payment_id: id });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/accounting/payments");
+  return null;
 }
 
 export async function postReceipt(_p: ActionState, f: FormData): Promise<ActionState> {

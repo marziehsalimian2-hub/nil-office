@@ -231,6 +231,18 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CHEQUE_WRONG_DIRECTION: "این عملیات برای این نوع چک (دریافتی/پرداختی) مجاز نیست.",
   REASON_REQUIRED: "برای این عملیات، درج دلیل الزامی است.",
   IMMUTABLE_FIELD_CHANGED: "مبلغ، طرف حساب، تاریخ و شمارهٔ چک پس از صدور قابل تغییر نیستند.",
+
+  // Cash Allocations / Verification (Receipts & Payments)
+  NOT_VERIFIED: "این سند هنوز تأیید نشده است؛ پیش از ثبت قطعی باید نخست تأیید شود.",
+  ALREADY_VERIFIED: "این سند قبلاً تأیید شده است.",
+  CASH_DOC_NOT_DRAFT: "این سند دیگر پیش‌نویس نیست و قابل ویرایش/تخصیص نیست.",
+  INVALID_SOURCE_KIND: "نوع سند نامعتبر است.",
+  INVALID_TARGET_TYPE: "نوع هدف تخصیص نامعتبر است.",
+  INVALID_ALLOCATION_AMOUNT: "مبلغ تخصیص باید بزرگ‌تر از صفر باشد.",
+  ALLOCATION_TARGET_REQUIRED: "برای این نوع تخصیص، انتخاب سند/قرارداد هدف الزامی است.",
+  ALLOCATION_ON_ACCOUNT_NO_TARGET: "تخصیص «در حساب» نباید هدف مشخصی داشته باشد.",
+  SOURCE_OVER_ALLOCATED: "جمع تخصیص‌ها از مبلغ سند بیشتر است.",
+  TARGET_OVER_ALLOCATED: "این تخصیص از مبلغ باقی‌ماندهٔ سند/قرارداد هدف بیشتر است.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -268,6 +280,14 @@ export const POSTING_STATUS_LABEL: Record<PostingStatus, string> = {
 };
 export const POSTING_STATUS_TONE: Record<PostingStatus, string> = {
   DRAFT: "status-draft", POSTED: "status-final", REVERSED: "status-cancelled",
+};
+
+export const ALLOCATION_TARGET_TYPE = ["SALES_DOCUMENT", "CONTRACT", "ON_ACCOUNT"] as const;
+export type AllocationTargetType = (typeof ALLOCATION_TARGET_TYPE)[number];
+export const ALLOCATION_TARGET_TYPE_LABEL: Record<AllocationTargetType, string> = {
+  SALES_DOCUMENT: "سند فروش (فاکتور/پیش‌فاکتور)",
+  CONTRACT: "قرارداد (پیش‌پرداخت)",
+  ON_ACCOUNT: "در حساب (بدون سند مشخص)",
 };
 
 export const FISCAL_YEAR_STATUS_LABEL: Record<string, string> = {
