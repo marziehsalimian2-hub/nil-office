@@ -243,6 +243,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ALLOCATION_ON_ACCOUNT_NO_TARGET: "تخصیص «در حساب» نباید هدف مشخصی داشته باشد.",
   SOURCE_OVER_ALLOCATED: "جمع تخصیص‌ها از مبلغ سند بیشتر است.",
   TARGET_OVER_ALLOCATED: "این تخصیص از مبلغ باقی‌ماندهٔ سند/قرارداد هدف بیشتر است.",
+
+  // HR & Payroll (Personnel + Employment)
+  FIRST_NAME_REQUIRED: "درج نام الزامی است.",
+  LAST_NAME_REQUIRED: "درج نام خانوادگی الزامی است.",
+  START_DATE_BEFORE_CURRENT_RECORD: "تاریخ شروع نمی‌تواند قبل از رکورد اشتغال فعلی باشد.",
+  REHIRE_REQUIRES_EMPLOYMENT_DETAILS: "برای بازگشت به کار، درج سمت و نوع همکاری جدید الزامی است.",
+  EMPLOYMENT_RECORD_CLOSED_IMMUTABLE: "این رکورد اشتغال بسته شده و دیگر قابل تغییر نیست.",
+  EMPLOYMENT_RECORD_FIELD_IMMUTABLE: "این فیلد پس از ثبت رکورد اشتغال قابل تغییر نیست؛ برای اصلاح، رکورد جدید ثبت کنید.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -1120,3 +1128,36 @@ export const EXTERNAL_INTAKE_EVENT_TYPE_LABEL: Record<string, string> = {
   REPLY_DELIVERED: "ارسال پاسخ",
   STATUS_CHANGED: "تغییر وضعیت",
 };
+
+/* ============================ HR & Payroll — Phase 1 (Personnel + Employment) =========================== */
+
+export const HR_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type HrRole = (typeof HR_ROLE)[number];
+export const HR_ROLE_LABEL: Record<HrRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید", ADMIN: "مدیر منابع انسانی",
+};
+
+export const PERSONNEL_STATUS = ["ACTIVE", "ON_LEAVE", "SUSPENDED", "TERMINATED", "ARCHIVED"] as const;
+export type PersonnelStatus = (typeof PERSONNEL_STATUS)[number];
+export const PERSONNEL_STATUS_LABEL: Record<PersonnelStatus, string> = {
+  ACTIVE: "فعال", ON_LEAVE: "مرخصی", SUSPENDED: "تعلیق", TERMINATED: "پایان‌یافته", ARCHIVED: "بایگانی‌شده",
+};
+/** Reuses the existing status.* Tailwind tone tokens — no new CSS. */
+export const PERSONNEL_STATUS_TONE: Record<PersonnelStatus, string> = {
+  ACTIVE: "status-received", ON_LEAVE: "status-waiting", SUSPENDED: "status-cancelled",
+  TERMINATED: "status-cancelled", ARCHIVED: "status-closed",
+};
+
+export const PERSONNEL_EMPLOYMENT_TYPE = [
+  "FULL_TIME", "PART_TIME", "CONTRACT", "CONSULTANT", "TEMPORARY", "INTERN", "OTHER",
+] as const;
+export type PersonnelEmploymentType = (typeof PERSONNEL_EMPLOYMENT_TYPE)[number];
+export const PERSONNEL_EMPLOYMENT_TYPE_LABEL: Record<PersonnelEmploymentType, string> = {
+  FULL_TIME: "تمام‌وقت", PART_TIME: "پاره‌وقت", CONTRACT: "قراردادی", CONSULTANT: "مشاور",
+  TEMPORARY: "موقت", INTERN: "کارآموز", OTHER: "سایر",
+};
+
+/** Suggested categories for the HR Documents tab's filename-prefix picker — no DB column exists for this (matches precedent: attachments has no category column anywhere in this codebase). */
+export const HR_DOCUMENT_CATEGORY = [
+  "قرارداد کار", "مدارک هویتی", "گواهی‌نامه‌ها", "اطلاعات بانکی", "اسناد بیمه", "اسناد مالیاتی", "سایر",
+] as const;
