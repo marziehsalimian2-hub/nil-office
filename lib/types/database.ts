@@ -30,7 +30,7 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY" | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE" | "PERSONNEL";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
 export type ContractRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
@@ -39,6 +39,7 @@ export type ProjectRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type TradeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ChequeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ServiceLedgerRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type HrRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -54,6 +55,7 @@ export interface Profile {
   cheque_role: ChequeRoleT | null;
   service_ledger_role: ServiceLedgerRoleT | null;
   external_correspondence_role: ExternalCorrespondenceRoleT | null;
+  hr_role: HrRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -1683,4 +1685,66 @@ export interface ExternalIntakeEvent {
   actor_profile_id: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
+}
+
+/* ============================ HR & Payroll (Phase 1) ====================== */
+
+export type PersonnelStatusT = "ACTIVE" | "ON_LEAVE" | "SUSPENDED" | "TERMINATED" | "ARCHIVED";
+export type PersonnelEmploymentTypeT =
+  | "FULL_TIME" | "PART_TIME" | "CONTRACT" | "CONSULTANT" | "TEMPORARY" | "INTERN" | "OTHER";
+export type EmploymentRecordStatusT = "ACTIVE" | "ENDED";
+
+export interface Personnel {
+  id: string;
+  personnel_number: string;
+  sequence_number: number;
+  year: number;
+  profile_id: string | null;
+  first_name: string;
+  last_name: string;
+  mobile: string | null;
+  email: string | null;
+  address: string | null;
+  employment_status: PersonnelStatusT;
+  hire_date: string;
+  termination_date: string | null;
+  job_title: string;
+  department: string | null;
+  manager_personnel_id: string | null;
+  employment_type: PersonnelEmploymentTypeT;
+  work_location: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmploymentRecord {
+  id: string;
+  personnel_id: string;
+  employment_type: PersonnelEmploymentTypeT;
+  job_title: string;
+  department: string | null;
+  manager_personnel_id: string | null;
+  start_date: string;
+  end_date: string | null;
+  work_schedule_type: string | null;
+  standard_monthly_hours: number | null;
+  standard_weekly_hours: number | null;
+  status: EmploymentRecordStatusT;
+  employment_contract_document_id: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** ADMIN-tier hr_role only (RLS-enforced, personnel_sensitive_details, 0112). */
+export interface PersonnelSensitiveDetails {
+  personnel_id: string;
+  national_id: string | null;
+  passport_number: string | null;
+  birth_date: string | null;
+  emergency_contact: string | null;
+  updated_by: string | null;
+  updated_at: string;
 }

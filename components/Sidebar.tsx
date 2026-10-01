@@ -29,6 +29,7 @@ import {
   Handshake,
   Bot,
   Banknote,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,7 @@ const nav = [
   { href: "/documents", label: "اسناد", icon: FileText },
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
+  { href: "/personnel", label: "پرسنل", icon: Users },
   { href: "/opportunities", label: "فرصت‌های تجاری", icon: Target },
   { href: "/projects", label: "پروژه‌ها", icon: FolderKanban },
   { href: "/tasks/mine", label: "کارها", icon: ListChecks },
