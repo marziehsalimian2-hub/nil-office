@@ -1,6 +1,6 @@
 -- =============================================================================
 -- NIL Office — HR & Payroll Phase 4 (approval, lock, accounting draft) integrity tests.
--- Run by hand in the Supabase SQL editor AFTER migrations 0107-0126, with at least one active ADMIN
+-- Run by hand in the Supabase SQL editor AFTER migrations 0107-0127, with at least one active ADMIN
 -- profile. ONE transaction, ROLLED BACK at the end. The script temporarily re-roles the first ADMIN profile
 -- (rolled back) — do NOT run it while that admin is actively using the app. Everything it creates is SYNTHETIC
 -- (jurisdiction 'TEST-P4', period 1450/01, fiscal year 2071, accounts 'T4-*') and exists only inside the rollback.
@@ -295,9 +295,16 @@ begin
   perform pg_temp.expect_err(format('select public.reopen_payroll_batch(%L,%L)', v_batch, 'fix'), 'PAYROLL_REOPEN_BLOCKED');
   perform pg_temp.expect_err(format('select public.change_payroll_batch_status(%L,%L,%L)', v_batch, 'CANCELLED', 'x'), 'PAYROLL_REOPEN_BLOCKED');
 
+  perform pg_temp.persona(v_admin, 'USER', null, 'APPROVE');                             -- no accounting role
+  perform pg_temp.expect_err(format('select public.discard_payroll_accounting_draft(%L)', v_batch), 'NOT_AUTHORIZED');
+  perform pg_temp.persona(v_admin, 'USER', null, 'APPROVE', 'CREATE');
+  perform public.discard_payroll_accounting_draft(v_batch);                              -- Accounting has no delete-draft path; payroll offers one
+  perform pg_temp.expect_err(format('select public.discard_payroll_accounting_draft(%L)', v_batch), 'PAYROLL_NO_ACCOUNTING_DRAFT');
   execute 'reset role';
-  delete from public.journal_entries where id = v_e1;                                   -- what an accountant does with an unwanted DRAFT
-  if (select accounting_journal_entry_id from public.payroll_batches where id = v_batch) is not null then raise exception 'FAIL(8): link must clear when the draft is deleted'; end if;
+  if (select accounting_journal_entry_id from public.payroll_batches where id = v_batch) is not null then raise exception 'FAIL(8): link must clear when the draft is discarded'; end if;
+  if exists (select 1 from public.journal_entries where id = v_e1) or exists (select 1 from public.journal_entry_lines where journal_entry_id = v_e1) then
+    raise exception 'FAIL(8): discarded draft (and its lines) must be gone';
+  end if;
   perform pg_temp.persona(v_admin, 'USER', null, 'ADMIN');
   perform public.reopen_payroll_batch(v_batch, 'phase4 test correction');
   execute 'reset role';
@@ -315,6 +322,7 @@ begin
   perform pg_temp.persona(v_admin, 'USER', null, 'APPROVE', 'POST');
   v_e2 := public.create_payroll_accounting_draft(v_batch);
   perform public.post_journal_entry(v_e2);
+  perform pg_temp.expect_err(format('select public.discard_payroll_accounting_draft(%L)', v_batch), 'PAYROLL_ACCOUNTING_NOT_DRAFT');   -- POSTED entries are never discarded
   perform pg_temp.expect_err(format('select public.create_payroll_accounting_draft(%L)', v_batch), 'PAYROLL_ACCOUNTING_DRAFT_EXISTS');   -- live (POSTED) journal
   perform public.reverse_journal_entry(v_e2);
   v_e3 := public.create_payroll_accounting_draft(v_batch);

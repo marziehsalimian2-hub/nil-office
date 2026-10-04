@@ -71,6 +71,17 @@ export async function savePayrollComponentAccounts(_p: ActionState, f: FormData)
   return { ok: true };
 }
 
+/** Deletes a payroll-created DRAFT journal (Accounting has no delete-draft path). POSTED entries are reversed in Accounting instead. */
+export async function discardPayrollAccountingDraft(_p: ActionState, f: FormData): Promise<ActionState> {
+  const batchId = String(f.get("batch_id") ?? "");
+  if (!batchId) return { error: "شناسهٔ دسته نامعتبر است." };
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("discard_payroll_accounting_draft", { p_batch_id: batchId });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath(`/payroll/batches/${batchId}`);
+  return { ok: true };
+}
+
 /** Creates the DRAFT journal entry only — posting stays Accounting's own authorised flow. */
 export async function createPayrollAccountingDraft(_p: ActionState, f: FormData): Promise<ActionState> {
   const batchId = String(f.get("batch_id") ?? "");

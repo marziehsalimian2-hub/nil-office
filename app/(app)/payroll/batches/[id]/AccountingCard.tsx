@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createPayrollAccountingDraft } from "@/app/actions/payroll-approval";
+import { createPayrollAccountingDraft, discardPayrollAccountingDraft } from "@/app/actions/payroll-approval";
 import { FormError } from "@/components/form";
 import { POSTING_STATUS_LABEL, type PostingStatus } from "@/lib/enums";
 import { accountingBlockers, type AccountingReadiness } from "@/lib/payroll/review";
@@ -34,6 +34,17 @@ export function AccountingCard({
     });
   }
 
+  function discard() {
+    if (!window.confirm("سند پیش‌نویس حذف شود؟ می‌توانید بعداً دوباره بسازید.")) return;
+    const fd = new FormData();
+    fd.set("batch_id", batchId);
+    start(async () => {
+      const r = await discardPayrollAccountingDraft(null, fd);
+      if (r?.error) setError(r.error);
+      else { setError(undefined); router.refresh(); }
+    });
+  }
+
   return (
     <div className="card space-y-3 p-5">
       <h2 className="text-sm font-semibold text-ink">سند حسابداری</h2>
@@ -46,6 +57,9 @@ export function AccountingCard({
             <> — <Link href={`/accounting/journal/${j.id}`} className="text-seal hover:underline">مشاهده در حسابداری</Link></>
           )}
         </p>
+      )}
+      {j?.status === "DRAFT" && canDraft && (
+        <button type="button" className="btn-quiet" disabled={busy} onClick={discard}>حذف سند پیش‌نویس</button>
       )}
       {readiness.can_draft ? (
         <>
