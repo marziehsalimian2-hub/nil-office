@@ -9,6 +9,7 @@ import { quickAddServiceEntryCore } from "@/app/actions/service-entries";
 import { addTimeEntryDraftCore } from "@/app/actions/service-time-entries";
 import { addServiceExpenseDraftCore } from "@/app/actions/service-expenses";
 import { generateClientServiceReportCore } from "@/app/actions/service-reports";
+import { createCashDraftCore } from "@/app/actions/accounting";
 import { getAction } from "@/lib/assistant/actions/registry";
 import { hasAccess } from "@/lib/assistant/actions/types";
 import { hashPayload, verifyPayloadHash, isConfirmableByPhrase } from "@/lib/assistant/security";
@@ -41,6 +42,9 @@ export const WRITE_EXECUTORS: Record<
   ADD_TIME_ENTRY_DRAFT: (payload, supabase, userId) => addTimeEntryDraftCore(supabase, userId, payload as never),
   ADD_SERVICE_EXPENSE_DRAFT: (payload, supabase, userId) => addServiceExpenseDraftCore(supabase, userId, payload as never),
   PREPARE_CLIENT_SERVICE_REPORT: (payload, supabase, userId) => generateClientServiceReportCore(supabase, userId, payload as never),
+  // Slice 2: DRAFT rows only — createCashDraftCore never verifies, posts or allocates.
+  CREATE_RECEIPT_DRAFT: (payload, supabase, userId) => createCashDraftCore(supabase, userId, payload as never),
+  CREATE_PAYMENT_DRAFT: (payload, supabase, userId) => createCashDraftCore(supabase, userId, payload as never),
 };
 
 /**

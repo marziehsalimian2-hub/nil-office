@@ -21,3 +21,15 @@ Spec §124's security gate asks explicitly: *"آیا عکس فاکتور می‌
 - The account-suggestion lookup against the Chart of Accounts (`accounts`/`bank_accounts`) has no existing search helper (confirmed this session — only plain unfiltered `select` calls exist today) — this needs to be built fresh, not assumed to already exist.
 
 None of the above is implemented yet. This document exists to make the boundary explicit while it's still trivially true, not to describe a built feature.
+
+## UPDATE — the accounting-draft flow now exists (Internal Assistant v1.0, Slice 2)
+
+`CREATE_RECEIPT_DRAFT` and `CREATE_PAYMENT_DRAFT` implement the flow this document anticipated. The boundary is unchanged:
+they create a `DRAFT` row in `receipts` / `payments` through `createCashDraftCore` and nothing else — no `verify_*`, no
+`post_*`, no `set_cash_allocations`, no journal entry, and the bookkeeping counterpart account is never set. Each item above
+is met: LOW-confidence extractions are flagged in the preview and always need the human confirm tap; a missing bank account is
+asked for (`LIST_BANK_ACCOUNTS`) or left empty, never guessed; duplicate detection (evidence SHA-256, reference + amount +
+currency) runs before the draft and again at execute time; the receipt image is archived as accounting-only evidence, never
+treated as settlement. `registry.test.ts` fails the build if the cash actions or the core ever reference a verify / post /
+allocation / journal operation. The first sentence of this document ("no accounting action exists") is therefore historical:
+the registry now has draft-creating accounting actions, and still has **no** posting, verification, allocation or reversal.

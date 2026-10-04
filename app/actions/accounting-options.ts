@@ -33,3 +33,29 @@ export async function getDisplayUnit(): Promise<"RIAL" | "TOMAN"> {
   const { data } = await supabase.from("app_settings").select("display_unit").eq("id", 1).single();
   return (data?.display_unit as "RIAL" | "TOMAN") ?? "RIAL";
 }
+
+export type CashEvidenceLink = { name: string; url: string };
+
+/**
+ * Evidence files (bank-receipt photos / supplier invoices archived by the Assistant) for a page of receipts or
+ * payments, as short-lived signed URLs. Both lookups run under the CALLER's session: attachments of type
+ * RECEIPT/PAYMENT and storage `cash-evidence/%` are accounting-only (0135), so a non-accounting user gets nothing.
+ */
+export async function loadCashEvidence(kind: "RECEIPT" | "PAYMENT", ids: string[]): Promise<Map<string, CashEvidenceLink[]>> {
+  const out = new Map<string, CashEvidenceLink[]>();
+  if (ids.length === 0) return out;
+  const supabase = await createClient();
+  const { data } = await supabase.from("attachments").select("entity_id, file_name, storage_path").eq("entity_type", kind).in("entity_id", ids);
+  const rows = (data ?? []) as { entity_id: string; file_name: string; storage_path: string }[];
+  if (rows.length === 0) return out;
+  const { data: signed } = await supabase.storage.from("nil-files").createSignedUrls(rows.map((r) => r.storage_path), 3600);
+  const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl] as const));
+  for (const r of rows) {
+    const url = urlByPath.get(r.storage_path);
+    if (!url) continue;
+    const list = out.get(r.entity_id) ?? [];
+    list.push({ name: r.file_name, url });
+    out.set(r.entity_id, list);
+  }
+  return out;
+}

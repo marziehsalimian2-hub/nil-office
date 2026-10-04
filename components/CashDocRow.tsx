@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Download } from "lucide-react";
+import { Pencil, Download, Paperclip } from "lucide-react";
 import { updateReceipt, updatePayment, setReceiptAllocations, setPaymentAllocations, type ActionState } from "@/app/actions/accounting";
 import { PostDocButton } from "@/components/PostDocButton";
 import { VerifyDocButton } from "@/components/VerifyDocButton";
@@ -49,6 +49,7 @@ export function CashDocRow({
   salesDocuments,
   allocations,
   fiscalYears,
+  evidence,
 }: {
   kind: "receipt" | "payment";
   row: Row;
@@ -62,6 +63,8 @@ export function CashDocRow({
   salesDocuments: TargetOpt[];
   allocations: AllocationRow[];
   fiscalYears: Opt[];
+  /** archived evidence files (accounting-only signed URLs) — e.g. a bank-receipt photo the Assistant drafted this from */
+  evidence?: { name: string; url: string }[];
 }) {
   const router = useRouter();
   const isReceipt = kind === "receipt";
@@ -191,6 +194,15 @@ export function CashDocRow({
         {row.display_number && <span className="mr-2 tnum text-xs text-ink-muted" dir="ltr">{row.display_number}</span>}
       </td>
       <td className="px-4 py-3">
+        {evidence && evidence.length > 0 && (
+          <div className="mb-1 flex items-center justify-end gap-2">
+            {evidence.map((e) => (
+              <a key={e.url} href={e.url} target="_blank" rel="noopener noreferrer" className="btn-quiet !py-1 text-xs">
+                <Paperclip className="h-3.5 w-3.5" /> مشاهدهٔ مدرک
+              </a>
+            ))}
+          </div>
+        )}
         {row.status === "DRAFT" && (
           <div className="flex items-center justify-end gap-2">
             <button type="button" className="btn-quiet !py-1 text-xs" onClick={() => setEditing(true)}>

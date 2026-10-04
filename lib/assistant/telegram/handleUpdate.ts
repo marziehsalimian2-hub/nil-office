@@ -71,6 +71,12 @@ const DRAFT_ACTIONS: Record<string, { label: string; kind: "LETTER" | "INVOICE" 
   CREATE_INVOICE_DRAFT: { label: "فاکتور/پیش‌فاکتور", kind: "INVOICE" },
 };
 
+/** Receipt / payment drafts (Slice 2): the confirmation saves a DRAFT only — the reply says exactly that and never implies verified / posted / settled. */
+const CASH_DRAFT_ACTIONS: Record<string, { noun: string; table: "receipts" | "payments" }> = {
+  CREATE_RECEIPT_DRAFT: { noun: "دریافت", table: "receipts" },
+  CREATE_PAYMENT_DRAFT: { noun: "پرداخت/هزینه", table: "payments" },
+};
+
 const FINALIZE_ACTION_BY_KIND = { LETTER: "FINALIZE_LETTER", INVOICE: "ISSUE_SALES_DOCUMENT" } as const;
 
 /**
@@ -83,6 +89,11 @@ const FINALIZE_ACTION_BY_KIND = { LETTER: "FINALIZE_LETTER", INVOICE: "ISSUE_SAL
 async function buildConfirmationOutcomeText(sessionClient: SessionClient, actionName: string, resultId: string): Promise<string> {
   const draft = DRAFT_ACTIONS[actionName];
   if (draft) return `پیش‌نویس ${draft.label} ذخیره شد و هنوز شمارهٔ رسمی ندارد. (شناسهٔ پیش‌نویس: ${resultId})`;
+
+  const cash = CASH_DRAFT_ACTIONS[actionName];
+  if (cash) {
+    return `پیش‌نویس ${cash.noun} ذخیره شد؛ هنوز تأیید، ثبت قطعی یا تسویه نشده است. تکمیل حساب‌ها، تأیید و ثبت فقط توسط حسابدار در NIL Office (بخش حسابداری ← ${cash.table === "receipts" ? "دریافت‌ها" : "پرداخت‌ها"}) انجام می‌شود. (شناسهٔ پیش‌نویس: ${resultId})`;
+  }
 
   const meta = NUMBERED_RECORD_ACTIONS[actionName];
   if (!meta) return "انجام شد. ثبت شد.";

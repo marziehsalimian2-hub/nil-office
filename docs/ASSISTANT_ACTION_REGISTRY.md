@@ -49,6 +49,7 @@ reviewed any-active-user allowlist in that test).
 | `LIST_TRADE_OFFERS`, `GET_TRADE_OFFER_BUYERS` | ADMIN or `trade_role` | |
 | `GET_CLIENT_SERVICE_SUMMARY`, `LIST_CLIENT_SERVICES`, `SEARCH_SERVICE_ENTRIES`, `GET_UNBILLED_WORK`, `GET_REIMBURSABLE_EXPENSES` | ADMIN or any `service_ledger_role` | search term is escaped before it reaches a PostgREST filter |
 | `GET_CLIENT_SERVICE_PERIOD_NUMBERS`, `LIST_CLIENT_REPORT_TEMPLATES`, `GET_CLIENT_DEFAULT_REPORT_TEMPLATE`, `GET_CLIENT_REPORT_HISTORY` | ADMIN or any `service_ledger_role` | client reports only — the internal management report is unreachable |
+| `LIST_BANK_ACCOUNTS` | ADMIN or any `accounting_role` | active bank / cash accounts: id, title, bank name, currency, kind — never account numbers or IBANs |
 | `GET_MY_PAYSLIP` | any active user — **own payslip only** | no person parameter; owner = authenticated profile; salary amounts are never sent to the model; the archived PDF is delivered by the channel layer |
 
 ## Write actions (confirmation required)
@@ -65,6 +66,8 @@ reviewed any-active-user allowlist in that test).
 | `FINALIZE_LETTER` | HIGH | any active user — own draft or ADMIN | **Button** | issues the official letter number (irreversible), archives + delivers the PDF |
 | `CREATE_INVOICE_DRAFT` | MEDIUM | `invoice_role` ≥ CREATE | Phrase OK | **DRAFT invoice / proforma only**; totals are database-generated |
 | `ISSUE_SALES_DOCUMENT` | HIGH | `invoice_role` ≥ APPROVE — own draft or ADMIN | **Button** | issues the official invoice / proforma number (irreversible), delivers the PDF |
+| `CREATE_RECEIPT_DRAFT` | MEDIUM | ADMIN or `accounting_role` CREATE / POST / ADMIN | Phrase OK | **DRAFT receipt only** (from a bank-receipt photo / PDF / voice / text). Evidence file archived (accounting-only). Counterpart account always empty. Never verified, posted or allocated |
+| `CREATE_PAYMENT_DRAFT` | MEDIUM | ADMIN or `accounting_role` CREATE / POST / ADMIN | Phrase OK | **DRAFT payment / expense only** (supplier invoice, expense receipt, transfer slip). Same rules as above |
 | `REGISTER_INCOMING_LETTER` | HIGH | any active user | **Button** | registers an incoming letter (official incoming number) + archives the original file |
 
 ## Deliberately NOT in the registry (permanent boundaries)

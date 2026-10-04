@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
+import {
+  CASH_LABEL, EVIDENCE_EXT_BY_MIME, parseAmountText, checkDraftDate, decideDuplicates, sha256Hex,
+  type CashKind, type DuplicateReport,
+} from "@/lib/assistant/cashDraft";
 import {
   fiscalYearSchema,
   accountSchema,
@@ -268,6 +273,120 @@ export async function createReceipt(_p: ActionState, f: FormData) {
 }
 export async function createPayment(_p: ActionState, f: FormData) {
   return createCashDoc("payments", f);
+}
+
+export type CashDraftPayload = {
+  kind: CashKind;
+  /** exact decimal STRING (parseAmountText) — never a float */
+  amount: string;
+  currency: string;
+  /** ISO date */
+  date: string;
+  counterparty: string | null;
+  company_id: string | null;
+  contract_id: string | null;
+  bank_account_id: string | null;
+  fiscal_year_id: string | null;
+  method: string | null;
+  reference: string | null;
+  description: string | null;
+  confirmed_not_duplicate: boolean;
+  evidence_base64: string | null;
+  evidence_mime: string | null;
+  evidence_sha256: string | null;
+};
+
+/**
+ * Non-redirecting core shared by NIL Assistant's CREATE_RECEIPT_DRAFT / CREATE_PAYMENT_DRAFT (Slice 2).
+ * It ONLY inserts a DRAFT row (+ archives the evidence file). It never calls verify_* / post_* / set_cash_allocations
+ * and never touches a journal — the counterpart account stays null (a bookkeeping decision for the accountant) and the
+ * accountant completes, verifies and posts through the existing web flow (docs/ACCOUNTING_AI_SAFETY.md).
+ * Everything the proposal step checked is re-checked here: the payload is model-derived, the executor must not trust it.
+ */
+export async function createCashDraftCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: CashDraftPayload,
+): Promise<{ data: { id: string } } | { error: string }> {
+  if (d.kind !== "RECEIPT" && d.kind !== "PAYMENT") return { error: "نوع سند نامعتبر است." };
+  const amount = parseAmountText(d.amount);
+  if (!amount.ok) return { error: amount.error };
+  const dateCheck = checkDraftDate(d.date, new Date().toISOString().slice(0, 10));
+  if (!dateCheck.ok) return { error: dateCheck.error };
+
+  const { data: me } = await supabase.from("profiles").select("role, accounting_role, is_active").eq("id", userId).maybeSingle();
+  if (!me?.is_active || !(me.role === "ADMIN" || ["CREATE", "POST", "ADMIN"].includes(me.accounting_role ?? ""))) {
+    return { error: "برای ثبت پیش‌نویس دریافت/پرداخت سطح دسترسی «ایجاد» در حسابداری لازم است." };
+  }
+
+  // Duplicate control runs again at execute time (a second proposal may have been confirmed since). Fail CLOSED.
+  const { data: dup, error: dupErr } = await supabase.rpc("assistant_cash_duplicates", {
+    p_profile_id: userId, p_kind: d.kind, p_amount: amount.value, p_currency: d.currency,
+    p_reference: d.reference, p_date: d.date, p_company: d.company_id, p_sha256: d.evidence_sha256,
+  });
+  if (dupErr || !dup) return { error: "بررسی تکراری‌بودن سند ناموفق بود؛ چیزی ثبت نشد." };
+  const decision = decideDuplicates(dup as DuplicateReport, d.confirmed_not_duplicate === true);
+  if (decision.block) return { error: "این سند به‌احتمال زیاد تکراری است؛ چیزی ثبت نشد." };
+
+  let evidence: { buffer: Buffer; ext: string } | null = null;
+  if (d.evidence_base64) {
+    const ext = EVIDENCE_EXT_BY_MIME[d.evidence_mime ?? ""];
+    if (!ext) return { error: "نوع فایل مدرک پشتیبانی نمی‌شود." };
+    const buffer = Buffer.from(d.evidence_base64, "base64");
+    if (!d.evidence_sha256 || sha256Hex(buffer) !== d.evidence_sha256) return { error: "یکپارچگی فایل مدرک تأیید نشد؛ چیزی ثبت نشد." };
+    evidence = { buffer, ext };
+  }
+
+  const L = CASH_LABEL[d.kind];
+  const dateField = d.kind === "RECEIPT" ? "receipt_date" : "payment_date";
+  const partyField = d.kind === "RECEIPT" ? "payer" : "payee";
+  const { data: inserted, error } = await supabase
+    .from(L.table)
+    .insert({
+      [dateField]: d.date,
+      [partyField]: d.counterparty,
+      amount: amount.value,
+      currency_code: d.currency,
+      bank_account_id: d.bank_account_id,
+      counterpart_account_id: null,
+      fiscal_year_id: d.fiscal_year_id,
+      method: d.method,
+      reference: d.reference,
+      description: d.description,
+      company_id: d.company_id,
+      contract_id: d.contract_id,
+      status: "DRAFT",
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) return { error: persianError(error?.message) };
+
+  if (evidence) {
+    const path = `cash-evidence/${d.kind.toLowerCase()}/${inserted.id}/${Date.now()}.${evidence.ext}`;
+    const { error: upErr } = await supabase.storage.from("nil-files").upload(path, evidence.buffer, { contentType: d.evidence_mime ?? undefined, upsert: false });
+    const { error: attErr } = upErr
+      ? { error: upErr }
+      : await supabase.from("attachments").insert({
+          entity_type: d.kind,
+          entity_id: inserted.id,
+          file_name: `مدرک-${L.noun.replace("/", "-")}.${evidence.ext}`,
+          storage_path: path,
+          mime_type: d.evidence_mime,
+          size_bytes: evidence.buffer.length,
+          uploaded_by: userId,
+          sha256: d.evidence_sha256,
+        });
+    if (attErr) {
+      // The evidence is what makes the draft auditable and duplicate-checkable: no evidence archived -> no draft.
+      console.error("createCashDraftCore: evidence archival failed", attErr);
+      await supabase.from(L.table).delete().eq("id", inserted.id).eq("status", "DRAFT");
+      return { error: "بایگانی فایل مدرک ناموفق بود؛ چیزی ثبت نشد. لطفاً دوباره تلاش کنید." };
+    }
+  }
+
+  revalidatePath(`/accounting/${L.table}`);
+  return { data: { id: inserted.id } };
 }
 
 /** Update a receipt/payment's fields — only while still DRAFT. */

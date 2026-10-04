@@ -92,6 +92,30 @@ ownership and tier. A voice message can therefore never produce an official numb
 - Accounting posting / reversal, payroll approval / payment, cheque issue / clear / void and billing batches are
   not in the registry at all.
 
+### Receipt / payment drafts from images, PDFs, voice or text (Slice 2, 0135)
+
+`CREATE_RECEIPT_DRAFT` / `CREATE_PAYMENT_DRAFT` create a **DRAFT row only** through `createCashDraftCore`
+(`app/actions/accounting.ts`); verify, post, allocation and settlement stay human-only on the existing web flow
+(`docs/ACCOUNTING_AI_SAFETY.md`; `registry.test.ts` scans the action and the core for any verify / post / allocation /
+journal reference). Rules enforced in code (`lib/assistant/cashDraft.ts`, unit-tested):
+
+- the model supplies *extracted text*; the server validates it — amount as an **exact string** (`parseAmountText`
+  refuses words, several dots, «1.500», signs, zero, > 16 digits), required currency / date / payer-or-payee, date not in
+  the future, contract belongs to the company, bank account active with the same currency. No Rial↔Toman conversion;
+- nothing critical is guessed: a bank account is chosen from `LIST_BANK_ACCOUNTS` or left empty, the fiscal year is set
+  only when exactly one open year contains the date, and the **counterpart (bookkeeping) account is never set**;
+- the evidence bytes and the source (image / PDF / text) come from the turn's real attachment, never from the model;
+  the file is stored privately under `cash-evidence/…` with its SHA-256, readable only with accounting access and
+  permanent (0135);
+- **duplicates**: `assistant_cash_duplicates` (SQL, exact numeric) — same file hash, or same reference + amount +
+  currency, is a HARD stop unless the user explicitly says it is not a duplicate (then the warning is carried into the
+  preview and the human still taps «تأیید»); same day / near-date-same-company matches only warn. The check runs at proposal
+  **and** again at execute time and fails closed. Residual risk: text inside a hostile document could try to make the model
+  set `confirmed_not_duplicate`; the system prompt forbids it and the red warning + button are the control;
+- if the evidence cannot be archived the draft is rolled back (no draft without its evidence);
+- the preview always says "draft only" and lists what the accountant must still complete; the confirmation reply never
+  says verified / posted / settled; open invoices of the company are shown as information only (no allocation is made).
+
 ## 6. Prompt-injection and untrusted content
 
 - The system prompt (`systemPrompt.ts`) is fixed and server-authored; rules 5 and 15 state that tool results and
@@ -135,7 +159,7 @@ existing 20-messages-per-minute limit is unchanged. A refusal is a polite Persia
 
 ## 10. Known limits (deferred to later slices)
 
-Receipt / payment / expense drafts from image or voice (OCR extraction schema, duplicate detection), a code-level
+A code-level
 entity resolver with confidence tiers, CRM / contract / task / follow-up write actions beyond today's, HR /
 personnel read actions for others, a Telegram identity-linking admin UI, a scheduled morning brief, and
 conversation retention / purge tooling. The `pendingAttachment` cache is in-process (single PM2 instance).
