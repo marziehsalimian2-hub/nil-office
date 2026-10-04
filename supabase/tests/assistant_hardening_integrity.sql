@@ -147,7 +147,7 @@ begin
   perform public.assistant_audit(v_admin, 'PROPOSED', 'CREATE_TASK_DRAFT', jsonb_build_object('pending_action_id', v_pend));
   perform pg_temp.expect_err(format('select public.assistant_audit(%L,%L,%L,%L::jsonb)', v_other, 'PROPOSED', 'X', '{}'), 'NOT_AUTHORIZED');    -- a web user cannot write rows for someone else
   perform pg_temp.expect_err(format('select public.assistant_audit(%L,%L,null,%L::jsonb)', v_admin, 'bad event', '{}'), 'ASSISTANT_AUDIT_INVALID_EVENT');
-  perform pg_temp.expect_err(format('select public.assistant_audit(null,%L,null,%L::jsonb)', 'PROPOSED', '{}'), 'NOT_AUTHORIZED');                // anonymous attribution only for service_role
+  perform pg_temp.expect_err(format('select public.assistant_audit(null,%L,null,%L::jsonb)', 'PROPOSED', '{}'), 'NOT_AUTHORIZED');                -- anonymous attribution only for service_role
 
   -- 4) the employee's own payslip functions (authenticated, id = self) -----------------------------------------------------------------------------
   v_j := public.assistant_my_payslips(v_admin);
