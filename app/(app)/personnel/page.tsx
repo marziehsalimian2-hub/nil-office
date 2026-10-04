@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
+import { payrollAccess } from "@/lib/payroll/access";
+import { HrDashboard } from "./HrDashboard";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { PERSONNEL_STATUS_LABEL, PERSONNEL_STATUS_TONE, type PersonnelStatus } from "@/lib/enums";
 import { toFaDigits, formatJalali } from "@/lib/jalali";
@@ -16,6 +19,7 @@ export default async function PersonnelPage({
 }) {
   const { status, q } = await searchParams;
   const supabase = await createClient();
+  const profile = await requireProfile();
 
   let query = supabase
     .from("personnel")
@@ -37,11 +41,15 @@ export default async function PersonnelPage({
         title="پرسنل"
         subtitle="ثبت و مدیریت پروندهٔ پرسنلی"
         action={
-          <Link href="/personnel/new" className="btn-seal">
-            <Plus className="h-4 w-4" /> افزودن پرسنل جدید
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/personnel/reports" className="btn-quiet">گزارش‌ها</Link>
+            <Link href="/personnel/new" className="btn-seal">
+              <Plus className="h-4 w-4" /> افزودن پرسنل جدید
+            </Link>
+          </div>
         }
       />
+      <HrDashboard showPayroll={payrollAccess(profile).view} />
 
       <form className="mb-4 flex flex-wrap items-center gap-2">
         <input name="q" defaultValue={q ?? ""} placeholder="جست‌وجوی نام، شماره پرسنلی، سمت..." className="input max-w-xs" />
