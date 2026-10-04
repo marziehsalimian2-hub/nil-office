@@ -100,7 +100,7 @@ export function RuleEntryEditor({ ruleSetId, entries, editable }: { ruleSetId: s
               </datalist>
             </Field>
             <Field label="مقدار عددی"><input name="value_numeric" dir="ltr" inputMode="decimal" className="input tnum" defaultValue={editing?.value_numeric != null ? String(editing.value_numeric) : ""} /></Field>
-            <Field label="واحد"><input name="unit" className="input" defaultValue={editing?.unit ?? ""} /></Field>
+            <Field label="واحد" hint="برای قاعده‌ای که در اجزای درصدی استفاده می‌شود، واحد را PERCENT و مقدار را ۰ تا ۱۰۰ وارد کنید (مثلاً ۷ یعنی ۷٪)؛ در غیر این صورت محاسبه با هشدار بحرانی متوقف می‌شود."><input name="unit" className="input" defaultValue={editing?.unit ?? ""} /></Field>
           </div>
           <Field label="مقدار ساختاریافته (JSON) — فقط داده، هرگز اجرا نمی‌شود" hint="مثلاً پله‌های مالیات؛ حداقل یکی از مقدار عددی یا JSON لازم است">
             <textarea name="value_json" rows={3} dir="ltr" className="input font-mono text-xs" defaultValue={jsonText(editing?.value_json)} />

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   PAYROLL_ROLE, SALARY_COMPONENT_TYPE, SALARY_CALCULATION_METHOD, PAYROLL_PERCENTAGE_BASIS,
-  PAYMENT_FREQUENCY, CURRENCY, LEGAL_RULE_SET_STATUS,
+  PAYMENT_FREQUENCY, CURRENCY, LEGAL_RULE_SET_STATUS, PAYROLL_ROUNDING_MODE, PAYROLL_BATCH_STATUS, ELIGIBILITY_DECISION,
 } from "@/lib/enums";
 import { normalizeIban, normalizeDigits, isValidIranSheba, isValidCardNumber } from "@/lib/payroll/bank-validation";
 
@@ -181,4 +181,93 @@ export const legalRuleEntrySchema = z
 export const legalRuleSetStatusSchema = z.object({
   new_status: z.enum(LEGAL_RULE_SET_STATUS),
   note: optText,
+});
+
+/* ------------------- Phase 3: periods, work data, batches ------------------- */
+
+export const payrollPeriodSchema = z.object({
+  jalali_year: z.coerce.number().int().min(1300).max(1500),
+  jalali_month: z.coerce.number().int().min(1).max(12),
+});
+
+const jurisdictionField = z.string().trim().optional().transform((v) => (v ? v : undefined));
+const roundingScale = z.coerce.number().int().min(0, "تعداد رقم اعشار نامعتبر است.").max(4, "تعداد رقم اعشار نامعتبر است.");
+
+export const payrollBatchSchema = z.object({
+  period_id: z.string().uuid(),
+  currency: z.enum(CURRENCY, { errorMap: () => ({ message: "واحد پول را انتخاب کنید." }) }),
+  rounding_scale: roundingScale,
+  rounding_mode: z.enum(PAYROLL_ROUNDING_MODE),
+  jurisdiction: jurisdictionField,
+  notes: optText,
+});
+
+export const batchSettingsSchema = z.object({
+  batch_id: z.string().uuid(),
+  rounding_scale: roundingScale,
+  rounding_mode: z.enum(PAYROLL_ROUNDING_MODE),
+  jurisdiction: jurisdictionField,
+});
+
+export const eligibilityOverrideSchema = z
+  .object({
+    batch_id: z.string().uuid(),
+    personnel_id: z.string().uuid(),
+    decision: z.enum(ELIGIBILITY_DECISION),
+    reason: optText,
+  })
+  .superRefine((d, ctx) => {
+    if (d.decision !== "AUTO" && !d.reason)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "درج دلیل الزامی است." });
+  });
+
+export const batchStatusSchema = z.object({
+  batch_id: z.string().uuid(),
+  new_status: z.enum(PAYROLL_BATCH_STATUS),
+  note: optText,
+});
+
+// Quantities (days/hours): exact decimal strings, never Number().
+const qty = z.string().trim().regex(/^\d{1,5}(\.\d{1,2})?$/, "مقدار کارکرد نامعتبر است.");
+const optQty = qty.optional().or(z.literal("").transform(() => undefined)).or(z.null().transform(() => undefined));
+
+export const workDataRowSchema = z.object({
+  personnel_id: z.string().uuid(),
+  work_days: optQty,
+  work_hours: optQty,
+  overtime_hours: optQty,
+  absence_days: optQty,
+  absence_hours: optQty,
+  paid_leave_days: optQty,
+  unpaid_leave_days: optQty,
+  mission_days: optQty,
+  mission_hours: optQty,
+  notes: optText.or(z.null().transform(() => undefined)),
+  inputs: z
+    .array(
+      z.object({
+        component_id: z.string().uuid(),
+        amount: moneyStr,
+        currency: z.enum(CURRENCY),
+        note: optText.or(z.null().transform(() => undefined)),
+      }),
+    )
+    .default([]),
+});
+export type WorkDataRowInput = z.infer<typeof workDataRowSchema>;
+
+/** The grid posts one JSON string of dirty rows. */
+export const workDataRowsSchema = z.object({
+  period_id: z.string().uuid(),
+  rows: z
+    .string()
+    .transform((v, ctx) => {
+      try {
+        return JSON.parse(v) as unknown;
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "دادهٔ کارکرد نامعتبر است." });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(workDataRowSchema).min(1, "تغییری برای ذخیره وجود ندارد.").max(500)),
 });

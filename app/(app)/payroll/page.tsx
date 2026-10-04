@@ -9,18 +9,26 @@ export const dynamic = "force-dynamic";
 
 export default async function PayrollHomePage() {
   const supabase = await createClient();
-  const [{ count: componentCount }, { data: ruleSets }] = await Promise.all([
+  const [{ count: componentCount }, { data: ruleSets }, { count: periodCount }] = await Promise.all([
     supabase.from("salary_components").select("id", { count: "exact", head: true }),
     supabase.from("legal_rule_sets").select("status"),
+    supabase.from("payroll_periods").select("id", { count: "exact", head: true }),
   ]);
   const byStatus = new Map<string, number>();
   for (const r of (ruleSets ?? []) as { status: string }[]) byStatus.set(r.status, (byStatus.get(r.status) ?? 0) + 1);
 
   return (
     <div>
-      <PageHeader title="حقوق و دستمزد" subtitle="تنظیمات پایه: اجزای حقوق و قواعد قانونی نسخه‌دار" />
+      <PageHeader title="حقوق و دستمزد" subtitle="دوره‌های حقوقی، محاسبه و بررسی؛ و تنظیمات پایه (اجزای حقوق و قواعد قانونی نسخه‌دار)" />
       <NoRuleBanner />
       <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/payroll/periods">
+          <Card className="transition hover:border-seal">
+            <p className="text-sm font-medium text-ink">دوره‌های حقوقی</p>
+            <p className="mt-1 text-xs text-ink-muted">کارکرد ماهانه، دستهٔ محاسبه برای هر واحد پول، محاسبه و بررسی</p>
+            <p className="tnum mt-3 text-lg font-semibold text-ink">{toFaDigits(String(periodCount ?? 0))}</p>
+          </Card>
+        </Link>
         <Link href="/payroll/components">
           <Card className="transition hover:border-seal">
             <p className="text-sm font-medium text-ink">اجزای حقوق</p>
@@ -43,7 +51,7 @@ export default async function PayrollHomePage() {
         </Link>
       </div>
       <p className="mt-6 text-xs text-ink-muted">
-        حقوق و مزایای هر فرد در «پروندهٔ پرسنلی ← حقوق و مزایا» ثبت می‌شود. محاسبهٔ حقوق، فیش و پرداخت در فازهای بعدی ارائه خواهد شد.
+        حقوق و مزایای هر فرد در «پروندهٔ پرسنلی ← حقوق و مزایا» ثبت می‌شود. محاسبه و بررسی در همین بخش انجام می‌شود؛ تأیید نهایی، ثبت حسابداری، پرداخت و فیش حقوقی در فازهای بعدی ارائه خواهد شد.
       </p>
     </div>
   );

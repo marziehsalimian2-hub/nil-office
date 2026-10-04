@@ -113,6 +113,12 @@ export function currentJalaliYear(now: Date = new Date()): number {
   return toJalaali(y, m, d).jy;
 }
 
+/** Current Jalali year/month/day (Asia/Tehran wall clock). */
+export function currentJalaliYMD(now: Date = new Date()): { jy: number; jm: number; jd: number } {
+  const { y, m, d } = tehranYMD(now);
+  return toJalaali(y, m, d);
+}
+
 const FA_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 export const toFaDigits = (s: string | number) =>
   String(s).replace(/\d/g, (d) => FA_DIGITS[Number(d)]);
