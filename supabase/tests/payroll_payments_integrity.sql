@@ -85,6 +85,9 @@ begin
   select id into v_admin from public.profiles where role = 'ADMIN' and is_active limit 1;
   if v_admin is null then raise exception 'no active ADMIN profile — create one first'; end if;
   update public.app_settings set base_currency_code = 'IRR' where id = 1;   -- the fixture batch is IRR (rolled back)
+  -- the real database may already have the Phase-4 account mapping configured: blank it INSIDE this rolled-back transaction
+  -- so the 'mapping missing' check is deterministic (the table has a no-delete trigger, hence UPDATE, not DELETE)
+  update public.payroll_accounting_settings set base_salary_expense_account_id = null, net_payable_account_id = null;
 
   -- 1) fixtures (as ADMIN / superuser) ----------------------------------------------------------------------------
   perform pg_temp.persona(v_admin, 'ADMIN', null, null);
