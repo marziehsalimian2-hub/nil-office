@@ -146,7 +146,7 @@ begin
           else
             v_rate := coalesce(v_l.percentage_override, v_l.percentage);
             v_rate_src := case when v_l.percentage_override is not null then 'COMPENSATION_OVERRIDE' else 'COMPONENT' end;
-            v_src := v_rate_src;
+            v_src := case when v_l.percentage_override is not null then 'COMPENSATION_OVERRIDE' else 'COMPONENT_DEFAULT' end;   -- amount_source CHECK (0119) has no 'COMPONENT'
             if v_rate is null then
               perform public._payroll_add_warning(p_calc_id, v_calc.batch_id, p_personnel_id, 'CRITICAL', 'COMPONENT_AMOUNT_MISSING', v_l.c_code);
             end if;
