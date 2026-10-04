@@ -304,7 +304,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PAYROLL_NOT_REVIEWED: "ابتدا باید «بررسی‌شد» ثبت شود.",
   PAYROLL_HAS_CRITICAL: "هشدار بحرانی یا ردیف ناقص وجود دارد؛ ابتدا آن‌ها را رفع و دوباره محاسبه کنید.",
   PAYROLL_NOTHING_TO_APPROVE: "این دسته هیچ نتیجه‌ای برای تأیید ندارد.",
-  PAYROLL_REOPEN_BLOCKED: "برای این دسته سند حسابداری یا پرداخت فعال ثبت شده است؛ پیش‌نویس‌ها را از کارت‌های همین صفحه حذف کنید و اسناد قطعی را در حسابداری برگشت بزنید.",
+  PAYROLL_REOPEN_BLOCKED: "برای این دسته سند حسابداری، پرداخت فعال یا فیش حقوقی صادرشده وجود دارد؛ پیش‌نویس‌ها را حذف و اسناد قطعی را در حسابداری برگشت بزنید (فیش صادرشده قابل حذف نیست).",
+  PAYSLIP_UP_TO_DATE: "برای این فرد فیشی با همین وضعیت پرداخت قبلاً صادر شده است؛ نسخهٔ جدید فقط پس از تغییر وضعیت پرداخت ممکن است.",
+  PAYSLIP_STATE_CHANGED: "وضعیت پرداخت هم‌زمان تغییر کرد؛ دوباره تلاش کنید تا فیش با وضعیت درست ساخته شود.",
+  PAYSLIP_RESULT_INVALID: "برای این نتیجه (ناقص یا بدون تأیید نهایی) فیش صادر نمی‌شود.",
+  PAYSLIP_PATH_INVALID: "اطلاعات فایل فیش نامعتبر است.",
+  PERSONNEL_PROFILE_LINKED: "این کاربر قبلاً به پروندهٔ پرسنلی دیگری وصل شده است.",
+  PERSONNEL_PROFILE_LOCKED: "اتصال پرسنل به کاربر فقط از «اتصال به کاربر سامانه» (مدیر منابع انسانی) قابل تغییر است.",
   PAYROLL_BANK_ACCOUNT_INVALID: "حساب بانکی/صندوق انتخاب‌شده معتبر نیست (باید فعال و به یک سرفصل حسابداری وصل باشد).",
   PAYROLL_BANK_CURRENCY_MISMATCH: "واحد پول حساب بانکی با واحد پول دستهٔ حقوق یکسان نیست.",
   PAYROLL_PAYMENT_AMOUNT_INVALID: "مبلغ پرداخت نامعتبر است (باید بیشتر از صفر و حداکثر مانده‌ٔ قابل پرداخت باشد).",
@@ -1379,4 +1385,7 @@ export const PAYROLL_PAYMENT_STATE_LABEL: Record<PayrollPaymentState, string> = 
 export const PAYROLL_PAYMENT_STATE_TONE: Record<PayrollPaymentState, string> = {
   NONE: "status-draft", DRAFTED: "status-review", PARTIALLY_PAID: "status-waiting", PAID: "status-final",
 };
+
+/* ============================ HR & Payroll — Phase 6 (payslips) =========================== */
+// Payslip payment states (NOT_PAID/PARTIALLY_PAID/PAID — as of issuance) and labels live in lib/payroll/payslip.ts.
 

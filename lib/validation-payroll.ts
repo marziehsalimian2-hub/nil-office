@@ -312,3 +312,10 @@ export const paymentDraftsSchema = z.object({
     .pipe(z.array(z.object({ result_id: z.string().uuid(), amount: moneyStr })).min(1, "حداقل یک نفر را انتخاب کنید.").max(500)),
 });
 
+/* ------------------- Phase 6: personnel <-> login link (self-service) ------------------- */
+
+export const linkProfileSchema = z.object({
+  personnel_id: z.string().uuid(),
+  profile_id: optUuid,
+});
+

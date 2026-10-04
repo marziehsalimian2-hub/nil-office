@@ -31,6 +31,7 @@ import {
   Banknote,
   Users,
   HandCoins,
+  ReceiptText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ const nav = [
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
   { href: "/personnel", label: "پرسنل", icon: Users },
   { href: "/payroll", label: "حقوق و دستمزد", icon: HandCoins },
+  { href: "/my-payslips", label: "فیش‌های حقوقی من", icon: ReceiptText },
   { href: "/opportunities", label: "فرصت‌های تجاری", icon: Target },
   { href: "/projects", label: "پروژه‌ها", icon: FolderKanban },
   { href: "/tasks/mine", label: "کارها", icon: ListChecks },

@@ -10,6 +10,7 @@ import { EditablePersonnelCard } from "./EditablePersonnelCard";
 import { SensitiveDetailsCard } from "./SensitiveDetailsCard";
 import { EmploymentActions } from "./EmploymentActions";
 import { CompensationTab } from "./CompensationTab";
+import { LinkProfileCard, type ProfileOption } from "./LinkProfileCard";
 import { payrollAccess } from "@/lib/payroll/access";
 import {
   PERSONNEL_STATUS_LABEL, PERSONNEL_STATUS_TONE,
@@ -40,6 +41,17 @@ export default async function PersonnelDetailPage({ params }: { params: Promise<
     supabase.from("activity_logs").select("*").eq("entity_type", "personnel").eq("entity_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("personnel").select("id, first_name, last_name, job_title").eq("employment_status", "ACTIVE").neq("id", id).order("first_name"),
   ]);
+
+  // HR admin only: users that can be linked (profiles are readable by every active user; personnel.profile_id shows who is taken)
+  let profileOptions: ProfileOption[] = [];
+  if (canViewSensitive) {
+    const [{ data: profs }, { data: linked }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name").eq("is_active", true).order("full_name"),
+      supabase.from("personnel").select("profile_id, first_name, last_name").not("profile_id", "is", null),
+    ]);
+    const takenBy = new Map(((linked ?? []) as { profile_id: string; first_name: string; last_name: string }[]).map((l) => [l.profile_id, `${l.first_name} ${l.last_name}`]));
+    profileOptions = ((profs ?? []) as { id: string; full_name: string | null }[]).map((u) => ({ id: u.id, label: u.full_name ?? "—", takenBy: takenBy.get(u.id) ?? null }));
+  }
 
   const employmentRecords = (records ?? []) as EmploymentRecord[];
   const currentRecord = employmentRecords.find((r) => r.end_date === null) ?? null;
@@ -72,6 +84,9 @@ export default async function PersonnelDetailPage({ params }: { params: Promise<
           hire_date: p.hire_date,
         }}
       />
+      {canViewSensitive && (
+        <LinkProfileCard personnelId={id} currentProfileId={p.profile_id ?? null} options={profileOptions} />
+      )}
       {canViewSensitive && (
         <SensitiveDetailsCard
           personnelId={id}
