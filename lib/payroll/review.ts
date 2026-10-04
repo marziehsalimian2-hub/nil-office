@@ -126,3 +126,25 @@ export function accountingBlockers(r: AccountingReadiness): string[] {
   if (r.missing_components.length > 0) out.push("COMPONENTS_UNMAPPED");
   return out;
 }
+
+export type BankAccountOption = { id: string; kind: string; bank_name: string | null; account_title: string; currency_code: string };
+
+export type PaymentRow = {
+  result_id: string; personnel_number: string; personnel_name: string;
+  net: string; paid: string; drafted: string; outstanding: string; available: string;
+  overpaid: boolean; amount_changed: boolean;
+  payments: { payment_id: string; status: string; journal_status: string | null; display_number: string | null; payment_date: string; amount: string }[];
+};
+
+export type PaymentSummary = {
+  payment_state: "NONE" | "DRAFTED" | "PARTIALLY_PAID" | "PAID";
+  rows: PaymentRow[];
+  totals: { net: string; paid: string; drafted: string; outstanding: string };
+  accounting_journal_status: string | null;
+};
+
+/** True when `available` (exact decimal string) is greater than zero — string compare, no Number(). */
+export function hasAvailable(available: string): boolean {
+  return /[1-9]/.test(available.split(".")[0] ?? "") || /[1-9]/.test(available.split(".")[1] ?? "");
+}
+

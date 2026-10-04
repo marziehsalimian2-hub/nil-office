@@ -7,18 +7,20 @@ import { PageHeader, StatCard, Card } from "@/components/ui";
 import { Tabs } from "@/components/Tabs";
 import {
   PAYROLL_BATCH_STATUS_LABEL, PAYROLL_BATCH_STATUS_TONE, PAYROLL_STALE_REASON_LABEL, PAYROLL_ROUNDING_MODE_LABEL,
+  PAYROLL_PAYMENT_STATE_LABEL, PAYROLL_PAYMENT_STATE_TONE,
   CURRENCY_LABEL, type Currency, type PayrollBatchStatus, type PayrollRoundingMode,
 } from "@/lib/enums";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { jalaliMonthLabel } from "@/lib/payroll/period";
 import { formatExactAmount } from "@/lib/payroll/format";
-import type { PayrollReview, WorkGridRow, AccountingReadiness } from "@/lib/payroll/review";
+import type { PayrollReview, WorkGridRow, AccountingReadiness, PaymentSummary, BankAccountOption } from "@/lib/payroll/review";
 import { ResultsTable } from "./ResultsTable";
 import { WarningsList } from "./WarningsList";
 import { EligibilityPanel, type PersonOption } from "./EligibilityPanel";
 import { BatchActions } from "./BatchActions";
 import { BatchSettingsForm } from "./BatchSettingsForm";
 import { AccountingCard } from "./AccountingCard";
+import { PaymentsCard } from "./PaymentsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -36,14 +38,17 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
   const status = b.status as PayrollBatchStatus;
 
   const showAccounting = b.status === "APPROVED" || b.accounting_journal_entry_id !== null;
-  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }] = await Promise.all([
+  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }, { data: paySummary }, { data: banks }] = await Promise.all([
     supabase.rpc("payroll_work_grid", { p_period_id: r.period.id, p_batch_id: id }),
     supabase.from("legal_rule_sets").select("jurisdiction"),
     // HR-access users can list personnel (to offer an out-of-period INCLUDE); payroll-only users simply get none.
     supabase.from("personnel").select("id, first_name, last_name, personnel_number").order("personnel_number"),
     showAccounting ? supabase.rpc("payroll_accounting_readiness", { p_batch_id: id }) : Promise.resolve({ data: null }),
     supabase.from("profiles").select("id, full_name").in("id", [b.approved_by, b.reviewed_by, b.submitted_by].filter((x): x is string => !!x)),
+    b.status === "APPROVED" ? supabase.rpc("payroll_payment_summary", { p_batch_id: id }) : Promise.resolve({ data: null }),
+    b.status === "APPROVED" ? supabase.rpc("payroll_bank_accounts") : Promise.resolve({ data: null }),
   ]);
+  const payments = (paySummary ?? null) as PaymentSummary | null;
   const actorName = new Map(((actors ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name ?? "—"]));
   const gridRows = (grid ?? []) as WorkGridRow[];
   const jurisdictions = [...new Set(((sets ?? []) as { jurisdiction: string }[]).map((s) => s.jurisdiction))].sort();
@@ -80,6 +85,9 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
         <span className="text-ink-muted">گرد کردن: {toFaDigits(b.rounding_scale)} رقم اعشار، {PAYROLL_ROUNDING_MODE_LABEL[b.rounding_mode as PayrollRoundingMode]}</span>
         <span className="text-ink-muted">حوزهٔ قانونی: {b.jurisdiction ?? "بدون قاعدهٔ قانونی"}</span>
         {b.reviewed_at && <span className="badge status-final">بررسی‌شده {formatJalali(b.reviewed_at)}{b.reviewed_by ? ` — ${actorName.get(b.reviewed_by) ?? "—"}` : ""}</span>}
+        {payments && payments.payment_state !== "NONE" && (
+          <span className={`badge ${PAYROLL_PAYMENT_STATE_TONE[payments.payment_state]}`}>{PAYROLL_PAYMENT_STATE_LABEL[payments.payment_state]}</span>
+        )}
         {b.approved_at && <span className="badge status-final">تأیید نهایی {formatJalali(b.approved_at)}{b.approved_by ? ` — ${actorName.get(b.approved_by) ?? "—"}` : ""}</span>}
       </div>
 
@@ -122,6 +130,12 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
         <BatchActions batchId={b.id} status={status} stale={stale} reviewed={!!b.reviewed_at} blockers={r.approval_blockers}
           canCreate={access.create} canApprove={access.approve} canAdmin={access.admin} />
       </Card>
+      {payments && (
+        <div className="mb-6">
+          <PaymentsCard batchId={b.id} currency={b.currency} summary={payments} banks={(banks ?? []) as BankAccountOption[]}
+            canCreate={access.approve && acc.create} canOpenAccounting={acc.open} defaultDateISO={new Date().toISOString().slice(0, 10)} />
+        </div>
+      )}
       {readiness && (
         <div className="mb-6">
           <AccountingCard batchId={b.id} readiness={readiness as AccountingReadiness} canDraft={access.approve && acc.create}
