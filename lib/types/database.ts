@@ -40,6 +40,7 @@ export type TradeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ChequeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ServiceLedgerRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type HrRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type PayrollRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -56,6 +57,7 @@ export interface Profile {
   service_ledger_role: ServiceLedgerRoleT | null;
   external_correspondence_role: ExternalCorrespondenceRoleT | null;
   hr_role: HrRoleT | null;
+  payroll_role: PayrollRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -1747,4 +1749,50 @@ export interface PersonnelSensitiveDetails {
   emergency_contact: string | null;
   updated_by: string | null;
   updated_at: string;
+}
+
+/* ============================ HR & Payroll — Phase 2 (configuration layer) ====================== */
+
+export type SalaryComponentTypeT = "EARNING" | "DEDUCTION" | "EMPLOYER_COST" | "INFORMATIONAL";
+export type SalaryCalculationMethodT = "FIXED" | "PERCENTAGE" | "QUANTITY_X_RATE" | "FORMULA" | "MANUAL_INPUT";
+export type LegalRuleSetStatusT = "DRAFT" | "REVIEWED" | "APPROVED" | "RETIRED";
+
+export interface SalaryComponent {
+  id: string; code: string; component_type: SalaryComponentTypeT; is_active: boolean;
+  created_by: string; created_at: string; updated_at: string;
+}
+export interface SalaryComponentVersion {
+  id: string; component_id: string; component_type: SalaryComponentTypeT; version_number: number;
+  name_fa: string; name_en: string | null; calculation_method: SalaryCalculationMethodT;
+  fixed_amount: number | null; currency: string | null; percentage: number | null; percentage_basis: string | null;
+  rule_key: string | null; taxable: boolean; insurable: boolean; display_on_payslip: boolean; display_order: number;
+  effective_from: string; effective_to: string | null; change_note: string | null;
+  created_by: string; created_at: string; updated_at: string;
+}
+export interface CompensationProfile {
+  id: string; personnel_id: string; version_number: number; effective_from: string; effective_to: string | null;
+  base_salary: number; currency: string; payment_frequency: string; hourly_rate: number | null; notes: string | null;
+  created_by: string; created_at: string; updated_at: string;
+}
+export interface CompensationLine {
+  id: string; compensation_profile_id: string; component_id: string; component_version_id: string;
+  amount_override: number | null; percentage_override: number | null; notes: string | null; created_at: string;
+}
+/** Bank tier only (payroll ADMIN) — RLS-enforced (0117). */
+export interface PersonnelPaymentDestination {
+  id: string; personnel_id: string; bank_name: string; account_holder_name: string;
+  account_number: string | null; iban: string | null; card_number: string | null;
+  is_primary: boolean; is_active: boolean; notes: string | null;
+  created_by: string; created_at: string; updated_by: string | null; updated_at: string;
+}
+export interface LegalRuleSet {
+  id: string; name: string; jurisdiction: string; version_number: number; effective_from: string; effective_to: string | null;
+  source_reference: string | null; status: LegalRuleSetStatusT; status_note: string | null;
+  created_by: string; created_at: string; reviewed_by: string | null; reviewed_at: string | null;
+  approved_by: string | null; approved_at: string | null; retired_by: string | null; retired_at: string | null; updated_at: string;
+}
+export interface LegalRuleEntry {
+  id: string; rule_set_id: string; rule_key: string; value_numeric: number | null; value_json: unknown | null;
+  unit: string | null; description: string | null; source_reference: string | null;
+  created_by: string; created_at: string; updated_at: string;
 }
