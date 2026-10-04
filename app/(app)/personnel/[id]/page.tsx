@@ -9,6 +9,8 @@ import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { EditablePersonnelCard } from "./EditablePersonnelCard";
 import { SensitiveDetailsCard } from "./SensitiveDetailsCard";
 import { EmploymentActions } from "./EmploymentActions";
+import { CompensationTab } from "./CompensationTab";
+import { payrollAccess } from "@/lib/payroll/access";
 import {
   PERSONNEL_STATUS_LABEL, PERSONNEL_STATUS_TONE,
   PERSONNEL_EMPLOYMENT_TYPE_LABEL, HR_DOCUMENT_CATEGORY,
@@ -25,6 +27,7 @@ export default async function PersonnelDetailPage({ params }: { params: Promise<
   const profile = await requireProfile();
   const canManage = profile.role === "ADMIN" || (profile.hr_role != null && profile.hr_role !== "VIEW");
   const canViewSensitive = profile.role === "ADMIN" || profile.hr_role === "ADMIN";
+  const px = payrollAccess(profile);
 
   const { data: personnel } = await supabase.from("personnel").select("*").eq("id", id).single();
   if (!personnel) notFound();
@@ -118,6 +121,16 @@ export default async function PersonnelDetailPage({ params }: { params: Promise<
 
   const stubTab = (
     <Card><p className="text-sm text-ink-muted">این بخش در فاز بعدی این ماژول ارائه می‌شود.</p></Card>
+  );
+
+  // Built ONLY with payroll access — HR-only users never trigger the salary queries (and RLS would return nothing anyway).
+  const compensationTab = px.view ? (
+    <CompensationTab personnelId={id} canManage={px.create} canViewBank={px.bank} />
+  ) : (
+    <Card>
+      <p className="text-sm font-medium text-ink">اطلاعات حقوق و مزایا برای شما قابل مشاهده نیست.</p>
+      <p className="mt-1 text-sm text-ink-muted">دسترسی به این بخش نیازمند نقش «حقوق و دستمزد» است؛ نقش منابع انسانی به‌تنهایی کافی نیست.</p>
+    </Card>
   );
 
   const documentsTab = (
@@ -214,7 +227,7 @@ export default async function PersonnelDetailPage({ params }: { params: Promise<
         tabs={[
           { label: "نمای کلی", content: overviewTab },
           { label: "اشتغال", content: employmentTab },
-          { label: "حقوق و مزایا", content: stubTab },
+          { label: "حقوق و مزایا", content: compensationTab },
           { label: "حقوق‌ودستمزد", content: stubTab },
           { label: "پرداخت‌ها", content: stubTab },
           { label: "فیش‌های حقوقی", content: stubTab },

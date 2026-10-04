@@ -251,6 +251,38 @@ export const ERROR_MESSAGES: Record<string, string> = {
   REHIRE_REQUIRES_EMPLOYMENT_DETAILS: "برای بازگشت به کار، درج سمت و نوع همکاری جدید الزامی است.",
   EMPLOYMENT_RECORD_CLOSED_IMMUTABLE: "این رکورد اشتغال بسته شده و دیگر قابل تغییر نیست.",
   EMPLOYMENT_RECORD_FIELD_IMMUTABLE: "این فیلد پس از ثبت رکورد اشتغال قابل تغییر نیست؛ برای اصلاح، رکورد جدید ثبت کنید.",
+
+  // HR & Payroll — Phase 2 (configuration layer)
+  PAYROLL_VERSION_CLOSED_IMMUTABLE: "این نسخه بسته شده و دیگر قابل تغییر نیست؛ برای اصلاح، نسخهٔ جدید ثبت کنید.",
+  PAYROLL_VERSION_FIELD_IMMUTABLE: "این فیلد پس از ثبت نسخه قابل تغییر نیست؛ برای اصلاح، نسخهٔ جدید ثبت کنید.",
+  PAYROLL_NO_DELETE: "حذف اطلاعات حقوق و دستمزد مجاز نیست؛ در صورت نیاز آن را غیرفعال کنید.",
+  PAYROLL_START_BEFORE_CURRENT: "تاریخ شروع نمی‌تواند قبل از تاریخ شروع نسخهٔ فعلی باشد.",
+  COMPONENT_CODE_INVALID: "کد جزء حقوقی باید با حرف لاتین بزرگ شروع شود و فقط شامل حروف بزرگ، رقم و خط زیر باشد.",
+  COMPONENT_CODE_DUPLICATE: "این کد قبلاً برای جزء حقوقی دیگری استفاده شده است.",
+  COMPONENT_CODE_IMMUTABLE: "کد و نوع جزء حقوقی پس از ثبت قابل تغییر نیست.",
+  COMPONENT_NAME_REQUIRED: "درج نام فارسی جزء حقوقی الزامی است.",
+  COMPONENT_INVALID_COMBINATION: "ترکیب روش محاسبه، مبلغ، درصد و مبنای قانونی انتخاب‌شده معتبر نیست.",
+  COMPONENT_INACTIVE: "این جزء حقوقی غیرفعال است.",
+  COMPONENT_NOT_EFFECTIVE: "برای این جزء حقوقی در تاریخ شروع انتخاب‌شده تعریف معتبری وجود ندارد.",
+  COMPONENT_CURRENCY_MISMATCH: "واحد پول مبلغ پیش‌فرض این جزء با واحد پول حقوق یکسان نیست؛ مبلغ را دستی وارد کنید.",
+  COMPONENT_OVERRIDE_NOT_ALLOWED: "برای این جزء، جایگزینی مبلغ یا درصد مجاز نیست.",
+  COMPONENT_AMOUNT_MISSING: "برای این جزء، مبلغ یا درصد تعیین نشده است.",
+  BASE_SALARY_IS_PROFILE_FIELD: "حقوق پایه در خود پروفایل ثبت می‌شود و به‌عنوان ردیف جزء حقوقی مجاز نیست.",
+  LINE_DUPLICATE_COMPONENT: "هر جزء حقوقی را فقط یک‌بار می‌توان در هر نسخه افزود.",
+  HOURLY_RATE_REQUIRED: "برای دورهٔ پرداخت ساعتی، نرخ ساعتی الزامی است.",
+  EFFECTIVE_RANGE_INVALID: "بازهٔ اعتبار نامعتبر است؛ تاریخ پایان باید بعد از تاریخ شروع باشد.",
+  RULE_SET_NAME_REQUIRED: "نام و حوزهٔ قانونی (Jurisdiction) الزامی است.",
+  RULE_SET_NOT_DRAFT: "این مجموعه قانون دیگر پیش‌نویس نیست و قابل ویرایش نیست؛ برای اصلاح، نسخهٔ جدید بسازید.",
+  RULE_SET_FIELD_IMMUTABLE: "این فیلد مجموعه قانون قابل تغییر نیست.",
+  RULE_SET_EMPTY: "مجموعه قانون بدون هیچ قاعده‌ای قابل تأیید نیست.",
+  RULE_SET_OVERLAP: "مجموعهٔ تأییدشدهٔ دیگری با همین حوزه، بازهٔ همپوشان و قاعدهٔ مشترک وجود دارد؛ ابتدا آن را بازنشسته کنید یا بازه را اصلاح کنید.",
+  RULE_ENTRY_KEY_INVALID: "کلید قاعده باید با حرف لاتین کوچک شروع شود و فقط شامل حروف کوچک، رقم و خط زیر باشد.",
+  RULE_ENTRY_VALUE_REQUIRED: "حداقل یکی از مقدار عددی یا مقدار ساختاریافته (JSON) باید وارد شود.",
+  PAYMENT_DEST_IDENTIFIER_REQUIRED: "حداقل یکی از شمارهٔ حساب، شبا یا شمارهٔ کارت باید وارد شود.",
+  PAYMENT_DEST_IBAN_INVALID: "شمارهٔ شبا نامعتبر است.",
+  PAYMENT_DEST_CARD_INVALID: "شمارهٔ کارت نامعتبر است.",
+  PAYMENT_DEST_FIELD_IMMUTABLE: "مشخصات حساب پس از ثبت قابل تغییر نیست؛ حساب را غیرفعال و حساب جدید ثبت کنید.",
+  PAYMENT_DEST_DEACTIVATED: "این حساب غیرفعال شده و قابل فعال‌سازی مجدد نیست.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -1159,5 +1191,84 @@ export const PERSONNEL_EMPLOYMENT_TYPE_LABEL: Record<PersonnelEmploymentType, st
 
 /** Suggested categories for the HR Documents tab's filename-prefix picker — no DB column exists for this (matches precedent: attachments has no category column anywhere in this codebase). */
 export const HR_DOCUMENT_CATEGORY = [
-  "قرارداد کار", "مدارک هویتی", "گواهی‌نامه‌ها", "اطلاعات بانکی", "اسناد بیمه", "اسناد مالیاتی", "سایر",
+  "قرارداد کار", "مدارک هویتی", "گواهی‌نامه‌ها", "اسناد بیمه", "اسناد مالیاتی", "سایر",
 ] as const;
+// NOTE: «اطلاعات بانکی» is deliberately NOT a suggested HR-document category — HR documents are readable by every
+// HR-access user, while bank details are payroll-ADMIN-only (personnel_payment_destinations, 0115/0117).
+
+/* ============================ HR & Payroll — Phase 2 (configuration layer) =========================== */
+
+export const PAYROLL_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type PayrollRole = (typeof PAYROLL_ROLE)[number];
+export const PAYROLL_ROLE_LABEL: Record<PayrollRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", APPROVE: "تأیید", ADMIN: "مدیر حقوق و دستمزد",
+};
+
+export const SALARY_COMPONENT_TYPE = ["EARNING", "DEDUCTION", "EMPLOYER_COST", "INFORMATIONAL"] as const;
+export type SalaryComponentType = (typeof SALARY_COMPONENT_TYPE)[number];
+export const SALARY_COMPONENT_TYPE_LABEL: Record<SalaryComponentType, string> = {
+  EARNING: "مزایا (درآمد)", DEDUCTION: "کسورات", EMPLOYER_COST: "هزینهٔ کارفرما", INFORMATIONAL: "اطلاعاتی",
+};
+
+export const SALARY_CALCULATION_METHOD = ["FIXED", "PERCENTAGE", "QUANTITY_X_RATE", "FORMULA", "MANUAL_INPUT"] as const;
+export type SalaryCalculationMethod = (typeof SALARY_CALCULATION_METHOD)[number];
+export const SALARY_CALCULATION_METHOD_LABEL: Record<SalaryCalculationMethod, string> = {
+  FIXED: "مبلغ ثابت", PERCENTAGE: "درصدی", QUANTITY_X_RATE: "مقدار × نرخ (محاسبه در فاز بعد)",
+  FORMULA: "فرمول (محاسبه در فاز بعد)", MANUAL_INPUT: "ورود دستی در هر دوره",
+};
+/** Defined but NOT evaluated until the calculation phase — the UI shows a notice. */
+export const DEFERRED_CALCULATION_METHODS: SalaryCalculationMethod[] = ["QUANTITY_X_RATE", "FORMULA"];
+
+export const PAYROLL_PERCENTAGE_BASIS = ["BASE_SALARY", "GROSS_EARNINGS"] as const;
+export type PayrollPercentageBasis = (typeof PAYROLL_PERCENTAGE_BASIS)[number];
+export const PAYROLL_PERCENTAGE_BASIS_LABEL: Record<PayrollPercentageBasis, string> = {
+  BASE_SALARY: "حقوق پایه", GROSS_EARNINGS: "جمع مزایا (ناخالص)",
+};
+
+export const PAYMENT_FREQUENCY = ["MONTHLY", "BIWEEKLY", "WEEKLY", "DAILY", "HOURLY", "OTHER"] as const;
+export type PaymentFrequency = (typeof PAYMENT_FREQUENCY)[number];
+export const PAYMENT_FREQUENCY_LABEL: Record<PaymentFrequency, string> = {
+  MONTHLY: "ماهانه", BIWEEKLY: "دو‌هفته‌ای", WEEKLY: "هفتگی", DAILY: "روزانه", HOURLY: "ساعتی", OTHER: "سایر",
+};
+
+export const LEGAL_RULE_SET_STATUS = ["DRAFT", "REVIEWED", "APPROVED", "RETIRED"] as const;
+export type LegalRuleSetStatus = (typeof LEGAL_RULE_SET_STATUS)[number];
+export const LEGAL_RULE_SET_STATUS_LABEL: Record<LegalRuleSetStatus, string> = {
+  DRAFT: "پیش‌نویس", REVIEWED: "بررسی‌شده", APPROVED: "تأییدشده", RETIRED: "بازنشسته",
+};
+export const LEGAL_RULE_SET_STATUS_TONE: Record<LegalRuleSetStatus, string> = {
+  DRAFT: "status-draft", REVIEWED: "status-review", APPROVED: "status-final", RETIRED: "status-closed",
+};
+
+/** Suggestions ONLY (name + type) — no flags, no values, nothing is seeded in the DB. */
+export const SUGGESTED_SALARY_COMPONENTS: { code: string; name_fa: string; type: SalaryComponentType }[] = [
+  { code: "BASE_SALARY", name_fa: "حقوق پایه", type: "EARNING" },
+  { code: "HOUSING_ALLOWANCE", name_fa: "حق مسکن", type: "EARNING" },
+  { code: "FOOD_ALLOWANCE", name_fa: "حق خواروبار", type: "EARNING" },
+  { code: "TRANSPORT_ALLOWANCE", name_fa: "حق ایاب‌وذهاب", type: "EARNING" },
+  { code: "MANAGEMENT_ALLOWANCE", name_fa: "حق مدیریت", type: "EARNING" },
+  { code: "JOB_ALLOWANCE", name_fa: "حق شغل", type: "EARNING" },
+  { code: "OVERTIME", name_fa: "اضافه‌کاری", type: "EARNING" },
+  { code: "BONUS", name_fa: "پاداش", type: "EARNING" },
+  { code: "COMMISSION", name_fa: "پورسانت", type: "EARNING" },
+  { code: "MISSION_ALLOWANCE", name_fa: "ماموریت", type: "EARNING" },
+  { code: "OTHER_ALLOWANCE", name_fa: "سایر مزایا", type: "EARNING" },
+  { code: "INSURANCE_EMPLOYEE", name_fa: "بیمهٔ سهم کارمند", type: "DEDUCTION" },
+  { code: "TAX", name_fa: "مالیات", type: "DEDUCTION" },
+  { code: "LOAN_DEDUCTION", name_fa: "کسر وام", type: "DEDUCTION" },
+  { code: "ADVANCE_DEDUCTION", name_fa: "کسر مساعده", type: "DEDUCTION" },
+  { code: "ABSENCE_DEDUCTION", name_fa: "کسر غیبت", type: "DEDUCTION" },
+  { code: "OTHER_DEDUCTION", name_fa: "سایر کسورات", type: "DEDUCTION" },
+];
+/** Suggested rule KEYS only — never values. */
+export const SUGGESTED_RULE_KEYS: { key: string; label_fa: string }[] = [
+  { key: "minimum_wage", label_fa: "حداقل دستمزد" },
+  { key: "insurance_employee_rate", label_fa: "نرخ بیمهٔ سهم کارمند" },
+  { key: "insurance_employer_rate", label_fa: "نرخ بیمهٔ سهم کارفرما" },
+  { key: "insurance_ceiling", label_fa: "سقف مشمول بیمه" },
+  { key: "insurance_floor", label_fa: "کف مشمول بیمه" },
+  { key: "tax_brackets", label_fa: "پله‌های مالیات" },
+  { key: "overtime_coefficient", label_fa: "ضریب اضافه‌کاری" },
+  { key: "severance_rules", label_fa: "قواعد سنوات" },
+  { key: "bonus_rules", label_fa: "قواعد پاداش" },
+];

@@ -30,6 +30,7 @@ import {
   Bot,
   Banknote,
   Users,
+  HandCoins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ const nav = [
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
   { href: "/personnel", label: "پرسنل", icon: Users },
+  { href: "/payroll", label: "حقوق و دستمزد", icon: HandCoins },
   { href: "/opportunities", label: "فرصت‌های تجاری", icon: Target },
   { href: "/projects", label: "پروژه‌ها", icon: FolderKanban },
   { href: "/tasks/mine", label: "کارها", icon: ListChecks },
