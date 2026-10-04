@@ -34,6 +34,17 @@ manual SSH + PM2; merging to `master` does not deploy by itself).
 In-flight proposals created before the deploy carry the old (plain SHA-256) hash and are cancelled safely when
 tapped; the user just asks again.
 
+## Deploying Slice 2 (receipt / payment drafts) — migration 0135
+
+1. Run `supabase/migrations/0135_assistant_cash_drafts.sql`, then `supabase/tests/assistant_cash_drafts_integrity.sql`
+   (rolled back; success = no error).
+2. Deploy as usual. No new environment variables.
+3. Test with a **synthetic** receipt image only — never a real customer document — then delete the test drafts from
+   `/accounting/receipts` or `/accounting/payments` (accounting admin). The archived evidence files are permanent by design.
+4. Checklist: bank-transfer photo → preview with the extracted fields (unreadable ones are asked, not guessed) → confirm →
+   a DRAFT (not verified, not posted) with «مشاهدهٔ مدرک» on the web; the same image again → hard stop; «ثبت کن و فاکتور رو
+   تسویه کن» → draft only; supplier-invoice PDF → payment draft; a user without accounting CREATE is refused.
+
 ## Post-deploy verification checklist
 
 - A plain question («امروز چه کارهایی دارم؟») answers (tool list loads).

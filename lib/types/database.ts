@@ -281,6 +281,8 @@ export interface Attachment {
   mime_type: string | null;
   size_bytes: number | null;
   uploaded_by: string | null;
+  /** SHA-256 of an archived evidence file (receipt/payment evidence — 0135); null for older attachments */
+  sha256?: string | null;
   created_at: string;
 }
 

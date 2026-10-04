@@ -9,12 +9,17 @@ import type { ActionDefinition } from "./types";
  *   hasProjectAccess        <-> has_project_access()         (0054 — tasks are visible to project users OR their own assignee/creator)
  *   canApproveInvoice       <-> can_approve_invoice()        (0031)
  *   canCreateInvoice        <-> invoice_role in CREATE/APPROVE/ADMIN
+ *   hasAccountingAccess     <-> has_accounting_access()      (0008 — any accounting_role)
+ *   canCreateAccounting     <-> can_create_accounting()      (0008 — accounting_role CREATE/POST/ADMIN; creates receipt/payment DRAFTS)
  * Pure (type-only imports) so access.test.ts needs no mocks.
  */
 export const hasServiceLedgerAccess = (p: Profile) => p.role === "ADMIN" || p.service_ledger_role != null;
 export const hasProjectAccess = (p: Profile) => p.role === "ADMIN" || p.project_role != null;
 export const canCreateInvoice = (p: Profile) => p.role === "ADMIN" || p.invoice_role === "CREATE" || p.invoice_role === "APPROVE" || p.invoice_role === "ADMIN";
 export const canApproveInvoice = (p: Profile) => p.role === "ADMIN" || p.invoice_role === "APPROVE" || p.invoice_role === "ADMIN";
+export const hasAccountingAccess = (p: Profile) => p.role === "ADMIN" || p.accounting_role != null;
+export const canCreateAccounting = (p: Profile) =>
+  p.role === "ADMIN" || p.accounting_role === "CREATE" || p.accounting_role === "POST" || p.accounting_role === "ADMIN";
 export const canViewCompanyFinancials = (p: Profile) =>
   p.role === "ADMIN" || p.accounting_role != null || p.invoice_role != null || p.contract_role != null;
 

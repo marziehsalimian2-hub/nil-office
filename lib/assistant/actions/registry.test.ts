@@ -69,7 +69,7 @@ describe("Action Registry — structure", () => {
 
   it("accounting posting / reversal, cheque issue-clear-void and payroll approval/payment are NOT reachable", () => {
     const names = ACTION_REGISTRY.map((a) => a.name).join(" ");
-    for (const forbidden of ["POST_", "REVERSE", "ISSUE_CHEQUE", "CLEAR_CHEQUE", "VOID_CHEQUE", "APPROVE_PAYROLL", "PAY_SALARY", "CALCULATE_PAYROLL", "BILLING_BATCH"]) {
+    for (const forbidden of ["POST_", "REVERSE", "VERIFY_", "ALLOCAT", "SETTLE", "ISSUE_CHEQUE", "CLEAR_CHEQUE", "VOID_CHEQUE", "APPROVE_PAYROLL", "PAY_SALARY", "CALCULATE_PAYROLL", "BILLING_BATCH"]) {
       expect(names, forbidden).not.toContain(forbidden);
     }
   });
@@ -172,5 +172,67 @@ describe("Action Registry — documentation", () => {
     const doc = readFileSync(join(process.cwd(), "docs", "ASSISTANT_ACTION_REGISTRY.md"), "utf8");
     const missing = ACTION_REGISTRY.map((a) => a.name).filter((n) => !doc.includes("`" + n + "`"));
     expect(missing).toEqual([]);
+  });
+});
+
+describe("Action Registry — receipt / payment drafts (Slice 2): draft only, never verify / post / allocate", () => {
+  const find = (n: string) => ACTION_REGISTRY.find((a) => a.name === n)!;
+  const profile = (accounting_role: string | null, role = "USER") => ({ role, accounting_role }) as never;
+
+  it("the cash actions exist, are MEDIUM drafts with confirmation, and the bank list is a LOW read", () => {
+    for (const n of ["CREATE_RECEIPT_DRAFT", "CREATE_PAYMENT_DRAFT"]) {
+      expect(find(n).riskLevel, n).toBe("MEDIUM");
+      expect(find(n).requiresConfirmation, n).toBe(true);
+    }
+    expect(find("LIST_BANK_ACCOUNTS").riskLevel).toBe("LOW");
+    expect(find("LIST_BANK_ACCOUNTS").requiresConfirmation).toBe(false);
+  });
+
+  it("drafting needs accounting CREATE / POST / ADMIN (or app ADMIN); a VIEW-only accountant or a non-accountant cannot", () => {
+    for (const n of ["CREATE_RECEIPT_DRAFT", "CREATE_PAYMENT_DRAFT"]) {
+      const gate = find(n).requiredAccess!;
+      expect(gate(profile(null)), n).toBe(false);
+      expect(gate(profile("VIEW")), n).toBe(false);
+      expect(gate(profile("CREATE")), n).toBe(true);
+      expect(gate(profile("POST")), n).toBe(true);
+      expect(gate(profile(null, "ADMIN")), n).toBe(true);
+    }
+  });
+
+  it("listing bank accounts needs any accounting role", () => {
+    const gate = find("LIST_BANK_ACCOUNTS").requiredAccess!;
+    expect(gate(profile(null))).toBe(false);
+    expect(gate(profile("VIEW"))).toBe(true);
+  });
+
+  it("the bank list exposes no account number / IBAN column", () => {
+    const code = readFileSync(join(process.cwd(), "lib", "assistant", "actions", "cash.ts"), "utf8");
+    const select = /from\("bank_accounts"\)\.select\("([^"]+)"\)/.exec(code)?.[1] ?? "";
+    expect(select).toContain("account_title");
+    expect(select).not.toMatch(/account_number|iban/i);
+  });
+
+  it("neither the cash actions nor createCashDraftCore reference verify / post / allocation / journal operations", () => {
+    const actions = readFileSync(join(process.cwd(), "lib", "assistant", "actions", "cash.ts"), "utf8");
+    const accounting = readFileSync(join(process.cwd(), "app", "actions", "accounting.ts"), "utf8");
+    const start = accounting.indexOf("export async function createCashDraftCore");
+    const end = accounting.indexOf("/** Update a receipt/payment's fields", start);
+    expect(start).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(start);
+    const core = accounting.slice(start, end);
+    const strip = (s: string) => s.split("\n").filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*") && !l.trim().startsWith("/*")).join("\n");
+    for (const [label, code] of [["cash.ts", strip(actions)], ["createCashDraftCore", strip(core)]] as const) {
+      expect(code, label).not.toMatch(/post_receipt|post_payment|verify_receipt|verify_payment|set_cash_allocations|post_journal|journal_entr|reverse_/i);
+    }
+  });
+
+  it("the draft insert never sets verification, numbering, journal or counterpart-account fields", () => {
+    const accounting = readFileSync(join(process.cwd(), "app", "actions", "accounting.ts"), "utf8");
+    const start = accounting.indexOf("export async function createCashDraftCore");
+    const core = accounting.slice(start, accounting.indexOf("/** Update a receipt/payment's fields", start));
+    const insert = /\.insert\(\{([\s\S]*?)\}\)\s*\.select\("id"\)/.exec(core)?.[1] ?? "";
+    expect(insert).toContain('status: "DRAFT"');
+    expect(insert).toContain("counterpart_account_id: null");
+    expect(insert).not.toMatch(/verified_|display_number|sequence_number|journal_entry_id|POSTED/);
   });
 });

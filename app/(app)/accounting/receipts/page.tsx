@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { CashDocRow } from "@/components/CashDocRow";
 import type { AllocationRow } from "@/components/AllocationEditor";
-import { getDisplayUnit, loadAccountingOptions } from "@/app/actions/accounting-options";
+import { getDisplayUnit, loadAccountingOptions, loadCashEvidence } from "@/app/actions/accounting-options";
 import type { Receipt, CashAllocation } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,8 @@ export default async function ReceiptsPage() {
     list.push({ target_type: a.target_type, target_id: a.target_id ?? "", amount: String(a.amount), description: a.description ?? "" });
     allocationsByReceipt.set(a.source_id, list);
   }
+
+  const evidenceByReceipt = await loadCashEvidence("RECEIPT", rows.map((r) => r.id));
 
   const banks = opts.banks.map((b) => ({ id: b.id, label: b.account_title }));
   const accounts = opts.postingAccounts.map((a) => ({ id: a.id, label: `${a.code} — ${a.name}` }));
@@ -64,6 +66,7 @@ export default async function ReceiptsPage() {
                   salesDocuments={salesDocuments}
                   allocations={allocationsByReceipt.get(r.id) ?? []}
                   fiscalYears={fiscalYears}
+                  evidence={evidenceByReceipt.get(r.id)}
                   row={{
                     id: r.id,
                     date: r.receipt_date,
