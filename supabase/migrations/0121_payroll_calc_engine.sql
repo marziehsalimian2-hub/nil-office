@@ -287,18 +287,18 @@ begin
   select * into v_p from public.payroll_periods where id = v_b.period_id;
 
   if v_c.jurisdiction is distinct from v_b.jurisdiction or v_c.rounding_scale <> v_b.rounding_scale or v_c.rounding_mode <> v_b.rounding_mode then
-    v_out := v_out || 'SETTINGS_CHANGED';
+    v_out := array_append(v_out, 'SETTINGS_CHANGED');
   end if;
   if exists (select 1 from public.payroll_results r
               where r.calculation_id = v_c.id
                 and coalesce(r.work_data_revision, 0) <> coalesce(
                       (select wd.revision from public.payroll_work_data wd where wd.period_id = v_b.period_id and wd.personnel_id = r.personnel_id), 0)) then
-    v_out := v_out || 'WORK_DATA_CHANGED';
+    v_out := array_append(v_out, 'WORK_DATA_CHANGED');
   end if;
   if exists (select 1 from public.payroll_results r
               where r.calculation_id = v_c.id
                 and r.compensation_profile_id is distinct from (public._payroll_profile_on(r.personnel_id, v_p.period_end)).id) then
-    v_out := v_out || 'COMPENSATION_CHANGED';
+    v_out := array_append(v_out, 'COMPENSATION_CHANGED');
   end if;
   if exists (
     with e as (select x.personnel_id from public._payroll_eligibility(v_b.period_id, p_batch_id) x where x.included),
@@ -307,7 +307,7 @@ begin
                    union all
                    (select personnel_id from r except select personnel_id from e)) d
   ) then
-    v_out := v_out || 'ELIGIBILITY_CHANGED';
+    v_out := array_append(v_out, 'ELIGIBILITY_CHANGED');
   end if;
   return v_out;
 end; $$;
