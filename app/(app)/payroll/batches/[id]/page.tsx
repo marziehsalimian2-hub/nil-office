@@ -14,6 +14,7 @@ import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { jalaliMonthLabel } from "@/lib/payroll/period";
 import { formatExactAmount } from "@/lib/payroll/format";
 import type { PayrollReview, WorkGridRow, AccountingReadiness, PaymentSummary, BankAccountOption } from "@/lib/payroll/review";
+import type { BatchPayslipRow } from "@/lib/payroll/payslip";
 import { ResultsTable } from "./ResultsTable";
 import { WarningsList } from "./WarningsList";
 import { EligibilityPanel, type PersonOption } from "./EligibilityPanel";
@@ -21,6 +22,7 @@ import { BatchActions } from "./BatchActions";
 import { BatchSettingsForm } from "./BatchSettingsForm";
 import { AccountingCard } from "./AccountingCard";
 import { PaymentsCard } from "./PaymentsCard";
+import { PayslipsCard } from "./PayslipsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,7 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
   const status = b.status as PayrollBatchStatus;
 
   const showAccounting = b.status === "APPROVED" || b.accounting_journal_entry_id !== null;
-  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }, { data: paySummary }, { data: banks }] = await Promise.all([
+  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }, { data: paySummary }, { data: banks }, { data: slips }] = await Promise.all([
     supabase.rpc("payroll_work_grid", { p_period_id: r.period.id, p_batch_id: id }),
     supabase.from("legal_rule_sets").select("jurisdiction"),
     // HR-access users can list personnel (to offer an out-of-period INCLUDE); payroll-only users simply get none.
@@ -47,7 +49,9 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
     supabase.from("profiles").select("id, full_name").in("id", [b.approved_by, b.reviewed_by, b.submitted_by].filter((x): x is string => !!x)),
     b.status === "APPROVED" ? supabase.rpc("payroll_payment_summary", { p_batch_id: id }) : Promise.resolve({ data: null }),
     b.status === "APPROVED" ? supabase.rpc("payroll_bank_accounts") : Promise.resolve({ data: null }),
+    b.status === "APPROVED" ? supabase.rpc("payroll_payslips_for_batch", { p_batch_id: id }) : Promise.resolve({ data: null }),
   ]);
+  const payslipRows = (slips ?? null) as BatchPayslipRow[] | null;
   const payments = (paySummary ?? null) as PaymentSummary | null;
   const actorName = new Map(((actors ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name ?? "—"]));
   const gridRows = (grid ?? []) as WorkGridRow[];
@@ -134,6 +138,11 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
         <div className="mb-6">
           <PaymentsCard batchId={b.id} currency={b.currency} summary={payments} banks={(banks ?? []) as BankAccountOption[]}
             canCreate={access.approve && acc.create} canOpenAccounting={acc.open} defaultDateISO={new Date().toISOString().slice(0, 10)} />
+        </div>
+      )}
+      {payslipRows && (
+        <div className="mb-6">
+          <PayslipsCard batchId={b.id} rows={payslipRows} canIssue={access.approve} />
         </div>
       )}
       {readiness && (
