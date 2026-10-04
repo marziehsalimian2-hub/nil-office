@@ -16,7 +16,7 @@
 -- =============================================================================
 begin;
 
--- App persona: role + module roles, as the authenticated Postgres role (jwt role claim cleared => auth.role() is NOT service_role).
+-- App persona: role + module roles, as the authenticated Postgres role (jwt role claims = authenticated => auth.role() is NOT service_role).
 create function pg_temp.persona(p_user uuid, p_role text, p_hr text, p_payroll text, p_acc text default null) returns void
 language plpgsql as $$
 begin
@@ -25,7 +25,8 @@ begin
      set role = p_role::app_role, hr_role = p_hr::hr_role, payroll_role = p_payroll::payroll_role, accounting_role = p_acc::accounting_role
    where id = p_user;
   perform set_config('request.jwt.claim.sub', p_user::text, true);
-  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', p_user::text, 'role', 'authenticated')::text, true);   -- auth.role() may read this one
   execute 'set role authenticated';
 end $$;
 
@@ -36,6 +37,7 @@ begin
   execute 'reset role';
   perform set_config('request.jwt.claim.sub', '', true);
   perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('request.jwt.claims', jsonb_build_object('role', 'service_role')::text, true);
   execute 'set role service_role';
 end $$;
 
