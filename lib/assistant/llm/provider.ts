@@ -38,6 +38,8 @@ export type LlmTurnResult = {
   toolUses: LlmToolUseRequest[];
   /** Why the model stopped — "tool_use" means the caller must execute the tools and call converseWithTools again. */
   stopReason: "end_turn" | "tool_use" | "max_tokens" | "other";
+  /** Token usage the vendor reported for this call — feeds the daily cost cap (lib/assistant/usage.ts). Absent if the vendor gave none. */
+  usage?: { inputTokens: number; outputTokens: number };
 };
 
 export interface LLMProvider {

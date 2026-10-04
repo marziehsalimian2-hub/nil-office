@@ -1,4 +1,5 @@
 import "server-only";
+import { timingSafeEqualStrings } from "@/lib/assistant/security";
 
 /**
  * Verifies Telegram's own webhook-secret header (spec §4). Telegram
@@ -14,7 +15,8 @@ export function verifyWebhookSecret(headerValue: string | null): boolean {
     console.error("[telegram] TELEGRAM_WEBHOOK_SECRET is not configured");
     return false;
   }
-  return headerValue === expected;
+  if (!headerValue) return false;
+  return timingSafeEqualStrings(headerValue, expected); // constant-time (spec §62)
 }
 
 /**

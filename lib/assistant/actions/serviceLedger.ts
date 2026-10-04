@@ -3,6 +3,8 @@ import { z } from "zod";
 import { CURRENCY } from "@/lib/enums";
 import { formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
+import { escapePostgrestFilter } from "@/lib/assistant/security";
+import { withAccess, hasServiceLedgerAccess } from "./access";
 import type { ActionContext, ActionDefinition, ResultCard } from "./types";
 import type { ServiceLedgerClaimableAmountRow } from "@/lib/types/database";
 
@@ -80,10 +82,13 @@ export const searchServiceEntries: ActionDefinition<{ query: string; company_id?
   requiresConfirmation: false,
   inputSchema: z.object({ query: z.string().trim().min(1, "عبارت جست‌وجو الزامی است."), company_id: z.string().uuid().optional() }),
   handler: async (input, ctx) => {
+    // The raw model/user text must never be spliced into a PostgREST filter (spec §63): strip filter syntax + wildcards first.
+    const term = escapePostgrestFilter(input.query);
+    if (!term) return { data: [] };
     let q = ctx.supabase
       .from("service_entries")
       .select("id, title, description, service_date, status, billing_status, client_service_files(company_id)")
-      .or(`title.ilike.%${input.query}%,description.ilike.%${input.query}%`)
+      .or(`title.ilike.%${term}%,description.ilike.%${term}%`)
       .order("service_date", { ascending: false })
       .limit(20);
     if (input.company_id) {
@@ -304,13 +309,21 @@ export const addServiceExpenseDraft: ActionDefinition<z.infer<typeof addServiceE
   },
 };
 
-export const serviceLedgerActions: ActionDefinition<any>[] = [
-  getClientServiceSummary,
-  listClientServices,
-  searchServiceEntries,
-  getUnbilledWork,
-  getReimbursableExpenses,
-  createServiceEntryDraft,
-  addTimeEntryDraft,
-  addServiceExpenseDraft,
-];
+/**
+ * Telegram runs as service_role (RLS bypassed), so the family-wide gate here is the only permission layer:
+ * has_service_ledger_access() <-> ADMIN or any service_ledger_role (0082/0086). Without it a user with no
+ * service-ledger role could read every client's service data and billing amounts over Telegram.
+ */
+export const serviceLedgerActions: ActionDefinition<any>[] = withAccess(
+  [
+    getClientServiceSummary,
+    listClientServices,
+    searchServiceEntries,
+    getUnbilledWork,
+    getReimbursableExpenses,
+    createServiceEntryDraft,
+    addTimeEntryDraft,
+    addServiceExpenseDraft,
+  ],
+  hasServiceLedgerAccess,
+);

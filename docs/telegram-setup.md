@@ -20,7 +20,15 @@ On the server (`/root/nil-office/.env.local`), add:
 TELEGRAM_BOT_TOKEN=<the token from BotFather>
 TELEGRAM_WEBHOOK_SECRET=<a random string you generate, e.g. via `openssl rand -hex 32`>
 TELEGRAM_ALLOWED_USER_IDS=<comma-separated numeric Telegram user ids>
+
+# Optional hardening / cost-control variables (Internal Assistant v1.0 — see ASSISTANT_RUNBOOK.md)
+ASSISTANT_PAYLOAD_SECRET=<random string, e.g. `openssl rand -hex 32`; falls back to the service-role key>
+ASSISTANT_DAILY_TOKEN_CAP=600000
+ASSISTANT_MAX_VOICE_PER_MIN=4
 ```
+
+The **external** correspondence bot uses its own `EXTERNAL_TELEGRAM_BOT_TOKEN` / `EXTERNAL_TELEGRAM_WEBHOOK_SECRET`
+and webhook (`/api/telegram/external-webhook`) — never reuse the values above for it.
 
 To get a numeric Telegram user id (not the `@username`), message
 **@userinfobot** from the account that should be allowed — it replies

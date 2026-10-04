@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolvePeriod } from "@/lib/service-ledger/period";
 import { REPORT_TYPE_LABEL, type ReportType } from "@/lib/enums";
 import { requireClientServiceFile } from "./serviceLedger";
+import { withAccess, hasServiceLedgerAccess } from "./access";
 import type { ActionDefinition, ResultCard } from "./types";
 import type { ServiceLedgerPeriodSummaryRow } from "@/lib/types/database";
 
@@ -163,10 +164,8 @@ export const prepareClientServiceReport: ActionDefinition<z.infer<typeof prepare
   },
 };
 
-export const serviceLedgerReportsActions: ActionDefinition<any>[] = [
-  getClientServicePeriodNumbers,
-  listClientReportTemplates,
-  getClientDefaultReportTemplate,
-  getClientReportHistory,
-  prepareClientServiceReport,
-];
+/** Same family-wide gate as serviceLedger.ts — see the note there. */
+export const serviceLedgerReportsActions: ActionDefinition<any>[] = withAccess(
+  [getClientServicePeriodNumbers, listClientReportTemplates, getClientDefaultReportTemplate, getClientReportHistory, prepareClientServiceReport],
+  hasServiceLedgerAccess,
+);

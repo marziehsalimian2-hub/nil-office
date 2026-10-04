@@ -35,6 +35,16 @@ No new orchestrator logic, no new Telegram-specific business logic — voice bec
 
 **Limits**: voice notes over 15MB or 300 seconds are rejected before download, with a plain Persian message.
 
+## UPDATE — Internal Assistant v1.0 (draft → official split)
+
+The one-confirmation behaviour described in the next section was **replaced** by a two-step flow (see
+`ASSISTANT_ARCHITECTURE_AND_SECURITY.md`): `CREATE_LETTER_DRAFT` / `CREATE_INVOICE_DRAFT` are now MEDIUM and only
+save a numberless draft (`createLetterDraftCore`, `createInvoiceDraftCore`); the official number is a separate HIGH
+confirmation — `FINALIZE_LETTER` (`finalizeLetterCore`) / `ISSUE_SALES_DOCUMENT` (`issueSalesDocumentCore`) — that can
+only be confirmed with the button (never a bare «باشه»), re-checks ownership + permission at execute time, and is the
+only thing that delivers the PDF. `createAndFinalizeLetterCore` and `createAndIssueInvoiceCore` no longer exist.
+`REGISTER_INCOMING_LETTER` is unchanged (still one HIGH confirmation) except that it is now button-only too.
+
 ## HIGH-risk actions: a deliberate exception
 
 The base Assistant's registry banner (`lib/assistant/actions/registry.ts`) historically excluded every HIGH/CRITICAL action entirely — "no tool definition the model could ever call, not even one guarded by confirmation." This spec (§71/§72) explicitly asks for HIGH-risk actions now: official letter numbering and official invoice/proforma issuance. Two new actions cross that line, each still gated by the exact same Confirmation Engine every MEDIUM action already uses (preview → explicit tap on "تأیید" → atomic claim → executor):

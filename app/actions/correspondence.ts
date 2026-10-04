@@ -27,7 +27,7 @@ function fd(formData: FormData) {
 
 /**
  * Archives the finalized letter's PDF as a permanent attachment — shared
- * by finalizeOutgoing (web form) and createAndFinalizeLetterCore (NIL
+ * by finalizeOutgoing (web form) and finalizeLetterCore (NIL
  * Assistant), so both produce the exact same archival record from the
  * same code path. Best-effort by design: numbering already succeeded
  * before this is ever called, and a PDF failure must never undo that.
@@ -176,17 +176,13 @@ export type LetterDraftInput = {
 
 /**
  * Non-redirecting core shared by NIL Assistant's CREATE_LETTER_DRAFT
- * action (lib/assistant/actions/correspondence.ts) — mirrors
- * insertTaskDraftCore's pattern, but this one is HIGH-risk (spec §71):
- * a single confirmed call drafts the letter AND finalizes it AND
- * archives the PDF, reusing the exact same finalize_correspondence RPC
- * and archiveLetterPdf helper the web UI's own two-step flow
- * (createOutgoing -> finalizeOutgoing) uses — never a parallel
- * numbering or drafting path. If finalize_correspondence fails, the
- * letter is left behind as an ordinary numberless DRAFT, recoverable
- * through the normal web UI — not a special case to handle here.
+ * action (lib/assistant/actions/correspondence.ts). Since the Internal
+ * Assistant v1.0 hardening (spec §8/§73) this ONLY creates a numberless
+ * DRAFT — the official number is a separate, stronger confirmation
+ * (FINALIZE_LETTER -> finalizeLetterCore below), exactly like the web UI's
+ * own two-step flow (createOutgoing -> finalizeOutgoing).
  */
-export async function createAndFinalizeLetterCore(
+export async function createLetterDraftCore(
   supabase: SupabaseClient,
   userId: string,
   d: LetterDraftInput,
@@ -227,14 +223,6 @@ export async function createAndFinalizeLetterCore(
     .single();
   if (error) return { error: persianError(error.message) };
 
-  const { error: rpcError } = await supabase.rpc("finalize_correspondence", {
-    p_letter_id: data.id,
-    p_year: currentJalaliYear(),
-  });
-  if (rpcError) return { error: persianError(rpcError.message) };
-
-  await archiveLetterPdf(supabase, userId, data.id);
-
   if (d.reply_to_correspondence_id) {
     await supabase.from("correspondence_links").insert({
       from_correspondence_id: data.id,
@@ -245,11 +233,57 @@ export async function createAndFinalizeLetterCore(
     revalidatePath(`/correspondence/${d.reply_to_correspondence_id}`);
   }
 
-  const { data: fresh } = await supabase.from("correspondence").select("display_number").eq("id", data.id).single();
   revalidatePath("/correspondence/outgoing");
   revalidatePath(`/correspondence/${data.id}`);
-  return { data: { id: data.id, display_number: fresh?.display_number ?? null } };
+  return { data: { id: data.id, display_number: null } };
 }
+
+/**
+ * FINALIZE_LETTER's executor: issues the official number for an EXISTING outgoing draft through the very
+ * same finalize_correspondence RPC + archiveLetterPdf the web UI uses — never a parallel numbering path.
+ * Ownership is re-checked here too (own draft, or an ADMIN): the proposal step checked it, but the
+ * executor must not rely on a stale check.
+ */
+export async function finalizeLetterCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: { correspondence_id: string },
+): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  const { data: letter } = await supabase
+    .from("correspondence")
+    .select("id, direction, status, sequence_number, created_by")
+    .eq("id", d.correspondence_id)
+    .maybeSingle();
+  if (!letter) return { error: "نامه پیدا نشد." };
+  if (letter.direction !== "OUTGOING" || letter.sequence_number != null || !["DRAFT", "REVIEW"].includes(letter.status)) {
+    return { error: "این نامه قابل صدور رسمی نیست (قبلاً شماره گرفته یا وضعیت آن اجازه نمی‌دهد)." };
+  }
+  if (letter.created_by !== userId) {
+    const { data: me } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
+    if (!me?.is_active || me.role !== "ADMIN") return { error: "فقط سازندهٔ نامه یا مدیر سامانه می‌تواند آن را صادر کند." };
+  }
+
+  const { error: rpcError } = await supabase.rpc("finalize_correspondence", {
+    p_letter_id: letter.id,
+    p_year: currentJalaliYear(),
+  });
+  if (rpcError) return { error: persianError(rpcError.message) };
+
+  await archiveLetterPdf(supabase, userId, letter.id);
+
+  const { data: fresh } = await supabase.from("correspondence").select("display_number").eq("id", letter.id).single();
+  revalidatePath("/correspondence/outgoing");
+  revalidatePath(`/correspondence/${letter.id}`);
+  return { data: { id: letter.id, display_number: fresh?.display_number ?? null } };
+}
+
+const INCOMING_EXT_BY_MIME: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
 export type IncomingLetterInput = {
   subject: string;
@@ -277,7 +311,7 @@ function normalizeIncomingLetterDate(value: string | null | undefined): string |
 /**
  * Non-redirecting core shared by NIL Assistant's REGISTER_INCOMING_LETTER
  * action (lib/assistant/actions/correspondence.ts) — mirrors
- * createAndFinalizeLetterCore's shape exactly but for the INCOMING
+ * the shape of the (now two-step) outgoing-letter cores but for the INCOMING
  * direction: drafts + register_incoming (the existing RPC — same
  * numbering/eligibility rules as the web UI's own createIncoming) +
  * archives the original photo/PDF as an attachment, reusing the generic
@@ -327,7 +361,7 @@ export async function createAndRegisterIncomingCore(
   if (d.original_file_base64 && d.original_file_mime_type) {
     try {
       const buffer = Buffer.from(d.original_file_base64, "base64");
-      const ext = d.original_file_mime_type === "application/pdf" ? "pdf" : "jpg";
+      const ext = INCOMING_EXT_BY_MIME[d.original_file_mime_type] ?? "jpg";
       const path = `correspondence/${data.id}/${Date.now()}-incoming.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("nil-files")

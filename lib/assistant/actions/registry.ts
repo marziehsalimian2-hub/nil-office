@@ -17,6 +17,8 @@ import { chequeActions } from "./cheque";
 import { invoiceActions } from "./invoice";
 import { serviceLedgerActions } from "./serviceLedger";
 import { serviceLedgerReportsActions } from "./serviceLedgerReports";
+import { payslipActions } from "./payslip";
+import { companyFinancialActions } from "./companyFinancial";
 
 /**
  * The complete Action Registry — the ONLY set of operations the LLM can
@@ -29,15 +31,23 @@ import { serviceLedgerReportsActions } from "./serviceLedgerReports";
  * follow the same rule — chequeActions below exposes only read actions
  * plus two MEDIUM write-proposals (draft creation, print preparation).
  *
- * The one deliberate exception (NIL Assistant Multimodal v2.0, spec
- * §71/§72 — a widening the user explicitly asked for, not an
- * oversight): CREATE_LETTER_DRAFT and CREATE_INVOICE_DRAFT are HIGH
- * risk (each results in an official, irreversible number) but ARE
- * wired up, because they go through the exact same Confirmation
- * Engine preview+explicit-confirm+idempotent-claim mechanism every
- * MEDIUM action already uses — the model can propose, but only an
- * explicit human tap on "تأیید" executes anything, same guarantee as
- * every other write action here.
+ * The deliberate HIGH-risk exceptions (a widening the user explicitly
+ * asked for, not an oversight): FINALIZE_LETTER, ISSUE_SALES_DOCUMENT and
+ * REGISTER_INCOMING_LETTER each result in an official, irreversible
+ * number but ARE wired up, because they go through the Confirmation
+ * Engine (preview + explicit-button confirm — never a bare «باشه» —
+ * + payload HMAC + permission revalidation at execute + idempotent
+ * claim). Since the Internal Assistant v1.0 hardening the outgoing
+ * letter / invoice are TWO steps: CREATE_LETTER_DRAFT and
+ * CREATE_INVOICE_DRAFT are MEDIUM and only save a numberless draft; the
+ * official number is the separate FINALIZE_LETTER / ISSUE_SALES_DOCUMENT
+ * confirmation. The model can propose, but only an explicit human tap on
+ * "تأیید" executes anything.
+ *
+ * Every action must declare its permission posture (registry.test.ts):
+ * either a `requiredAccess` gate or an explicit entry in the test's
+ * ANY_ACTIVE_USER allowlist with the RLS policy that justifies it —
+ * Telegram runs as service_role, so a missing gate means no gate at all.
  *
  * Client Service Ledger Phase 2 (Billing Integration) deliberately does
  * NOT add a billing-batch-creation or batch-conversion action here —
@@ -64,6 +74,8 @@ export const ACTION_REGISTRY: ActionDefinition<any>[] = [
   ...invoiceActions,
   ...serviceLedgerActions,
   ...serviceLedgerReportsActions,
+  ...payslipActions,
+  ...companyFinancialActions,
 ];
 
 const registryByName = new Map(ACTION_REGISTRY.map((a) => [a.name, a]));
