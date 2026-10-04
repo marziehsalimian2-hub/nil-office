@@ -1796,3 +1796,18 @@ export interface LegalRuleEntry {
   unit: string | null; description: string | null; source_reference: string | null;
   created_by: string; created_at: string; updated_at: string;
 }
+
+/* HR & Payroll Phase 3 — only NON-monetary rows are read straight from tables; every amount comes through the read RPCs as text (lib/payroll/review.ts). */
+export interface PayrollPeriod {
+  id: string; jalali_year: number; jalali_month: number; period_start: string; period_end: string;
+  fiscal_year_id: string | null; status: "OPEN" | "CLOSED"; created_by: string; created_at: string; updated_at: string;
+}
+export interface PayrollBatch {
+  id: string; batch_number: string; year: number; sequence_number: number; period_id: string; payroll_type: "REGULAR";
+  currency: string; jurisdiction: string | null; rounding_scale: number; rounding_mode: "HALF_UP" | "DOWN" | "UP";
+  status: "DRAFT" | "CALCULATED" | "UNDER_REVIEW" | "CANCELLED"; calculation_version: number;
+  current_calculation_id: string | null; calculated_by: string | null; calculated_at: string | null;
+  submitted_by: string | null; submitted_at: string | null; reviewed_by: string | null; reviewed_at: string | null;
+  cancelled_by: string | null; cancelled_at: string | null; status_note: string | null; notes: string | null;
+  created_by: string; created_at: string; updated_at: string;
+}

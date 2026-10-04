@@ -283,6 +283,22 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PAYMENT_DEST_CARD_INVALID: "شمارهٔ کارت نامعتبر است.",
   PAYMENT_DEST_FIELD_IMMUTABLE: "مشخصات حساب پس از ثبت قابل تغییر نیست؛ حساب را غیرفعال و حساب جدید ثبت کنید.",
   PAYMENT_DEST_DEACTIVATED: "این حساب غیرفعال شده و قابل فعال‌سازی مجدد نیست.",
+  PAYROLL_PERIOD_INVALID: "ماه یا بازهٔ دورهٔ حقوقی با تقویم شمسی سازگار نیست.",
+  PAYROLL_PERIOD_DUPLICATE: "برای این ماه قبلاً دورهٔ حقوقی ثبت شده است.",
+  PAYROLL_PERIOD_OVERLAP: "بازهٔ این دوره با دورهٔ حقوقی دیگری همپوشانی دارد.",
+  PAYROLL_PERIOD_CLOSED: "این دورهٔ حقوقی بسته است و قابل تغییر نیست.",
+  PAYROLL_BATCH_DUPLICATE: "برای این دوره و واحد پول یک دستهٔ فعال وجود دارد؛ ابتدا آن را لغو کنید.",
+  PAYROLL_BATCH_NOT_EDITABLE: "در وضعیت فعلی دسته، این تغییر مجاز نیست.",
+  PAYROLL_BATCH_CANCELLED: "این دسته لغو شده و قابل تغییر نیست.",
+  PAYROLL_BATCH_STALE: "کارکرد، حقوق یا تنظیمات پس از آخرین محاسبه تغییر کرده است؛ ابتدا دوباره محاسبه کنید.",
+  PAYROLL_USE_CALCULATE: "برای محاسبه از دکمهٔ «محاسبه» استفاده کنید.",
+  PAYROLL_ALREADY_REVIEWED: "این دسته قبلاً بررسی شده است.",
+  PAYROLL_JURISDICTION_UNKNOWN: "برای این حوزهٔ قانونی مجموعه‌ای ثبت نشده است.",
+  PAYROLL_ROUNDING_INVALID: "تنظیم گرد کردن نامعتبر است.",
+  PAYROLL_WORK_DATA_INVALID: "مقادیر کارکرد نامعتبر است (روز ۰ تا ۳۱، ساعت ۰ تا ۷۴۴).",
+  PAYROLL_INPUT_COMPONENT_INVALID: "این جزء از نوع «ورود دستی» نیست یا تکراری است.",
+  PAYROLL_OVERRIDE_INVALID: "این استثنا مجاز نیست (واحد پول حقوق فرد با دسته یکسان نیست).",
+  PAYROLL_NOT_CALCULATED: "این دسته هنوز محاسبه نشده است.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -1272,3 +1288,53 @@ export const SUGGESTED_RULE_KEYS: { key: string; label_fa: string }[] = [
   { key: "severance_rules", label_fa: "قواعد سنوات" },
   { key: "bonus_rules", label_fa: "قواعد پاداش" },
 ];
+
+/* ============================ HR & Payroll — Phase 3 (periods, batches, calculation) =========================== */
+
+export const PAYROLL_BATCH_STATUS = ["DRAFT", "CALCULATED", "UNDER_REVIEW", "CANCELLED"] as const;
+export type PayrollBatchStatus = (typeof PAYROLL_BATCH_STATUS)[number];
+export const PAYROLL_BATCH_STATUS_LABEL: Record<PayrollBatchStatus, string> = {
+  DRAFT: "پیش‌نویس", CALCULATED: "محاسبه‌شده", UNDER_REVIEW: "در حال بررسی", CANCELLED: "لغو‌شده",
+};
+export const PAYROLL_BATCH_STATUS_TONE: Record<PayrollBatchStatus, string> = {
+  DRAFT: "status-draft", CALCULATED: "status-review", UNDER_REVIEW: "status-review", CANCELLED: "status-cancelled",
+};
+
+export const PAYROLL_PERIOD_STATUS = ["OPEN", "CLOSED"] as const;
+export type PayrollPeriodStatus = (typeof PAYROLL_PERIOD_STATUS)[number];
+export const PAYROLL_PERIOD_STATUS_LABEL: Record<PayrollPeriodStatus, string> = { OPEN: "باز", CLOSED: "بسته" };
+
+export const PAYROLL_ROUNDING_MODE = ["HALF_UP", "DOWN", "UP"] as const;
+export type PayrollRoundingMode = (typeof PAYROLL_ROUNDING_MODE)[number];
+export const PAYROLL_ROUNDING_MODE_LABEL: Record<PayrollRoundingMode, string> = {
+  HALF_UP: "گرد به نزدیک‌ترین (۵ به بالا)", DOWN: "گرد به پایین", UP: "گرد به بالا",
+};
+
+export const WORK_DATA_SOURCE = ["MANUAL", "PROJECT_WORKLOG", "IMPORT", "INTEGRATION", "ADJUSTMENT"] as const;
+export type WorkDataSource = (typeof WORK_DATA_SOURCE)[number];
+export const WORK_DATA_SOURCE_LABEL: Record<WorkDataSource, string> = {
+  MANUAL: "ورود دستی", PROJECT_WORKLOG: "کارکرد پروژه", IMPORT: "درون‌ریزی", INTEGRATION: "یکپارچه‌سازی", ADJUSTMENT: "اصلاحیه",
+};
+
+/** Reasons (computed at read time) why the current calculation no longer matches live inputs. */
+export const PAYROLL_STALE_REASON_LABEL: Record<string, string> = {
+  WORK_DATA_CHANGED: "کارکرد تغییر کرده است",
+  COMPENSATION_CHANGED: "حقوق و مزایای فرد تغییر کرده است",
+  ELIGIBILITY_CHANGED: "فهرست افراد مشمول تغییر کرده است",
+  SETTINGS_CHANGED: "تنظیمات دسته (حوزهٔ قانونی/گرد کردن) تغییر کرده است",
+};
+
+export const ELIGIBILITY_DECISION = ["INCLUDE", "EXCLUDE", "AUTO"] as const;
+export type EligibilityDecision = (typeof ELIGIBILITY_DECISION)[number];
+export const ELIGIBILITY_DECISION_LABEL: Record<EligibilityDecision, string> = {
+  INCLUDE: "شمول اجباری", EXCLUDE: "خارج‌سازی", AUTO: "خودکار",
+};
+
+export const PAYROLL_LINE_METHOD_LABEL: Record<string, string> = {
+  PROFILE_BASE: "حقوق پایهٔ پروفایل", FIXED: "مبلغ ثابت", PERCENTAGE: "درصدی",
+  MANUAL_INPUT: "ورود دستی", QUANTITY_X_RATE: "مقدار × نرخ", FORMULA: "فرمول",
+};
+export const PAYROLL_AMOUNT_SOURCE_LABEL: Record<string, string> = {
+  PROFILE: "پروفایل حقوق", COMPONENT_DEFAULT: "پیش‌فرض جزء", COMPENSATION_OVERRIDE: "جایگزین در پروفایل",
+  MANUAL_INPUT: "ورود دستی", RULE: "قاعدهٔ قانونی", COMPONENT: "جزء",
+};

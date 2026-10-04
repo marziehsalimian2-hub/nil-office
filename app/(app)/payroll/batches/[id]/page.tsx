@@ -1,0 +1,135 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
+import { payrollAccess } from "@/lib/payroll/access";
+import { PageHeader, StatCard, Card } from "@/components/ui";
+import { Tabs } from "@/components/Tabs";
+import {
+  PAYROLL_BATCH_STATUS_LABEL, PAYROLL_BATCH_STATUS_TONE, PAYROLL_STALE_REASON_LABEL, PAYROLL_ROUNDING_MODE_LABEL,
+  CURRENCY_LABEL, type Currency, type PayrollBatchStatus, type PayrollRoundingMode,
+} from "@/lib/enums";
+import { formatJalali, toFaDigits } from "@/lib/jalali";
+import { jalaliMonthLabel } from "@/lib/payroll/period";
+import { formatExactAmount } from "@/lib/payroll/format";
+import type { PayrollReview, WorkGridRow } from "@/lib/payroll/review";
+import { ResultsTable } from "./ResultsTable";
+import { WarningsList } from "./WarningsList";
+import { EligibilityPanel, type PersonOption } from "./EligibilityPanel";
+import { BatchActions } from "./BatchActions";
+import { BatchSettingsForm } from "./BatchSettingsForm";
+
+export const dynamic = "force-dynamic";
+
+export default async function PayrollBatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const profile = await requireProfile();
+  const access = payrollAccess(profile);
+
+  const { data: review, error } = await supabase.rpc("payroll_review_data", { p_batch_id: id });
+  if (error || !review) notFound();
+  const r = review as PayrollReview;
+  const b = r.batch;
+  const status = b.status as PayrollBatchStatus;
+
+  const [{ data: grid }, { data: sets }, { data: people }] = await Promise.all([
+    supabase.rpc("payroll_work_grid", { p_period_id: r.period.id, p_batch_id: id }),
+    supabase.from("legal_rule_sets").select("jurisdiction"),
+    // HR-access users can list personnel (to offer an out-of-period INCLUDE); payroll-only users simply get none.
+    supabase.from("personnel").select("id, first_name, last_name, personnel_number").order("personnel_number"),
+  ]);
+  const gridRows = (grid ?? []) as WorkGridRow[];
+  const jurisdictions = [...new Set(((sets ?? []) as { jurisdiction: string }[]).map((s) => s.jurisdiction))].sort();
+
+  const names: Record<string, string> = {};
+  for (const g of gridRows) names[g.personnel_id] = g.name;
+  for (const x of r.results) names[x.personnel_id] = x.personnel_name;
+  const memberIds = new Set(r.results.map((x) => x.personnel_id));
+  const decided = new Set(r.overrides.map((o) => o.personnel_id));
+  const candMap = new Map<string, PersonOption>();
+  for (const g of gridRows) if (!g.included && !memberIds.has(g.personnel_id) && !decided.has(g.personnel_id) && (g.currency === null || g.currency === b.currency))
+    candMap.set(g.personnel_id, { personnel_id: g.personnel_id, label: `${g.name} (${g.personnel_number})` });
+  for (const p of (people ?? []) as { id: string; first_name: string; last_name: string; personnel_number: string }[])
+    if (!memberIds.has(p.id) && !decided.has(p.id) && !candMap.has(p.id))
+      candMap.set(p.id, { personnel_id: p.id, label: `${p.first_name} ${p.last_name} (${p.personnel_number})` });
+
+  const stale = r.stale.length > 0;
+  const hasCalc = b.calculation_version > 0 && status !== "DRAFT";
+  const cur = b.currency as Currency;
+  const editable = status === "DRAFT" || status === "CALCULATED";
+  const unit = CURRENCY_LABEL[cur] ?? cur;
+
+  return (
+    <div>
+      <PageHeader
+        title={`دستهٔ حقوقی ${b.batch_number}`}
+        subtitle={`${jalaliMonthLabel(r.period.jalali_year, r.period.jalali_month)} — ${unit} — ${formatJalali(r.period.period_start)} تا ${formatJalali(r.period.period_end)}`}
+        action={<Link href={`/payroll/periods/${r.period.id}`} className="btn-quiet">بازگشت به دوره</Link>}
+      />
+
+      <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+        <span className={`badge ${PAYROLL_BATCH_STATUS_TONE[status]}`}>{PAYROLL_BATCH_STATUS_LABEL[status]}</span>
+        {b.calculation_version > 0 && <span className="text-ink-muted">نسخهٔ محاسبه: <span className="tnum text-ink">{toFaDigits(b.calculation_version)}</span> — {formatJalali(b.calculated_at)}</span>}
+        <span className="text-ink-muted">گرد کردن: {toFaDigits(b.rounding_scale)} رقم اعشار، {PAYROLL_ROUNDING_MODE_LABEL[b.rounding_mode as PayrollRoundingMode]}</span>
+        <span className="text-ink-muted">حوزهٔ قانونی: {b.jurisdiction ?? "بدون قاعدهٔ قانونی"}</span>
+        {b.reviewed_at && <span className="badge status-final">بررسی‌شده {formatJalali(b.reviewed_at)}</span>}
+      </div>
+
+      {stale && (
+        <div className="mb-4 rounded-lg border border-status-waiting/40 bg-status-waiting/5 px-4 py-3 text-sm text-ink">
+          <p className="font-medium">نتایج قدیمی است؛ پس از آخرین محاسبه این موارد تغییر کرده‌اند:</p>
+          <ul className="mt-1 list-disc ps-5 text-ink-muted">{r.stale.map((s) => (<li key={s}>{PAYROLL_STALE_REASON_LABEL[s] ?? s}</li>))}</ul>
+          <p className="mt-1 text-xs text-ink-muted">تا محاسبهٔ مجدد، ارسال برای بررسی و ثبت «بررسی‌شد» ممکن نیست.</p>
+        </div>
+      )}
+      {hasCalc && r.critical_count > 0 && (
+        <div className="mb-4 rounded-lg border border-status-cancelled/40 bg-status-cancelled/5 px-4 py-3 text-sm text-status-cancelled">
+          {toFaDigits(r.critical_count)} هشدار بحرانی وجود دارد. مبلغ اقلام مربوط محاسبه نشده است و تا رفع آن‌ها این دسته نباید نهایی شود.
+        </div>
+      )}
+      {b.status_note && <p className="mb-4 text-xs text-ink-muted">یادداشت وضعیت: {b.status_note}</p>}
+
+      {hasCalc && (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="تعداد افراد" value={toFaDigits(r.totals.personnel_count)} />
+          <StatCard label={`جمع ناخالص (${unit})`} value={formatExactAmount(r.totals.gross)} />
+          <StatCard label={`جمع کسورات (${unit})`} value={formatExactAmount(r.totals.deductions)} />
+          <StatCard label={`جمع خالص (${unit})`} value={formatExactAmount(r.totals.net)} tone="seal" />
+          <StatCard label={`هزینهٔ کارفرما (${unit})`} value={formatExactAmount(r.totals.employer_cost)} />
+        </div>
+      )}
+      {hasCalc && <p className="mb-4 text-xs text-ink-muted">جمع‌ها فقط جمع ساده‌ٔ اقلام گردشده است و فقط اقلام محاسبه‌شده را شامل می‌شود.</p>}
+
+      <Card className="mb-6">
+        <BatchActions batchId={b.id} status={status} stale={stale} reviewed={!!b.reviewed_at} canCreate={access.create} canApprove={access.approve} />
+      </Card>
+
+      <Tabs tabs={[
+        {
+          label: "نتایج",
+          content: <ResultsTable batchId={b.id} results={r.results} currency={b.currency} hasPrevious={r.previous_period !== null} />,
+        },
+        {
+          label: `هشدارها${r.warnings.length ? ` (${toFaDigits(r.warnings.length)})` : ""}`,
+          content: <WarningsList warnings={r.warnings} names={names} />,
+        },
+        {
+          label: "شمول و استثنا",
+          content: (
+            <EligibilityPanel batchId={b.id} overrides={r.overrides} members={r.results} candidates={[...candMap.values()]}
+              canOverride={access.approve} editable={editable} />
+          ),
+        },
+        ...(editable && access.create ? [{
+          label: "تنظیمات",
+          content: (
+            <Card>
+              <BatchSettingsForm batchId={b.id} jurisdiction={b.jurisdiction} roundingScale={b.rounding_scale} roundingMode={b.rounding_mode} jurisdictions={jurisdictions} />
+            </Card>
+          ),
+        }] : []),
+      ]} />
+    </div>
+  );
+}
