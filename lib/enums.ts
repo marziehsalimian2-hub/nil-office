@@ -304,7 +304,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PAYROLL_NOT_REVIEWED: "ابتدا باید «بررسی‌شد» ثبت شود.",
   PAYROLL_HAS_CRITICAL: "هشدار بحرانی یا ردیف ناقص وجود دارد؛ ابتدا آن‌ها را رفع و دوباره محاسبه کنید.",
   PAYROLL_NOTHING_TO_APPROVE: "این دسته هیچ نتیجه‌ای برای تأیید ندارد.",
-  PAYROLL_REOPEN_BLOCKED: "برای این دسته سند حسابداری فعال ثبت شده است؛ سند پیش‌نویس را از کارت «سند حسابداری» حذف کنید یا سند قطعی را در حسابداری برگشت بزنید.",
+  PAYROLL_REOPEN_BLOCKED: "برای این دسته سند حسابداری یا پرداخت فعال ثبت شده است؛ پیش‌نویس‌ها را از کارت‌های همین صفحه حذف کنید و اسناد قطعی را در حسابداری برگشت بزنید.",
+  PAYROLL_BANK_ACCOUNT_INVALID: "حساب بانکی/صندوق انتخاب‌شده معتبر نیست (باید فعال و به یک سرفصل حسابداری وصل باشد).",
+  PAYROLL_BANK_CURRENCY_MISMATCH: "واحد پول حساب بانکی با واحد پول دستهٔ حقوق یکسان نیست.",
+  PAYROLL_PAYMENT_AMOUNT_INVALID: "مبلغ پرداخت نامعتبر است (باید بیشتر از صفر و حداکثر مانده‌ٔ قابل پرداخت باشد).",
+  PAYROLL_NO_PAYMENTS: "پرداختی برای این عملیات انتخاب نشده یا پیش‌نویسی وجود ندارد.",
   PAYROLL_NO_ACCOUNTING_DRAFT: "برای این دسته سند حسابداری ساخته نشده است.",
   PAYROLL_ACCOUNTING_NOT_DRAFT: "این سند دیگر پیش‌نویس نیست و از اینجا حذف نمی‌شود؛ آن را در حسابداری برگشت بزنید.",
   PAYROLL_APPROVED_LOCKED: "کارکرد این فرد در یک دستهٔ تأییدشده قفل است؛ برای اصلاح، دسته را با ذکر دلیل بازگشایی کنید.",
@@ -1363,3 +1367,16 @@ export const PAYROLL_APPROVAL_BLOCKER_LABEL: Record<string, string> = {
   CRITICAL: "هشدار بحرانی وجود دارد",
   EMPTY: "نتیجه‌ای برای تأیید وجود ندارد",
 };
+
+/* ============================ HR & Payroll — Phase 5 (salary payments) =========================== */
+
+/** DERIVED from real payments (never stored, never a manual flag). */
+export const PAYROLL_PAYMENT_STATE = ["NONE", "DRAFTED", "PARTIALLY_PAID", "PAID"] as const;
+export type PayrollPaymentState = (typeof PAYROLL_PAYMENT_STATE)[number];
+export const PAYROLL_PAYMENT_STATE_LABEL: Record<PayrollPaymentState, string> = {
+  NONE: "بدون پرداخت", DRAFTED: "پیش‌نویس پرداخت", PARTIALLY_PAID: "پرداخت ناقص", PAID: "پرداخت‌شده",
+};
+export const PAYROLL_PAYMENT_STATE_TONE: Record<PayrollPaymentState, string> = {
+  NONE: "status-draft", DRAFTED: "status-review", PARTIALLY_PAID: "status-waiting", PAID: "status-final",
+};
+

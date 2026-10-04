@@ -291,3 +291,24 @@ export const componentAccountsSchema = z.object({
   expense: optUuid,
   liability: optUuid,
 });
+
+/* ------------------- Phase 5: salary payment drafts ------------------- */
+
+export const paymentDraftsSchema = z.object({
+  batch_id: z.string().uuid(),
+  bank_account_id: z.string().uuid("حساب بانکی/صندوق را انتخاب کنید."),
+  payment_date: isoDate,
+  method: optText,
+  items: z
+    .string()
+    .transform((v, ctx) => {
+      try {
+        return JSON.parse(v) as unknown;
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "فهرست پرداخت نامعتبر است." });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(z.object({ result_id: z.string().uuid(), amount: moneyStr })).min(1, "حداقل یک نفر را انتخاب کنید.").max(500)),
+});
+

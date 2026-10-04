@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { sortWarnings, groupWarningsByPersonnel, defaultRounding, canSubmitForReview, canApproveBatch, accountingBlockers } from "./review";
-import { PAYROLL_APPROVAL_BLOCKER_LABEL, PAYROLL_STALE_REASON_LABEL } from "@/lib/enums";
+import { sortWarnings, groupWarningsByPersonnel, defaultRounding, canSubmitForReview, canApproveBatch, accountingBlockers, hasAvailable } from "./review";
+import { PAYROLL_APPROVAL_BLOCKER_LABEL, PAYROLL_STALE_REASON_LABEL, PAYROLL_PAYMENT_STATE, PAYROLL_PAYMENT_STATE_LABEL, PAYROLL_PAYMENT_STATE_TONE } from "@/lib/enums";
 
 describe("review helpers", () => {
   it("sorts CRITICAL before WARNING before INFO, then by code", () => {
@@ -50,5 +50,20 @@ describe("review helpers", () => {
     for (const c of ["NOT_REVIEWED", "STALE", "CRITICAL", "EMPTY"]) expect(PAYROLL_APPROVAL_BLOCKER_LABEL[c]).toBeTruthy();
     for (const c of ["WORK_DATA_CHANGED", "COMPENSATION_CHANGED", "ELIGIBILITY_CHANGED", "SETTINGS_CHANGED", "RULES_CHANGED"])
       expect(PAYROLL_STALE_REASON_LABEL[c]).toBeTruthy();
+  });
+
+  it("hasAvailable reads exact decimal strings without Number()", () => {
+    expect(hasAvailable("7000000.0000")).toBe(true);
+    expect(hasAvailable("0.0000")).toBe(false);
+    expect(hasAvailable("0")).toBe(false);
+    expect(hasAvailable("0.0001")).toBe(true);
+    expect(hasAvailable("12345678901234567.5")).toBe(true);
+  });
+
+  it("every derived payment state has a label and a tone", () => {
+    for (const st of PAYROLL_PAYMENT_STATE) {
+      expect(PAYROLL_PAYMENT_STATE_LABEL[st]).toBeTruthy();
+      expect(PAYROLL_PAYMENT_STATE_TONE[st]).toBeTruthy();
+    }
   });
 });
