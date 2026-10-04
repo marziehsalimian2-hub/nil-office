@@ -15,12 +15,14 @@ const MAX_CARDS_SHOWN = 6;
 export function formatChatTurnForTelegram(result: ChatTurnResult): { chunks: string[]; keyboard?: InlineKeyboardButton[][] } {
   let text = result.text.trim();
 
-  if (result.cards.length > 0) {
-    const shown = result.cards.slice(0, MAX_CARDS_SHOWN);
+  // A payslip card is a web-only link to the PDF stream; over Telegram the file itself is delivered (handleUpdate).
+  const cards = result.cards.filter((c) => c.kind !== "payslip");
+  if (cards.length > 0) {
+    const shown = cards.slice(0, MAX_CARDS_SHOWN);
     const lines = shown.map((c) => `• ${c.title}${c.subtitle ? ` — ${c.subtitle}` : ""}\n  ${absoluteUrl(c.href)}`);
     text += `\n\n${lines.join("\n")}`;
-    if (result.cards.length > shown.length) {
-      text += `\n\n(${result.cards.length - shown.length} مورد دیگر — برای مشاهدهٔ کامل به NIL Office مراجعه کنید)`;
+    if (cards.length > shown.length) {
+      text += `\n\n(${cards.length - shown.length} مورد دیگر — برای مشاهدهٔ کامل به NIL Office مراجعه کنید)`;
     }
   }
 

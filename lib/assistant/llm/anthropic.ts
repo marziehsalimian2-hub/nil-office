@@ -85,6 +85,7 @@ export class AnthropicProvider implements LLMProvider {
     const stopReason =
       response.stop_reason === "tool_use" ? "tool_use" : response.stop_reason === "end_turn" ? "end_turn" : response.stop_reason === "max_tokens" ? "max_tokens" : "other";
 
-    return { text, toolUses, stopReason };
+    const usage = response.usage ? { inputTokens: response.usage.input_tokens ?? 0, outputTokens: response.usage.output_tokens ?? 0 } : undefined;
+    return { text, toolUses, stopReason, usage };
   }
 }

@@ -22,14 +22,20 @@ export type ActionContext = {
 
 /** The small structured "card" shape a read action can attach to its answer (spec §29/§30 — always traceable to a real record). */
 export type ResultCard = {
-  kind: "task" | "project" | "contract" | "invoice" | "company" | "opportunity" | "attention" | "followup" | "correspondence" | "trade_offer" | "cheque";
+  kind: "task" | "project" | "contract" | "invoice" | "company" | "opportunity" | "attention" | "followup" | "correspondence" | "trade_offer" | "cheque" | "payslip";
   id: string;
   title: string;
   subtitle?: string;
   href: string;
 };
 
-export type ReadActionResult = { data: unknown; cards?: ResultCard[] };
+/**
+ * A file the CHANNEL layer (Telegram) must deliver after the answer — the handler only names it; the
+ * channel re-checks ownership through its own SECURITY DEFINER function before sending a single byte.
+ */
+export type DeliveryHint = { kind: "PAYSLIP"; payslipId: string; label: string };
+
+export type ReadActionResult = { data: unknown; cards?: ResultCard[]; deliver?: DeliveryHint[] };
 
 /**
  * What a MEDIUM (write) action's handler returns: NOT the write itself —

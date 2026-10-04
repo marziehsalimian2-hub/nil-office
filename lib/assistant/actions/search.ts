@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import type { ActionContext, ActionDefinition, ResultCard } from "./types";
+import { hasProjectAccess } from "./access";
+import type { ActionContext, ActionDefinition, ReadActionResult, ResultCard } from "./types";
 
 type SearchAllRow = { entity_type: string; id: string; title: string; subtitle: string | null; extra: string | null; created_at: string };
 
@@ -101,13 +102,38 @@ export const searchDocuments = makeSearchAction({
   href: (id) => `/documents/${id}`,
 });
 
-export const searchTasks = makeSearchAction({
+const searchTasksBase = makeSearchAction({
   name: "SEARCH_TASKS",
   description: "جست‌وجوی کارها بر اساس عنوان.",
   entityType: "task",
   cardKind: "task",
   href: (id) => `/tasks/${id}`,
 });
+
+/**
+ * search_all() returns every task id when the caller bypasses RLS (Telegram = service_role). A user without
+ * project access may only see tasks they are assigned to or created (p_tasks_read, 0054), so the result is
+ * narrowed to those ids before anything reaches the model.
+ */
+export const searchTasks: ActionDefinition<{ query: string }> = {
+  ...searchTasksBase,
+  handler: async (input, ctx) => {
+    const result = (await searchTasksBase.handler(input, ctx)) as ReadActionResult;
+    if (hasProjectAccess(ctx.profile)) return result;
+    const rows = (result.data as SearchAllRow[]) ?? [];
+    if (rows.length === 0) return result;
+    const { data: mine } = await ctx.supabase
+      .from("tasks")
+      .select("id")
+      .in("id", rows.map((r) => r.id))
+      .or(`assigned_to.eq.${ctx.userId},created_by.eq.${ctx.userId}`);
+    const allowed = new Set((mine ?? []).map((t: { id: string }) => t.id));
+    return {
+      data: rows.filter((r) => allowed.has(r.id)),
+      cards: (result.cards ?? []).filter((c) => allowed.has(c.id)),
+    };
+  },
+};
 
 export const searchActions: ActionDefinition<any>[] = [
   searchCompany,

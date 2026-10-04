@@ -35,9 +35,13 @@ export async function POST(req: NextRequest) {
   }
 
   const service = createServiceClient();
-  const isNew = await claimUpdateOnce(service, "TELEGRAM", updateId);
-  if (!isNew) {
+  const claim = await claimUpdateOnce(service, "TELEGRAM", updateId);
+  if (claim === "duplicate") {
     return NextResponse.json({ ok: true }); // already processed — ack and stop
+  }
+  if (claim === "error") {
+    // Not a duplicate and not recorded: answer 5xx so Telegram redelivers instead of the update vanishing.
+    return NextResponse.json({ ok: false }, { status: 500 });
   }
 
   try {

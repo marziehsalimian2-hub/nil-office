@@ -136,18 +136,18 @@ export type InvoiceDraftInput = {
 
 /**
  * Non-redirecting core shared by NIL Assistant's CREATE_INVOICE_DRAFT
- * action (lib/assistant/actions/invoice.ts) — HIGH-risk (spec §71),
- * mirroring createAndFinalizeLetterCore's shape: one confirmed call
- * drafts + transitions + issues, reusing the exact same tables/RPC the
- * web UI's own multi-step flow uses. All arithmetic (line totals,
- * subtotal, tax, grand total) comes from Postgres generated columns and
- * the existing tg_sales_document_items_rollup trigger (0031) — this
- * function never computes a total itself (spec §18). The company
- * snapshot fields are looked up server-side here (mirrors
- * createSalesDocumentFromContract's own company -> snapshot copy),
- * since the bot only supplies company_id, never the full snapshot.
+ * action (lib/assistant/actions/invoice.ts). Since the Internal Assistant
+ * v1.0 hardening (spec §9/§73) it ONLY creates a DRAFT with its items — no
+ * status transition, no official number. Issuing is the separate, stronger
+ * ISSUE_SALES_DOCUMENT confirmation (issueSalesDocumentCore below). All
+ * arithmetic (line totals, subtotal, tax, grand total) comes from Postgres
+ * generated columns and the existing tg_sales_document_items_rollup trigger
+ * (0031) — this function never computes a total itself (spec §18). The
+ * company snapshot fields are looked up server-side here (mirrors
+ * createSalesDocumentFromContract's own company -> snapshot copy), since
+ * the bot only supplies company_id, never the full snapshot.
  */
-export async function createAndIssueInvoiceCore(
+export async function createInvoiceDraftCore(
   supabase: SupabaseClient,
   userId: string,
   d: InvoiceDraftInput,
@@ -201,12 +201,48 @@ export async function createAndIssueInvoiceCore(
     return { error: persianError(itemErr.message) };
   }
 
-  // Same transitions the web UI's own buttons call (setSalesDocumentStatus) —
-  // chained here as one server-side sequence, not a new transition path.
-  const { error: reviewErr } = await supabase.from("sales_documents").update({ status: "REVIEW" }).eq("id", doc.id);
-  if (reviewErr) return { error: persianError(reviewErr.message) };
-  const { error: approveErr } = await supabase.from("sales_documents").update({ status: "APPROVED" }).eq("id", doc.id);
-  if (approveErr) return { error: persianError(approveErr.message) };
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${doc.id}`);
+  return { data: { id: doc.id, display_number: null } };
+}
+
+/**
+ * ISSUE_SALES_DOCUMENT's executor: issues the official number for an EXISTING draft/proforma. Same
+ * transitions the web UI's own buttons call (setSalesDocumentStatus: DRAFT->REVIEW->APPROVED) followed by
+ * the existing finalize_sales_document RPC — chained server-side, not a new path. Ownership (own draft or
+ * ADMIN) and the APPROVE tier are re-checked here; the RPC's own can_approve_invoice() gate stays the
+ * final authority.
+ */
+export async function issueSalesDocumentCore(
+  supabase: SupabaseClient,
+  userId: string,
+  d: { sales_document_id: string },
+): Promise<{ data: { id: string; display_number: string | null } } | { error: string }> {
+  const { data: doc } = await supabase
+    .from("sales_documents")
+    .select("id, status, sequence_number, created_by")
+    .eq("id", d.sales_document_id)
+    .maybeSingle();
+  if (!doc) return { error: "سند پیدا نشد." };
+  if (doc.sequence_number != null || !["DRAFT", "REVIEW", "APPROVED"].includes(doc.status)) {
+    return { error: "این سند قابل صدور رسمی نیست (قبلاً شماره گرفته یا وضعیت آن اجازه نمی‌دهد)." };
+  }
+  const { data: me } = await supabase.from("profiles").select("role, invoice_role, is_active").eq("id", userId).maybeSingle();
+  if (!me?.is_active || !(me.role === "ADMIN" || me.invoice_role === "APPROVE" || me.invoice_role === "ADMIN")) {
+    return { error: "برای صدور رسمی فاکتور سطح دسترسی «تأیید» لازم است." };
+  }
+  if (doc.created_by !== userId && me.role !== "ADMIN") {
+    return { error: "فقط سازندهٔ سند یا مدیر سامانه می‌تواند آن را صادر کند." };
+  }
+
+  if (doc.status === "DRAFT") {
+    const { error: reviewErr } = await supabase.from("sales_documents").update({ status: "REVIEW" }).eq("id", doc.id);
+    if (reviewErr) return { error: persianError(reviewErr.message) };
+  }
+  if (doc.status === "DRAFT" || doc.status === "REVIEW") {
+    const { error: approveErr } = await supabase.from("sales_documents").update({ status: "APPROVED" }).eq("id", doc.id);
+    if (approveErr) return { error: persianError(approveErr.message) };
+  }
 
   const { error: issueErr } = await supabase.rpc("finalize_sales_document", { p_id: doc.id, p_year: currentJalaliYear() });
   if (issueErr) return { error: persianError(issueErr.message) };

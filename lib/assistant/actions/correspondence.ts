@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { formatJalali } from "@/lib/jalali";
 import type { LetterDraftInput, IncomingLetterInput } from "@/app/actions/correspondence";
+import { htmlToPlainText } from "./access";
 import type { ActionDefinition } from "./types";
 
 export const getCorrespondence: ActionDefinition<{ correspondence_id: string }> = {
@@ -36,19 +37,17 @@ const createLetterDraftInput = z.object({
 });
 
 /**
- * HIGH-risk (spec §71) — the ONE confirmation click here drafts the
- * letter, calls the existing finalize_correspondence RPC, generates and
- * archives the PDF, all through createAndFinalizeLetterCore
- * (app/actions/correspondence.ts) — the exact same finalization path
- * the web UI's own two-step flow uses, never a parallel one. draft_text
- * is composed by the model itself as this tool's own parameter (spec
- * §10) — no second LLM round-trip.
+ * MEDIUM-risk since the Internal Assistant v1.0 hardening (spec §8/§73): the confirmation here creates ONLY a
+ * numberless DRAFT (createLetterDraftCore, app/actions/correspondence.ts). The official number is a SEPARATE,
+ * stronger confirmation — FINALIZE_LETTER below — so a misheard recipient or subject in a voice message can be
+ * fixed before anything irreversible happens. draft_text is composed by the model itself as this tool's own
+ * parameter (spec §10) — no second LLM round-trip.
  */
 export const createLetterDraft: ActionDefinition<z.infer<typeof createLetterDraftInput>> = {
   name: "CREATE_LETTER_DRAFT",
   description:
-    "پیشنهاد نوشتن و صدور رسمی یک نامهٔ صادره (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). متن نامه (draft_text) را خودت با لحن رسمی و حرفه‌ای اداری فارسی بنویس — کامل و آماده برای ارسال، نه خلاصه، و فقط تا پایان متن اصلی نامه؛ هرگز عبارت پایانی «با احترام»، نام امضاکننده یا سمت او را در انتهای draft_text ننویس — این بخش (نام و سمت تأییدکنندهٔ نامه) به‌طور خودکار توسط سیستم زیر مهر و امضا چاپ می‌شود. گیرنده را ترجیحاً با SEARCH_COMPANY پیدا کن و recipient_company_id را بفرست؛ اگر شرکتی در سیستم نبود، فقط recipient_name را بفرست. هرگز گیرنده یا موضوع را حدس نزن — اگر نامشخص است بپرس. اگر این نامه پاسخ به یک نامهٔ واردهٔ مشخص است (معمولاً بعد از REGISTER_INCOMING_LETTER و تأیید کاربر برای پاسخ‌دادن)، شناسهٔ آن نامه را در reply_to_correspondence_id بفرست. پس از تأیید کاربر، این نامه بلافاصله شمارهٔ رسمی می‌گیرد و دیگر قابل ویرایش نیست.",
-  riskLevel: "HIGH",
+    "پیشنهاد نوشتن «پیش‌نویس» یک نامهٔ صادره (نه ثبت قطعی و نه صدور رسمی — فقط پیش‌نمایش برای تأیید کاربر؛ پس از تأیید فقط یک پیش‌نویس بدون شمارهٔ رسمی ذخیره می‌شود). متن نامه (draft_text) را خودت با لحن رسمی و حرفه‌ای اداری فارسی بنویس — کامل و آماده برای ارسال، نه خلاصه، و فقط تا پایان متن اصلی نامه؛ هرگز عبارت پایانی «با احترام»، نام امضاکننده یا سمت او را در انتهای draft_text ننویس — این بخش (نام و سمت تأییدکنندهٔ نامه) به‌طور خودکار توسط سیستم زیر مهر و امضا چاپ می‌شود. گیرنده را ترجیحاً با SEARCH_COMPANY پیدا کن و recipient_company_id را بفرست؛ اگر شرکتی در سیستم نبود، فقط recipient_name را بفرست. هرگز گیرنده یا موضوع را حدس نزن — اگر نامشخص است بپرس. اگر این نامه پاسخ به یک نامهٔ واردهٔ مشخص است، شناسهٔ آن نامه را در reply_to_correspondence_id بفرست. صدور رسمی (گرفتن شمارهٔ رسمی) مرحلهٔ جداگانه‌ای است: بعد از ساخته‌شدن پیش‌نویس، فقط اگر کاربر صریحاً خواست، با FINALIZE_LETTER پیشنهاد بده — هرگز نگو نامه شماره گرفته مگر وقتی FINALIZE_LETTER واقعاً تأیید و اجرا شده باشد.",
+  riskLevel: "MEDIUM",
   requiresConfirmation: true,
   inputSchema: createLetterDraftInput,
   handler: async (input) => {
@@ -66,16 +65,11 @@ export const createLetterDraft: ActionDefinition<z.infer<typeof createLetterDraf
       reply_to_correspondence_id: input.reply_to_correspondence_id ?? null,
     };
 
-    // Full draft_text, not an excerpt: unlike REGISTER_INCOMING_LETTER's
-    // summary (the model's own paraphrase of someone else's letter), this
-    // text IS the official outgoing letter — once confirmed it gets a
-    // real number and "دیگر قابل ویرایش نیست", so the user needs to be
-    // able to read the whole thing before approving it, not just the
-    // first 220 characters. Telegram's own 4096-char chunking (format.ts)
-    // already splits a long message across several bubbles, so there's
-    // no length concern here.
+    // Full draft_text, not an excerpt: the user must be able to read the whole letter before it is even saved
+    // as a draft, and again (FINALIZE_LETTER) before it gets its official number. Telegram's own 4096-char
+    // chunking (format.ts) already splits a long message across several bubbles.
     const previewText = [
-      input.reply_to_correspondence_id ? "پاسخ به نامهٔ وارده — پس از تأیید بلافاصله شمارهٔ رسمی می‌گیرد:" : "نامهٔ صادرهٔ جدید — پس از تأیید بلافاصله شمارهٔ رسمی می‌گیرد:",
+      input.reply_to_correspondence_id ? "پیش‌نویس پاسخ به نامهٔ وارده — فقط پیش‌نویس ذخیره می‌شود و شمارهٔ رسمی ندارد:" : "پیش‌نویس نامهٔ صادره — فقط پیش‌نویس ذخیره می‌شود و شمارهٔ رسمی ندارد:",
       `موضوع: ${input.subject}`,
       `گیرنده: ${input.recipient_name ?? "(شرکت انتخاب‌شده)"}`,
       "متن:",
@@ -156,4 +150,46 @@ export const registerIncomingLetter: ActionDefinition<z.infer<typeof registerInc
   },
 };
 
-export const correspondenceActions: ActionDefinition<any>[] = [getCorrespondence, createLetterDraft, registerIncomingLetter];
+const finalizeLetterInput = z.object({ correspondence_id: z.string().uuid("شناسهٔ نامه نامعتبر است.") });
+
+/**
+ * HIGH-risk (spec §8/§41): issues the OFFICIAL, irreversible number for an existing outgoing draft via the
+ * existing finalize_correspondence RPC (finalizeLetterCore). The preview shows the full stored letter text
+ * (read back from the DB — not what the model remembers); the proposal is only possible for the caller's own
+ * draft (or an ADMIN), and finalizeLetterCore re-checks that at execute time. Confirmable ONLY with the
+ * explicit button — never by a bare «باشه» (confirmation.ts).
+ */
+export const finalizeLetter: ActionDefinition<z.infer<typeof finalizeLetterInput>> = {
+  name: "FINALIZE_LETTER",
+  description:
+    "پیشنهاد «صدور رسمی» یک پیش‌نویس نامهٔ صادره که قبلاً ساخته شده (گرفتن شمارهٔ رسمی؛ برگشت‌ناپذیر است — فقط پیش‌نمایش برای تأیید کاربر). correspondence_id را فقط از نتیجهٔ ساخت پیش‌نویس یا SEARCH_CORRESPONDENCE بگیر — هرگز حدس نزن. فقط وقتی کاربر صریحاً خواست نامه صادر/ارسال/شماره‌دار شود فراخوانی کن.",
+  riskLevel: "HIGH",
+  requiresConfirmation: true,
+  inputSchema: finalizeLetterInput,
+  handler: async (input, ctx) => {
+    const { data: letter } = await ctx.supabase
+      .from("correspondence")
+      .select("id, direction, status, sequence_number, created_by, subject, draft_text, recipient_name")
+      .eq("id", input.correspondence_id)
+      .maybeSingle();
+    if (!letter) throw new Error("نامه‌ای با این شناسه پیدا نشد.");
+    if (letter.direction !== "OUTGOING" || letter.sequence_number != null || !["DRAFT", "REVIEW"].includes(letter.status)) {
+      throw new Error("این نامه قابل صدور رسمی نیست — قبلاً شماره گرفته یا نامهٔ صادره نیست.");
+    }
+    if (letter.created_by !== ctx.userId && ctx.profile.role !== "ADMIN") {
+      throw new Error("فقط سازندهٔ پیش‌نویس یا مدیر سامانه می‌تواند این نامه را صادر کند.");
+    }
+
+    const previewText = [
+      "صدور رسمی نامه — شمارهٔ رسمی صادر می‌شود و این کار برگشت‌ناپذیر است؛ پس از آن نامه دیگر قابل ویرایش نیست:",
+      `موضوع: ${letter.subject ?? "-"}`,
+      `گیرنده: ${letter.recipient_name ?? "(شرکت انتخاب‌شده)"}`,
+      "متن:",
+      htmlToPlainText(letter.draft_text) || "(بدون متن)",
+    ].join("\n");
+
+    return { payload: { correspondence_id: letter.id }, previewText };
+  },
+};
+
+export const correspondenceActions: ActionDefinition<any>[] = [getCorrespondence, createLetterDraft, finalizeLetter, registerIncomingLetter];

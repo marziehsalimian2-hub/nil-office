@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CURRENCY, CURRENCY_LABEL } from "@/lib/enums";
 import { toFaDigits } from "@/lib/jalali";
 import type { InvoiceDraftInput } from "@/app/actions/invoices";
+import { canCreateInvoice, canApproveInvoice } from "./access";
 import type { ActionDefinition } from "./types";
 
 const invoiceItemInput = z.object({
@@ -53,25 +54,20 @@ function computePreviewTotal(items: z.infer<typeof invoiceItemInput>[]) {
 }
 
 /**
- * HIGH-risk (spec §71) — mirrors CREATE_LETTER_DRAFT's shape: one
- * confirmation click drafts the sales_document + items, transitions it
- * through the same statuses the web UI's own buttons use, and calls the
- * existing finalize_sales_document RPC — via createAndIssueInvoiceCore
- * (app/actions/invoices.ts). No arithmetic happens here or in that
- * core; totals come only from the DB (spec §18). company_id is
- * required — never guessed (spec §17) — resolve it with SEARCH_COMPANY
- * first.
+ * MEDIUM-risk since the Internal Assistant v1.0 hardening (spec §9/§73): confirming creates ONLY a DRAFT
+ * sales_document + its items (createInvoiceDraftCore, app/actions/invoices.ts) — no status change, no official
+ * number. Issuing is the separate, stronger ISSUE_SALES_DOCUMENT confirmation below. No arithmetic happens here
+ * or in that core; totals come only from the DB (spec §18). company_id is required — never guessed (spec §17) —
+ * resolve it with SEARCH_COMPANY first.
  */
 export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDraftInput>> = {
   name: "CREATE_INVOICE_DRAFT",
   description:
-    "پیشنهاد صدور رسمی یک فاکتور یا پیش‌فاکتور (نه ثبت قطعی — فقط پیش‌نمایش برای تأیید کاربر). company_id را فقط اگر قبلاً با SEARCH_COMPANY پیدا کرده‌اید بفرستید — هرگز حدس نزنید. اگر مشتری، تعداد، قیمت واحد یا واحد پول مشخص نیست، از کاربر بپرسید، پیشنهاد ندهید. مبلغ کل را خودت محاسبه نکن — فقط ردیف‌های خام (تعداد، قیمت واحد، تخفیف، مالیات) را بفرست. پس از تأیید کاربر، سند بلافاصله شمارهٔ رسمی می‌گیرد.",
-  riskLevel: "HIGH",
+    "پیشنهاد ساخت «پیش‌نویس» یک فاکتور یا پیش‌فاکتور (نه ثبت قطعی و نه صدور رسمی — فقط پیش‌نمایش برای تأیید کاربر؛ پس از تأیید فقط یک پیش‌نویس بدون شمارهٔ رسمی ذخیره می‌شود). company_id را فقط اگر قبلاً با SEARCH_COMPANY پیدا کرده‌اید بفرستید — هرگز حدس نزنید. اگر مشتری، تعداد، قیمت واحد یا واحد پول مشخص نیست، از کاربر بپرسید، پیشنهاد ندهید. مبلغ کل را خودت محاسبه نکن — فقط ردیف‌های خام (تعداد، قیمت واحد، تخفیف، مالیات) را بفرست. صدور رسمی (گرفتن شمارهٔ رسمی) مرحلهٔ جداگانه‌ای است: فقط اگر کاربر صریحاً خواست، با ISSUE_SALES_DOCUMENT پیشنهاد بده — هرگز نگو سند شماره گرفته مگر وقتی ISSUE_SALES_DOCUMENT واقعاً تأیید و اجرا شده باشد.",
+  riskLevel: "MEDIUM",
   requiresConfirmation: true,
-  // APPROVE+ specifically — finalize_sales_document's own can_approve_invoice()
-  // gate requires it, so a CREATE-tier user should be told up front rather
-  // than draft a full invoice only to have the final confirm step reject it.
-  requiredAccess: (p) => p.role === "ADMIN" || p.invoice_role === "APPROVE" || p.invoice_role === "ADMIN",
+  // CREATE tier is enough for a draft (can_create_invoice()); issuing needs APPROVE (ISSUE_SALES_DOCUMENT).
+  requiredAccess: canCreateInvoice,
   inputSchema: createInvoiceDraftInput,
   handler: async (input) => {
     if (input.items.some((it) => it.quantity <= 0)) {
@@ -95,7 +91,7 @@ export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDr
       (it) => `- ${it.description}: ${toFaDigits(it.quantity)} ${it.unit ?? ""} × ${toFaDigits(it.unit_price.toLocaleString("en-US"))}`,
     );
     const previewText = [
-      `${input.type === "INVOICE" ? "فاکتور" : "پیش‌فاکتور"} جدید — پس از تأیید بلافاصله شمارهٔ رسمی می‌گیرد:`,
+      `پیش‌نویس ${input.type === "INVOICE" ? "فاکتور" : "پیش‌فاکتور"} — فقط پیش‌نویس ذخیره می‌شود و شمارهٔ رسمی ندارد:`,
       ...itemLines,
       `جمع کل: ${toFaDigits(totals.total.toLocaleString("en-US"))} ${CURRENCY_LABEL[currency]}`,
       input.payment_terms ? `شرایط پرداخت: ${input.payment_terms}` : null,
@@ -107,4 +103,56 @@ export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDr
   },
 };
 
-export const invoiceActions: ActionDefinition<any>[] = [createInvoiceDraft];
+const issueSalesDocumentInput = z.object({ sales_document_id: z.string().uuid("شناسهٔ سند نامعتبر است.") });
+
+/**
+ * HIGH-risk (spec §9/§41): issues the OFFICIAL, irreversible number for an existing draft / proforma through
+ * the same DRAFT->REVIEW->APPROVED->finalize_sales_document chain the web UI uses (issueSalesDocumentCore).
+ * The preview is read back from the DB — every figure shown is the database's own generated total, never
+ * something the model computed. APPROVE tier required (canApproveInvoice), re-checked at execute time.
+ */
+export const issueSalesDocument: ActionDefinition<z.infer<typeof issueSalesDocumentInput>> = {
+  name: "ISSUE_SALES_DOCUMENT",
+  description:
+    "پیشنهاد «صدور رسمی» یک پیش‌نویس فاکتور/پیش‌فاکتور که قبلاً ساخته شده (گرفتن شمارهٔ رسمی؛ برگشت‌ناپذیر است — فقط پیش‌نمایش برای تأیید کاربر). sales_document_id را فقط از نتیجهٔ ساخت پیش‌نویس یا SEARCH_INVOICES بگیر — هرگز حدس نزن. فقط وقتی کاربر صریحاً خواست سند صادر/شماره‌دار شود فراخوانی کن.",
+  riskLevel: "HIGH",
+  requiresConfirmation: true,
+  requiredAccess: canApproveInvoice,
+  inputSchema: issueSalesDocumentInput,
+  handler: async (input, ctx) => {
+    const { data: doc } = await ctx.supabase
+      .from("sales_documents")
+      .select("id, type, status, sequence_number, created_by, currency_code, total_amount, payment_terms, customer_legal_name_snapshot")
+      .eq("id", input.sales_document_id)
+      .maybeSingle();
+    if (!doc) throw new Error("سندی با این شناسه پیدا نشد.");
+    if (doc.sequence_number != null || !["DRAFT", "REVIEW", "APPROVED"].includes(doc.status)) {
+      throw new Error("این سند قابل صدور رسمی نیست — قبلاً شماره گرفته یا وضعیت آن اجازه نمی‌دهد.");
+    }
+    if (doc.created_by !== ctx.userId && ctx.profile.role !== "ADMIN") {
+      throw new Error("فقط سازندهٔ پیش‌نویس یا مدیر سامانه می‌تواند این سند را صادر کند.");
+    }
+
+    const { data: items } = await ctx.supabase
+      .from("sales_document_items")
+      .select("line_no, description, quantity, unit, unit_price")
+      .eq("sales_document_id", doc.id)
+      .order("line_no");
+    const currency = (doc.currency_code ?? "IRR") as (typeof CURRENCY)[number];
+    const lines = (items ?? []).map(
+      (it) => `- ${it.description}: ${toFaDigits(Number(it.quantity))} ${it.unit ?? ""} × ${toFaDigits(Number(it.unit_price).toLocaleString("en-US"))}`,
+    );
+    const previewText = [
+      `صدور رسمی ${doc.type === "INVOICE" ? "فاکتور" : "پیش‌فاکتور"} برای ${doc.customer_legal_name_snapshot ?? "-"} — شمارهٔ رسمی صادر می‌شود و این کار برگشت‌ناپذیر است:`,
+      ...lines,
+      `جمع کل (محاسبهٔ پایگاه‌داده): ${toFaDigits(Number(doc.total_amount ?? 0).toLocaleString("en-US"))} ${CURRENCY_LABEL[currency] ?? currency}`,
+      doc.payment_terms ? `شرایط پرداخت: ${doc.payment_terms}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return { payload: { sales_document_id: doc.id }, previewText };
+  },
+};
+
+export const invoiceActions: ActionDefinition<any>[] = [createInvoiceDraft, issueSalesDocument];

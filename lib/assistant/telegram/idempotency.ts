@@ -9,13 +9,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * update_id) means "already seen" -> the caller returns 200 immediately
  * and does nothing else. Service-role client — no session exists yet.
  */
-export async function claimUpdateOnce(serviceClient: SupabaseClient, channel: "TELEGRAM", externalUpdateId: string | number): Promise<boolean> {
+export type ClaimResult = "new" | "duplicate" | "error";
+
+/**
+ * "error" (the claim row could not be written for any reason OTHER than a duplicate) is deliberately
+ * distinct from "duplicate": the webhook answers 500 for it so Telegram retries the update, instead of
+ * silently dropping a message that was never processed.
+ */
+export async function claimUpdateOnce(serviceClient: SupabaseClient, channel: "TELEGRAM", externalUpdateId: string | number): Promise<ClaimResult> {
   const { error } = await serviceClient
     .from("assistant_channel_updates")
     .insert({ channel, external_update_id: String(externalUpdateId) });
-  if (!error) return true;
+  if (!error) return "new";
   // Postgres unique_violation
-  if ((error as { code?: string }).code === "23505") return false;
+  if ((error as { code?: string }).code === "23505") return "duplicate";
   console.error("[telegram] claimUpdateOnce insert failed", error);
-  return false;
+  return "error";
 }

@@ -3,10 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/types/database";
 import { getLLMProvider, type LlmMessage, type LlmContentBlock } from "@/lib/assistant/llm";
 import { getAction, buildLlmTools } from "@/lib/assistant/actions/registry";
-import { hasAccess, type ResultCard, type ReadActionResult, type WriteProposal } from "@/lib/assistant/actions/types";
+import { hasAccess, type ResultCard, type ReadActionResult, type WriteProposal, type DeliveryHint } from "@/lib/assistant/actions/types";
 import { buildSystemPrompt } from "@/lib/assistant/systemPrompt";
 import { createPendingAction, confirmPendingAction, isAffirmativePhrase, findSinglePendingAction } from "@/lib/assistant/confirmation";
 import { rememberPendingAttachment, getPendingAttachment, clearPendingAttachment } from "@/lib/assistant/pendingAttachment";
+import { untrustedAttachmentPreface, wrapToolResult } from "@/lib/assistant/security";
+import { auditAssistant, recordUsage, getUsageToday, evaluateCaps } from "@/lib/assistant/usage";
 
 const RATE_LIMIT_PER_MINUTE = 20;
 const HISTORY_WINDOW = 20; // spec §52 — bounded context, not full history
@@ -16,6 +18,8 @@ export type ChatTurnResult = {
   text: string;
   cards: ResultCard[];
   pendingAction: { id: string; previewText: string } | null;
+  /** Files the channel layer must deliver (e.g. the user's own payslip PDF over Telegram) — see DeliveryHint. */
+  deliveries?: DeliveryHint[];
   rateLimited?: boolean;
 };
 
@@ -74,8 +78,10 @@ export async function runChatTurn(
   conversationId: string,
   userMessageText: string,
   attachment?: ChatAttachment,
+  channel: "TELEGRAM" | "WEB" = "WEB",
 ): Promise<ChatTurnResult> {
   if (!(await checkRateLimit(supabase, profile.id))) {
+    await auditAssistant(supabase, profile.id, "RATE_LIMITED", null, { channel });
     return { text: "لطفاً کمی صبر کنید و دوباره تلاش کنید.", cards: [], pendingAction: null, rateLimited: true };
   }
 
@@ -85,7 +91,8 @@ export async function runChatTurn(
   if (isAffirmativePhrase(userMessageText)) {
     const single = await findSinglePendingAction(supabase, profile.id);
     if (single) {
-      const result = await confirmPendingAction(supabase, profile.id, single.id);
+      // viaPhrase: HIGH/CRITICAL proposals are refused here and must be confirmed with the button (spec §40).
+      const result = await confirmPendingAction(supabase, profile.id, single.id, { viaPhrase: true });
       const text = result.ok ? "انجام شد. ثبت شد." : result.error;
       await saveMessage(supabase, conversationId, "assistant", text);
       return { text, cards: [], pendingAction: null };
@@ -112,6 +119,8 @@ export async function runChatTurn(
   if (effectiveAttachment && messages.length > 0) {
     const last = messages[messages.length - 1];
     if (last.role === "user") {
+      // Fixed server-authored framing: the file below is DATA, never instructions (spec §63).
+      last.content.push({ type: "text", text: untrustedAttachmentPreface() });
       last.content.push(
         effectiveAttachment.kind === "image"
           ? { type: "image", mediaType: effectiveAttachment.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: effectiveAttachment.data }
@@ -124,11 +133,26 @@ export async function runChatTurn(
   const provider = getLLMProvider();
 
   const cards: ResultCard[] = [];
+  const deliveries: DeliveryHint[] = [];
   let pendingAction: ChatTurnResult["pendingAction"] = null;
   let finalText = "";
 
+  // Daily cost cap (spec §61): checked before the first model call and again as this turn's own tokens add up.
+  const usageToday = await getUsageToday(supabase, profile.id);
+  let turnTokens = 0;
+
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const cap = evaluateCaps(usageToday ? { ...usageToday, llm_tokens: usageToday.llm_tokens + turnTokens } : null, "LLM");
+    if (!cap.ok) {
+      await auditAssistant(supabase, profile.id, "CAP_EXCEEDED", null, { kind: "LLM", channel });
+      return { text: cap.message, cards, pendingAction, rateLimited: true };
+    }
+    const startedAt = Date.now();
     const turn = await provider.converseWithTools({ systemPrompt, messages, tools });
+    if (turn.usage) {
+      turnTokens += turn.usage.inputTokens + turn.usage.outputTokens;
+      await recordUsage(supabase, profile.id, channel, "LLM", turn.usage.inputTokens, turn.usage.outputTokens, Date.now() - startedAt);
+    }
 
     if (turn.toolUses.length === 0) {
       finalText = turn.text;
@@ -148,6 +172,7 @@ export async function runChatTurn(
         continue;
       }
       if (!hasAccess(profile, action.requiredAccess)) {
+        await auditAssistant(supabase, profile.id, "PERMISSION_DENIED", action.name, { stage: "PROPOSE", channel });
         resultBlocks.push({ type: "tool_result", toolUseId: tu.id, content: "کاربر به این بخش دسترسی ندارد.", isError: true });
         continue;
       }
@@ -186,7 +211,8 @@ export async function runChatTurn(
         } else {
           const result = (await action.handler(parsed.data, ctx)) as ReadActionResult;
           if (result.cards) cards.push(...result.cards);
-          resultBlocks.push({ type: "tool_result", toolUseId: tu.id, content: summarizeForModel(result.data) });
+          if (result.deliver) deliveries.push(...result.deliver);
+          resultBlocks.push({ type: "tool_result", toolUseId: tu.id, content: wrapToolResult(action.name, summarizeForModel(result.data)) });
         }
       } catch (err) {
         console.error(`[assistant] action ${action.name} failed`, err);
@@ -200,5 +226,5 @@ export async function runChatTurn(
   await saveMessage(supabase, conversationId, "assistant", finalText, { cards, pendingAction });
   await supabase.from("assistant_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
 
-  return { text: finalText, cards, pendingAction };
+  return { text: finalText, cards, pendingAction, deliveries };
 }

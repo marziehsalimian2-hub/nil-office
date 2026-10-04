@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { toFaDigits, formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
+import { hasProjectAccess } from "./access";
 import type { ActionDefinition, ResultCard } from "./types";
 
 export const listMyTasks: ActionDefinition<{ include_done?: boolean }> = {
@@ -27,7 +28,11 @@ export const getTask: ActionDefinition<{ task_id: string }> = {
   requiresConfirmation: false,
   inputSchema: z.object({ task_id: z.string().uuid() }),
   handler: async (input, ctx) => {
-    const { data } = await ctx.supabase.from("tasks").select("*").eq("id", input.task_id).single();
+    // p_tasks_read (0054): project users see every task; everyone else only tasks they are assigned to or created.
+    // Telegram bypasses RLS, so the same rule is applied here explicitly.
+    let q = ctx.supabase.from("tasks").select("*").eq("id", input.task_id);
+    if (!hasProjectAccess(ctx.profile)) q = q.or(`assigned_to.eq.${ctx.userId},created_by.eq.${ctx.userId}`);
+    const { data } = await q.maybeSingle();
     if (!data) return { data: { note: "کاری با این شناسه پیدا نشد یا دسترسی ندارید." } };
     return { data, cards: [{ kind: "task", id: data.id, title: data.title, href: `/tasks/${data.id}` }] };
   },
