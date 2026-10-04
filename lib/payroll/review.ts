@@ -7,6 +7,8 @@ export type ReviewBatch = {
   rounding_scale: number; rounding_mode: string; calculation_version: number;
   calculated_at: string | null; calculated_by: string | null; submitted_at: string | null;
   reviewed_at: string | null; reviewed_by: string | null; status_note: string | null; notes: string | null;
+  submitted_by: string | null; approved_at: string | null; approved_by: string | null;
+  accounting_journal_entry_id: string | null;
 };
 
 export type ReviewResult = {
@@ -27,6 +29,9 @@ export type PayrollReview = {
   period: { id: string; jalali_year: number; jalali_month: number; period_start: string; period_end: string };
   previous_period: { jalali_year: number; jalali_month: number } | null;
   stale: string[];
+  approval_blockers: string[];
+  /** Segregation of duties is RECORDED, not enforced — the UI shows these as warnings. */
+  sod: { reviewer_is_submitter: boolean; approver_is_submitter: boolean; approver_is_reviewer: boolean };
   totals: { personnel_count: number; gross: string; deductions: string; employer_cost: string; net: string };
   critical_count: number;
   warning_count: number;
@@ -56,7 +61,7 @@ export type ResultDetail = {
 export type WorkGridRow = {
   personnel_id: string; personnel_number: string; name: string; job_title: string;
   in_period: boolean; included: boolean; override: string | null; currency: string | null;
-  has_profile: boolean; partial_period: boolean;
+  has_profile: boolean; partial_period: boolean; locked: boolean;
   manual_components: { component_id: string; code: string; name_fa: string }[];
   work_data: {
     id: string; revision: number; work_days: string | null; work_hours: string | null; overtime_hours: string | null;
@@ -95,4 +100,29 @@ export function defaultRounding(currency: string | null | undefined): { scale: n
 /** True when a batch can be sent for review: calculated, fresh, and zero CRITICAL warnings is NOT required here (blocking is the approval phase). */
 export function canSubmitForReview(status: string, stale: string[]): boolean {
   return status === "CALCULATED" && stale.length === 0;
+}
+
+export type AccountingReadiness = {
+  base_currency: string;
+  currency_ok: boolean;
+  settings_ok: boolean;
+  missing_components: { code: string; name: string }[];
+  journal: { id: string; status: string; document_number: string | null } | null;
+  can_draft: boolean;
+};
+
+export type AccountOption = { id: string; code: string; name: string; account_type: string; nature: string };
+
+/** UI gating only — approve_payroll_batch re-checks everything server-side. */
+export function canApproveBatch(status: string, blockers: string[]): boolean {
+  return status === "UNDER_REVIEW" && blockers.length === 0;
+}
+
+/** Reasons the accounting draft button cannot work yet (readiness is computed by the DB; this only orders the message). */
+export function accountingBlockers(r: AccountingReadiness): string[] {
+  const out: string[] = [];
+  if (!r.currency_ok) out.push("CURRENCY_NOT_BASE");
+  if (!r.settings_ok) out.push("SETTINGS_MISSING");
+  if (r.missing_components.length > 0) out.push("COMPONENTS_UNMAPPED");
+  return out;
 }

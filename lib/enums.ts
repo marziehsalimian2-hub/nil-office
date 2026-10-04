@@ -299,6 +299,19 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PAYROLL_INPUT_COMPONENT_INVALID: "این جزء از نوع «ورود دستی» نیست یا تکراری است.",
   PAYROLL_OVERRIDE_INVALID: "این استثنا مجاز نیست (واحد پول حقوق فرد با دسته یکسان نیست).",
   PAYROLL_NOT_CALCULATED: "این دسته هنوز محاسبه نشده است.",
+  PAYROLL_USE_APPROVE: "برای تأیید نهایی از دکمهٔ «تأیید نهایی» استفاده کنید.",
+  PAYROLL_USE_REOPEN: "برای بازگشایی دستهٔ تأییدشده از دکمهٔ «بازگشایی برای اصلاح» استفاده کنید.",
+  PAYROLL_NOT_REVIEWED: "ابتدا باید «بررسی‌شد» ثبت شود.",
+  PAYROLL_HAS_CRITICAL: "هشدار بحرانی یا ردیف ناقص وجود دارد؛ ابتدا آن‌ها را رفع و دوباره محاسبه کنید.",
+  PAYROLL_NOTHING_TO_APPROVE: "این دسته هیچ نتیجه‌ای برای تأیید ندارد.",
+  PAYROLL_REOPEN_BLOCKED: "برای این دسته سند حسابداری فعال (پیش‌نویس یا قطعی) ثبت شده است؛ ابتدا آن را در حسابداری حذف یا برگشت بزنید.",
+  PAYROLL_APPROVED_LOCKED: "کارکرد این فرد در یک دستهٔ تأییدشده قفل است؛ برای اصلاح، دسته را با ذکر دلیل بازگشایی کنید.",
+  PAYROLL_NOT_APPROVED: "این دسته هنوز تأیید نهایی نشده است.",
+  PAYROLL_CURRENCY_NOT_BASE: "واحد پول این دسته با واحد پایهٔ دفتر یکسان نیست؛ ساخت سند حسابداری مجاز نیست.",
+  PAYROLL_ACCOUNT_MAPPING_MISSING: "نگاشت حساب‌ها کامل نیست؛ از «حسابداری حقوق» حساب‌ها را مشخص کنید.",
+  PAYROLL_ACCOUNT_INVALID: "حساب انتخاب‌شده معتبر نیست (باید فعال و قابل ثبت سند باشد) یا برای این نوع جزء مجاز نیست.",
+  PAYROLL_ACCOUNTING_DRAFT_EXISTS: "برای این دسته قبلاً سند حسابداری پیش‌نویس ساخته شده است.",
+  PAYROLL_LEDGER_MISMATCH: "جمع بدهکار و بستانکار سند حقوق برابر نیست؛ ساخت سند متوقف شد.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -1291,13 +1304,13 @@ export const SUGGESTED_RULE_KEYS: { key: string; label_fa: string }[] = [
 
 /* ============================ HR & Payroll — Phase 3 (periods, batches, calculation) =========================== */
 
-export const PAYROLL_BATCH_STATUS = ["DRAFT", "CALCULATED", "UNDER_REVIEW", "CANCELLED"] as const;
+export const PAYROLL_BATCH_STATUS = ["DRAFT", "CALCULATED", "UNDER_REVIEW", "APPROVED", "CANCELLED"] as const;
 export type PayrollBatchStatus = (typeof PAYROLL_BATCH_STATUS)[number];
 export const PAYROLL_BATCH_STATUS_LABEL: Record<PayrollBatchStatus, string> = {
-  DRAFT: "پیش‌نویس", CALCULATED: "محاسبه‌شده", UNDER_REVIEW: "در حال بررسی", CANCELLED: "لغو‌شده",
+  DRAFT: "پیش‌نویس", CALCULATED: "محاسبه‌شده", UNDER_REVIEW: "در حال بررسی", APPROVED: "تأییدشده", CANCELLED: "لغو‌شده",
 };
 export const PAYROLL_BATCH_STATUS_TONE: Record<PayrollBatchStatus, string> = {
-  DRAFT: "status-draft", CALCULATED: "status-review", UNDER_REVIEW: "status-review", CANCELLED: "status-cancelled",
+  DRAFT: "status-draft", CALCULATED: "status-review", UNDER_REVIEW: "status-review", APPROVED: "status-final", CANCELLED: "status-cancelled",
 };
 
 export const PAYROLL_PERIOD_STATUS = ["OPEN", "CLOSED"] as const;
@@ -1322,6 +1335,7 @@ export const PAYROLL_STALE_REASON_LABEL: Record<string, string> = {
   COMPENSATION_CHANGED: "حقوق و مزایای فرد تغییر کرده است",
   ELIGIBILITY_CHANGED: "فهرست افراد مشمول تغییر کرده است",
   SETTINGS_CHANGED: "تنظیمات دسته (حوزهٔ قانونی/گرد کردن) تغییر کرده است",
+  RULES_CHANGED: "قواعد قانونی پس از محاسبه تغییر کرده است (قاعدهٔ جدید تأیید یا بازنشسته شده)",
 };
 
 export const ELIGIBILITY_DECISION = ["INCLUDE", "EXCLUDE", "AUTO"] as const;
@@ -1337,4 +1351,13 @@ export const PAYROLL_LINE_METHOD_LABEL: Record<string, string> = {
 export const PAYROLL_AMOUNT_SOURCE_LABEL: Record<string, string> = {
   PROFILE: "پروفایل حقوق", COMPONENT_DEFAULT: "پیش‌فرض جزء", COMPENSATION_OVERRIDE: "جایگزین در پروفایل",
   MANUAL_INPUT: "ورود دستی", RULE: "قاعدهٔ قانونی", COMPONENT: "جزء",
+};
+
+/* ============================ HR & Payroll — Phase 4 (approval, lock, accounting draft) =========================== */
+
+export const PAYROLL_APPROVAL_BLOCKER_LABEL: Record<string, string> = {
+  NOT_REVIEWED: "هنوز «بررسی‌شد» ثبت نشده است",
+  STALE: "نتایج قدیمی است؛ دوباره محاسبه کنید",
+  CRITICAL: "هشدار بحرانی وجود دارد",
+  EMPTY: "نتیجه‌ای برای تأیید وجود ندارد",
 };

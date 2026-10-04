@@ -29,6 +29,12 @@ export default async function PayrollHomePage() {
             <p className="tnum mt-3 text-lg font-semibold text-ink">{toFaDigits(String(periodCount ?? 0))}</p>
           </Card>
         </Link>
+        <Link href="/payroll/accounting">
+          <Card className="transition hover:border-seal">
+            <p className="text-sm font-medium text-ink">حسابداری حقوق</p>
+            <p className="mt-1 text-xs text-ink-muted">نگاشت اجزای حقوق به سرفصل‌های حسابداری برای ساخت سند پیش‌نویس</p>
+          </Card>
+        </Link>
         <Link href="/payroll/components">
           <Card className="transition hover:border-seal">
             <p className="text-sm font-medium text-ink">اجزای حقوق</p>
@@ -51,7 +57,7 @@ export default async function PayrollHomePage() {
         </Link>
       </div>
       <p className="mt-6 text-xs text-ink-muted">
-        حقوق و مزایای هر فرد در «پروندهٔ پرسنلی ← حقوق و مزایا» ثبت می‌شود. محاسبه و بررسی در همین بخش انجام می‌شود؛ تأیید نهایی، ثبت حسابداری، پرداخت و فیش حقوقی در فازهای بعدی ارائه خواهد شد.
+        حقوق و مزایای هر فرد در «پروندهٔ پرسنلی ← حقوق و مزایا» ثبت می‌شود. محاسبه، بررسی، تأیید نهایی و ساخت سند حسابداری پیش‌نویس در همین بخش انجام می‌شود؛ پرداخت و فیش حقوقی در فازهای بعدی ارائه خواهد شد.
       </p>
     </div>
   );

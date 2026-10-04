@@ -3,17 +3,23 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { calculateBatch, changeBatchStatus, markBatchReviewed } from "@/app/actions/payroll-runs";
+import { approveBatch, reopenBatch } from "@/app/actions/payroll-approval";
 import { FormError } from "@/components/form";
+import { PAYROLL_APPROVAL_BLOCKER_LABEL } from "@/lib/enums";
 
-type Pending = "SEND_BACK" | "CANCEL" | null;
+type Pending = "SEND_BACK" | "CANCEL" | "REOPEN" | null;
 
 /**
  * Buttons shown by status and tier (UI gating only — every RPC re-checks the tier server-side).
- * CREATE: calculate / submit / cancel-in-DRAFT. APPROVE: mark reviewed / send back / cancel after DRAFT (reason required).
+ * CREATE: calculate / submit / cancel-in-DRAFT. APPROVE: mark reviewed / final approval / send back / cancel (reason required).
+ * ADMIN: reopen an APPROVED batch / cancel it (reason required; blocked while a live journal is linked).
  */
 export function BatchActions({
-  batchId, status, stale, reviewed, canCreate, canApprove,
-}: { batchId: string; status: string; stale: boolean; reviewed: boolean; canCreate: boolean; canApprove: boolean }) {
+  batchId, status, stale, reviewed, blockers, canCreate, canApprove, canAdmin,
+}: {
+  batchId: string; status: string; stale: boolean; reviewed: boolean; blockers: string[];
+  canCreate: boolean; canApprove: boolean; canAdmin: boolean;
+}) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [error, setError] = useState<string>();
@@ -34,7 +40,8 @@ export function BatchActions({
 
   if (status === "CANCELLED") return <p className="text-sm text-ink-muted">این دسته لغو شده است.</p>;
 
-  const canCancel = status === "DRAFT" ? canCreate : canApprove;
+  const canCancel = status === "DRAFT" ? canCreate : status === "APPROVED" ? canAdmin : canApprove;
+  const approveBlocked = blockers.length > 0;
 
   return (
     <div className="space-y-3">
@@ -57,8 +64,18 @@ export function BatchActions({
             ثبت «بررسی‌شد»
           </button>
         )}
+        {canApprove && status === "UNDER_REVIEW" && reviewed && (
+          <button type="button" className="btn-seal" disabled={busy || approveBlocked}
+            title={approveBlocked ? blockers.map((b) => PAYROLL_APPROVAL_BLOCKER_LABEL[b] ?? b).join("؛ ") : undefined}
+            onClick={() => run(() => approveBatch(null, fd()))}>
+            تأیید نهایی
+          </button>
+        )}
         {canApprove && status === "UNDER_REVIEW" && (
           <button type="button" className="btn-quiet" disabled={busy} onClick={() => setPending("SEND_BACK")}>بازگشت برای اصلاح</button>
+        )}
+        {canAdmin && status === "APPROVED" && (
+          <button type="button" className="btn-quiet" disabled={busy} onClick={() => setPending("REOPEN")}>بازگشایی برای اصلاح</button>
         )}
         {canCancel && (
           <button type="button" className="btn-quiet" disabled={busy}
@@ -67,16 +84,28 @@ export function BatchActions({
           </button>
         )}
       </div>
-      {status === "UNDER_REVIEW" && reviewed && (
-        <p className="text-xs text-status-final">این دسته «بررسی‌شده» ثبت شده است. تأیید نهایی و پرداخت در فاز بعد ارائه می‌شود.</p>
+      {canApprove && status === "UNDER_REVIEW" && reviewed && approveBlocked && (
+        <p className="text-xs text-status-cancelled">تأیید نهایی ممکن نیست: {blockers.map((b) => PAYROLL_APPROVAL_BLOCKER_LABEL[b] ?? b).join("؛ ")}</p>
+      )}
+      {status === "UNDER_REVIEW" && !canApprove && (
+        <p className="text-xs text-ink-muted">«بررسی‌شد» و تأیید نهایی نیازمند دسترسی «تأیید» در حقوق و دستمزد است.</p>
+      )}
+      {status === "APPROVED" && (
+        <p className="text-xs text-status-final">این دسته تأیید نهایی شده و نتیجهٔ مالی آن قفل است. تغییر فقط با «بازگشایی برای اصلاح» (مدیر حقوق، با ذکر دلیل) ممکن است.</p>
       )}
       {pending && (
         <div className="space-y-2 rounded-lg border border-paper-line bg-paper/40 p-3">
-          <p className="text-xs text-ink-muted">{pending === "CANCEL" ? "لغو دسته قابل بازگشت نیست؛ دلیل را بنویسید." : "دلیل بازگشت برای اصلاح را بنویسید."}</p>
+          <p className="text-xs text-ink-muted">
+            {pending === "CANCEL" ? "لغو دسته قابل بازگشت نیست؛ دلیل را بنویسید."
+              : pending === "REOPEN" ? "دسته به «در حال بررسی» برمی‌گردد و باید دوباره «بررسی‌شد» و تأیید شود. دلیل بازگشایی را بنویسید."
+              : "دلیل بازگشت برای اصلاح را بنویسید."}
+          </p>
           <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           <div className="flex gap-2">
             <button type="button" className="btn-primary !py-1.5 text-xs" disabled={busy || !note.trim()}
-              onClick={() => run(() => changeBatchStatus(null, fd({ new_status: pending === "CANCEL" ? "CANCELLED" : "CALCULATED", note: note.trim() })))}>
+              onClick={() => run(() => pending === "REOPEN"
+                ? reopenBatch(null, fd({ reason: note.trim() }))
+                : changeBatchStatus(null, fd({ new_status: pending === "CANCEL" ? "CANCELLED" : "CALCULATED", note: note.trim() })))}>
               تأیید
             </button>
             <button type="button" className="btn-quiet !py-1.5 text-xs" onClick={() => { setPending(null); setNote(""); }}>انصراف</button>
