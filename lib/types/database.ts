@@ -1805,9 +1805,19 @@ export interface PayrollPeriod {
 export interface PayrollBatch {
   id: string; batch_number: string; year: number; sequence_number: number; period_id: string; payroll_type: "REGULAR";
   currency: string; jurisdiction: string | null; rounding_scale: number; rounding_mode: "HALF_UP" | "DOWN" | "UP";
-  status: "DRAFT" | "CALCULATED" | "UNDER_REVIEW" | "CANCELLED"; calculation_version: number;
+  status: "DRAFT" | "CALCULATED" | "UNDER_REVIEW" | "APPROVED" | "CANCELLED"; calculation_version: number;
   current_calculation_id: string | null; calculated_by: string | null; calculated_at: string | null;
   submitted_by: string | null; submitted_at: string | null; reviewed_by: string | null; reviewed_at: string | null;
   cancelled_by: string | null; cancelled_at: string | null; status_note: string | null; notes: string | null;
+  approved_by: string | null; approved_at: string | null; approved_calculation_id: string | null;
+  accounting_journal_entry_id: string | null; accounting_drafted_by: string | null; accounting_drafted_at: string | null;
   created_by: string; created_at: string; updated_at: string;
+}
+export interface PayrollAccountingSettings {
+  id: string; singleton: boolean; base_salary_expense_account_id: string | null; net_payable_account_id: string | null;
+  updated_by: string | null; updated_at: string;
+}
+export interface PayrollComponentAccount {
+  id: string; component_id: string; component_type: string; expense_account_id: string | null; liability_account_id: string | null;
+  updated_by: string | null; created_at: string; updated_at: string;
 }

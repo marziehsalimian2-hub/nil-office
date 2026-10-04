@@ -92,7 +92,7 @@ export function WorkDataGrid({
 
   function save() {
     const payload = rows
-      .filter((r) => dirty.has(r.personnel_id))
+      .filter((r) => dirty.has(r.personnel_id) && !r.locked)
       .map((r) => {
         const s = state[r.personnel_id];
         const out: Record<string, unknown> = { personnel_id: r.personnel_id };
@@ -148,13 +148,14 @@ export function WorkDataGrid({
                     <div className="flex flex-wrap gap-1 text-xs text-ink-muted">
                       <span className="tnum">{r.personnel_number}</span>
                       {!r.has_profile && <span className="badge status-cancelled">بدون پروفایل حقوق</span>}
+                      {r.locked && <span className="badge status-final" title="در یک دستهٔ تأییدشده است؛ برای اصلاح دسته را بازگشایی کنید">قفل (تأییدشده)</span>}
                       {r.currency && <span>{CURRENCY_LABEL[r.currency as Currency] ?? r.currency}</span>}
                       {r.partial_period && <span className="badge status-waiting">بخشی از ماه</span>}
                     </div>
                   </td>
                   {QTY_FIELDS.map((f) => (
                     <td key={f.key} className="px-1 py-1">
-                      <input className="input tnum !px-2 !py-1 w-20 text-center" inputMode="decimal" disabled={!canEdit}
+                      <input className="input tnum !px-2 !py-1 w-20 text-center" inputMode="decimal" disabled={!canEdit || r.locked}
                         value={s.qty[f.key]}
                         onChange={(e) => touch(r.personnel_id, (x) => ({ ...x, qty: { ...x.qty, [f.key]: e.target.value } }))} />
                     </td>
@@ -165,7 +166,7 @@ export function WorkDataGrid({
                       <td key={id} className="px-1 py-1">
                         {has ? (
                           <MoneyInput value={s.inputs[id] ?? ""} className="w-32"
-                            onChange={(raw) => canEdit && touch(r.personnel_id, (x) => ({ ...x, inputs: { ...x.inputs, [id]: raw } }))} />
+                            onChange={(raw) => canEdit && !r.locked && touch(r.personnel_id, (x) => ({ ...x, inputs: { ...x.inputs, [id]: raw } }))} />
                         ) : <span className="text-ink-muted">—</span>}
                       </td>
                     );

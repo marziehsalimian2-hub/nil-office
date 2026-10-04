@@ -271,3 +271,23 @@ export const workDataRowsSchema = z.object({
     })
     .pipe(z.array(workDataRowSchema).min(1, "تغییری برای ذخیره وجود ندارد.").max(500)),
 });
+
+/* ------------------- Phase 4: approval, reopen, accounting mapping ------------------- */
+
+export const approveBatchSchema = z.object({ batch_id: z.string().uuid(), note: optText });
+
+export const reopenBatchSchema = z.object({
+  batch_id: z.string().uuid(),
+  reason: z.string().trim().min(1, "درج دلیل بازگشایی الزامی است."),
+});
+
+export const accountingSettingsSchema = z.object({
+  base_salary_expense: z.string().uuid("حساب هزینهٔ حقوق پایه را انتخاب کنید."),
+  net_payable: z.string().uuid("حساب حقوق پرداختنی را انتخاب کنید."),
+});
+
+export const componentAccountsSchema = z.object({
+  component_id: z.string().uuid(),
+  expense: optUuid,
+  liability: optUuid,
+});
