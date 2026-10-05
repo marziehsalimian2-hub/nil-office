@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { requireProfile } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
@@ -42,6 +44,17 @@ export default async function SettingsPage() {
   const sequences = (seqs ?? []) as NumberSequence[];
   const people = (users ?? []) as Profile[];
   const appSettings = settings as AppSettings | null;
+
+  // Factory Reset entry: visible only to an ADMIN who also holds the dedicated SYSTEM_FACTORY_RESET grant (never to ordinary admins).
+  let canFactoryReset = false;
+  if (isAdmin) {
+    try {
+      const { data } = await createServiceClient().rpc("system_reset_has_permission", { p_user: profile.id });
+      canFactoryReset = data === true;
+    } catch {
+      canFactoryReset = false;
+    }
+  }
 
   let signedLetterheadUrl: string | null = null;
   let signedStampUrl: string | null = null;
@@ -238,6 +251,13 @@ export default async function SettingsPage() {
               </tbody>
             </table>
           </Card>
+          {canFactoryReset && (
+            <Card>
+              <h2 className="mb-2 text-sm font-semibold text-status-cancelled">سیستم — بازنشانی کارخانه (Danger Zone)</h2>
+              <p className="mb-3 text-xs text-ink-muted">حذف کنترل‌شدهٔ داده‌های عملیاتی و آزمایشی با Dry Run، تأیید بکاپ و تأیید چندمرحله‌ای.</p>
+              <Link href="/settings/system/factory-reset" className="btn-ghost">ورود به بازنشانی کارخانه</Link>
+            </Card>
+          )}
         </div>
       )}
     </div>
