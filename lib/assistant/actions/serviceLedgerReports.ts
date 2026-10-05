@@ -4,6 +4,7 @@ import { resolvePeriod } from "@/lib/service-ledger/period";
 import { REPORT_TYPE_LABEL, type ReportType } from "@/lib/enums";
 import { requireClientServiceFile } from "./serviceLedger";
 import { withAccess, hasServiceLedgerAccess } from "./access";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition, ResultCard } from "./types";
 import type { ServiceLedgerPeriodSummaryRow } from "@/lib/types/database";
 
@@ -124,6 +125,7 @@ export const prepareClientServiceReport: ActionDefinition<z.infer<typeof prepare
   requiresConfirmation: true,
   inputSchema: prepareReportInput,
   handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.company_id, { strict: true });
     const file = await requireClientServiceFile(ctx, input.company_id);
     const { data: fileRow } = await ctx.supabase.from("client_service_files").select("default_report_template_id").eq("id", file.id).single();
     if (!fileRow?.default_report_template_id) {

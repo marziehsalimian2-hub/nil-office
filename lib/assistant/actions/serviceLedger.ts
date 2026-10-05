@@ -5,6 +5,7 @@ import { formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
 import { escapePostgrestFilter } from "@/lib/assistant/security";
 import { withAccess, hasServiceLedgerAccess } from "./access";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionContext, ActionDefinition, ResultCard } from "./types";
 import type { ServiceLedgerClaimableAmountRow } from "@/lib/types/database";
 
@@ -187,6 +188,7 @@ export const createServiceEntryDraft: ActionDefinition<z.infer<typeof createServ
   requiresConfirmation: true,
   inputSchema: createServiceEntryDraftInput,
   handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.company_id, { strict: true });
     const file = await requireClientServiceFile(ctx, input.company_id);
     const categoryId = await resolveServiceCategoryId(ctx, input.service_category_code);
 

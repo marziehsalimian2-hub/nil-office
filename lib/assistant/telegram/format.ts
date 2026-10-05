@@ -13,6 +13,7 @@ const MAX_CARDS_SHOWN = 6;
  * split on paragraph boundaries (spec §19) rather than cut mid-sentence.
  */
 export function formatChatTurnForTelegram(result: ChatTurnResult): { chunks: string[]; keyboard?: InlineKeyboardButton[][] } {
+  // (callback_data of a choice button is `pick:<opaque token>` — no entity id or name ever travels through Telegram)
   let text = result.text.trim();
 
   // A payslip card is a web-only link to the PDF stream; over Telegram the file itself is delivered (handleUpdate).
@@ -33,7 +34,9 @@ export function formatChatTurnForTelegram(result: ChatTurnResult): { chunks: str
   const chunks = splitIntoChunks(text);
   const keyboard: InlineKeyboardButton[][] | undefined = result.pendingAction
     ? [[{ text: "✅ تأیید", callback_data: `confirm:${result.pendingAction.id}` }, { text: "❌ لغو", callback_data: `cancel:${result.pendingAction.id}` }]]
-    : undefined;
+    : result.choices && result.choices.length > 0
+      ? result.choices.map((c) => [{ text: c.label, callback_data: `pick:${c.token}` }])
+      : undefined;
 
   return { chunks, keyboard };
 }

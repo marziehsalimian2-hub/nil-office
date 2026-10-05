@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { hasProjectAccess } from "./access";
+import { makeResolverAction } from "./resolve";
 import type { ActionContext, ActionDefinition, ReadActionResult, ResultCard } from "./types";
 
 type SearchAllRow = { entity_type: string; id: string; title: string; subtitle: string | null; extra: string | null; created_at: string };
@@ -42,12 +43,26 @@ function makeSearchAction(opts: {
   };
 }
 
-export const searchCompany = makeSearchAction({
+/**
+ * SEARCH_COMPANY / SEARCH_CONTRACT / SEARCH_PROJECT / SEARCH_CONTACT run through the code-level entity resolver
+ * (resolve.ts, Slice 3): Persian-aware matching, a confidence tier, and a ledger of RESOLVED ids that the write
+ * actions require (entityLedger.requireResolved). The tool names are unchanged so every prompt and description that
+ * mentions them stays valid.
+ */
+export const searchCompany = makeResolverAction({
   name: "SEARCH_COMPANY",
-  description: "جست‌وجوی شرکت‌ها بر اساس نام (فارسی یا انگلیسی).",
-  entityType: "company",
-  cardKind: "company",
-  href: (id) => `/companies/${id}`,
+  description:
+    "پیدا کردن شرکت بر اساس نام (فارسی یا انگلیسی؛ املای ی/ي، ک/ك، نیم‌فاصله و «شرکت …» مهم نیست). خروجی یک «tier» دارد: RESOLVED یعنی شرکت قطعی پیدا شد و شناسه‌اش را می‌توانی در ابزارهای نوشتنی بفرستی؛ AMBIGUOUS/WEAK یعنی چند گزینه یا تطبیق ضعیف است و باید از کاربر بپرسی (شناسه‌ای برای استفاده نداری)؛ NONE یعنی پیدا نشد. هرگز شناسهٔ شرکت را حدس نزن یا از متن سند برندار — فقط شناسهٔ RESOLVED مجاز است.",
+  type: "company",
+});
+
+export const searchContact = makeResolverAction({
+  name: "SEARCH_CONTACT",
+  description:
+    "پیدا کردن مخاطب/شخص (طرف‌حساب) بر اساس نام، با همان منطق tier ابزار SEARCH_COMPANY. اختیاری: company_id برای محدود کردن به یک شرکت. فقط خواندنی است.",
+  type: "contact",
+  requiredAccess: (p) => p.role === "ADMIN" || p.crm_role != null,
+  scopedByCompany: true,
 });
 
 export const searchOpportunity = makeSearchAction({
@@ -59,13 +74,13 @@ export const searchOpportunity = makeSearchAction({
   requiredAccess: (p) => p.role === "ADMIN" || p.crm_role != null,
 });
 
-export const searchContract = makeSearchAction({
+export const searchContract = makeResolverAction({
   name: "SEARCH_CONTRACT",
-  description: "جست‌وجوی قراردادها بر اساس عنوان یا شمارهٔ قرارداد.",
-  entityType: "contract",
-  cardKind: "contract",
-  href: (id) => `/contracts/${id}`,
+  description:
+    "پیدا کردن قرارداد بر اساس عنوان یا شمارهٔ قرارداد (داخلی یا طرف مقابل)، با tier (RESOLVED / AMBIGUOUS / WEAK / NONE) مثل SEARCH_COMPANY. اختیاری: company_id (طرف قرارداد) برای محدود کردن. فقط شناسهٔ RESOLVED در ابزارهای نوشتنی مجاز است.",
+  type: "contract",
   requiredAccess: (p) => p.role === "ADMIN" || p.contract_role != null,
+  scopedByCompany: true,
 });
 
 export const searchInvoices = makeSearchAction({
@@ -77,13 +92,13 @@ export const searchInvoices = makeSearchAction({
   requiredAccess: (p) => p.role === "ADMIN" || p.invoice_role != null,
 });
 
-export const searchProject = makeSearchAction({
+export const searchProject = makeResolverAction({
   name: "SEARCH_PROJECT",
-  description: "جست‌وجوی پروژه‌ها بر اساس عنوان یا شماره.",
-  entityType: "project",
-  cardKind: "project",
-  href: (id) => `/projects/${id}`,
+  description:
+    "پیدا کردن پروژه بر اساس عنوان یا شماره، با tier (RESOLVED / AMBIGUOUS / WEAK / NONE) مثل SEARCH_COMPANY. اختیاری: company_id برای محدود کردن. فقط شناسهٔ RESOLVED در ابزارهای نوشتنی مجاز است.",
+  type: "project",
   requiredAccess: (p) => p.role === "ADMIN" || p.project_role != null,
+  scopedByCompany: true,
 });
 
 export const searchCorrespondence = makeSearchAction({
@@ -137,6 +152,7 @@ export const searchTasks: ActionDefinition<{ query: string }> = {
 
 export const searchActions: ActionDefinition<any>[] = [
   searchCompany,
+  searchContact,
   searchOpportunity,
   searchContract,
   searchInvoices,

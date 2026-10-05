@@ -3,6 +3,7 @@ import { z } from "zod";
 import { formatJalali } from "@/lib/jalali";
 import type { LetterDraftInput, IncomingLetterInput } from "@/app/actions/correspondence";
 import { htmlToPlainText } from "./access";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition } from "./types";
 
 export const getCorrespondence: ActionDefinition<{ correspondence_id: string }> = {
@@ -50,7 +51,8 @@ export const createLetterDraft: ActionDefinition<z.infer<typeof createLetterDraf
   riskLevel: "MEDIUM",
   requiresConfirmation: true,
   inputSchema: createLetterDraftInput,
-  handler: async (input) => {
+  handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.recipient_company_id, { strict: true });
     if (!input.recipient_company_id && !input.recipient_name) {
       throw new Error("گیرندهٔ نامه (شرکت یا نام) باید مشخص باشد.");
     }
@@ -111,6 +113,7 @@ export const registerIncomingLetter: ActionDefinition<z.infer<typeof registerInc
   requiresConfirmation: true,
   inputSchema: registerIncomingLetterInput,
   handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.sender_company_id, { strict: true });
     if (!input.sender_company_id && !input.sender_name) {
       throw new Error("فرستندهٔ نامه (شرکت یا نام) باید مشخص باشد.");
     }

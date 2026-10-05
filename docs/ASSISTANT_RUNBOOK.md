@@ -45,6 +45,18 @@ tapped; the user just asks again.
    a DRAFT (not verified, not posted) with «مشاهدهٔ مدرک» on the web; the same image again → hard stop; «ثبت کن و فاکتور رو
    تسویه کن» → draft only; supplier-invoice PDF → payment draft; a user without accounting CREATE is refused.
 
+## Deploying Slice 3 (entity resolution + quick-action menu) — migration 0136
+
+1. Run `supabase/migrations/0136_assistant_entity_resolution.sql`, then `supabase/tests/assistant_entity_resolution_integrity.sql`
+   (rolled back; success = no error). Without 0136 the search tools answer "جست‌وجو ناموفق بود" and no write action can be
+   proposed with a company / contract / project (nothing is written wrongly — it fails closed).
+2. Deploy as usual. No new environment variables. The ledger is in memory: a `pm2 restart` makes the model resolve entities again.
+3. Optional (production bot configuration — yours to do): register the command list with @BotFather `/setcommands`, e.g.
+   `menu - منوی سریع` and `start - شروع`. The menu also works by typing `/menu` or «منو».
+4. Checklist: «رضایی» with two similar test companies → candidate buttons → tap → the request continues with that company;
+   an exact full name goes straight through; a letter / receipt for a merely partial name asks «منظورتان … است؟»;
+   `/menu` shows only the buttons your role can use. Use test companies and delete them afterwards.
+
 ## Post-deploy verification checklist
 
 - A plain question («امروز چه کارهایی دارم؟») answers (tool list loads).

@@ -8,6 +8,7 @@ import {
 } from "@/lib/assistant/cashDraft";
 import { formatExactAmount } from "@/lib/payroll/format";
 import type { CashDraftPayload } from "@/app/actions/accounting";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import { canCreateAccounting, hasAccountingAccess } from "./access";
 import type { ActionContext, ActionDefinition, WriteProposal } from "./types";
 
@@ -47,6 +48,10 @@ const COMMON_DESCRIPTION =
 
 async function buildCashDraftProposal(kind: CashKind, input: CashDraftInput, ctx: ActionContext): Promise<WriteProposal> {
   const L = CASH_LABEL[kind];
+
+  // Financial: the company / contract must have been resolved with the STRICT bar (or picked by the user) — never a guessed id.
+  requireResolved(ctx.userId, "company", input.company_id, { strict: true });
+  requireResolved(ctx.userId, "contract", input.contract_id, { strict: true });
 
   const amount = parseAmountText(input.amount_text);
   if (!amount.ok) throw new Error(amount.error);

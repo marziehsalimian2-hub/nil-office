@@ -92,6 +92,32 @@ ownership and tier. A voice message can therefore never produce an official numb
 - Accounting posting / reversal, payroll approval / payment, cheque issue / clear / void and billing batches are
   not in the registry at all.
 
+### Entity resolution and the quick-action menu (Slice 3, 0136)
+
+Which company / contract / project the user means is decided by **code**, not by the model (`lib/assistant/entityMatch.ts`,
+`entityLedger.ts`, `actions/resolve.ts`; spec §19 / §45 / §46):
+
+- `SEARCH_COMPANY / SEARCH_CONTRACT / SEARCH_PROJECT / SEARCH_CONTACT` fetch candidates **per type** with
+  `assistant_entity_candidates` (0136: normalized token + trigram prefilter, gated like the web, no cross-module crowding —
+  the old `search_all` is one union limited to the 50 newest rows of any type) and score them in TypeScript: Persian-aware
+  normalization (ي/ك/ئ variants, ZWNJ, digits, legal words such as «شرکت» / «Co.»), exact = 1, same-name-without-legal-form = 0.97,
+  token containment 0.80-0.92, fuzzy ≤ 0.78.
+- Tiers: **RESOLVED** (score ≥ 0.92 and ≥ 0.12 ahead of the runner-up) · **AMBIGUOUS** (several plausible) · **WEAK** (one
+  unconvincing) · **NONE**. Financial / official actions use the **strict** bar (≥ 0.97 and ≥ 0.25 ahead, or a human pick).
+- Only a RESOLVED id is written to the in-memory **ledger** (30-min TTL, user-bound, single PM2 process — like `pendingAttachment`).
+  Every write action that takes `company_id / contract_id / project_id / recipient_company_id / sender_company_id /
+  counterparty_company_id` calls `requireResolved(...)` first (strict for letters, invoices, cheques, receipts / payments, service
+  entries and reports); a guessed, remembered or document-sourced id is refused. `registry.test.ts` fails the build if a write
+  action with such a field does not call the guard.
+- An id that was offered as an ambiguous candidate is **not** auto-resolved when the model re-queries its exact name, unless
+  the human's own message names it. On Telegram the candidates are inline buttons: `callback_data` is `pick:<opaque 10-char token>`
+  (single use, user-bound, 15 min; no id or name travels through Telegram); the tap records a **USER_PICKED** resolution and the
+  original request continues. On the web the user types a more specific name.
+- **Quick-action menu** (`/menu` or «منو»; `telegram/menu.ts`): امروز من · کارهای عقب‌افتاده · نامه جدید · دریافت جدید · پرداخت جدید ·
+  ثبت خدمت · پیش‌فاکتور · مشتریان · گزارش‌ها, filtered by the user's role. Callbacks are fixed opaque keys (`menu:today`) carrying no
+  data, re-authorised on every tap. Question items run a fixed question through the normal (gated) turn; «new …» items reply with a
+  fixed how-to and never write anything. Natural language remains the main interface.
+
 ### Receipt / payment drafts from images, PDFs, voice or text (Slice 2, 0135)
 
 `CREATE_RECEIPT_DRAFT` / `CREATE_PAYMENT_DRAFT` create a **DRAFT row only** through `createCashDraftCore`
@@ -159,8 +185,8 @@ existing 20-messages-per-minute limit is unchanged. A refusal is a polite Persia
 
 ## 10. Known limits (deferred to later slices)
 
-A code-level
-entity resolver with confidence tiers, CRM / contract / task / follow-up write actions beyond today's, HR /
+CRM / contract / task / follow-up write actions beyond today's (now safe to add on top of the entity guard), crowd-out
+fixes for `SEARCH_CORRESPONDENCE / DOCUMENTS / TASKS` (still `search_all`), a company alias / nickname table, HR /
 personnel read actions for others, a Telegram identity-linking admin UI, a scheduled morning brief, and
-conversation retention / purge tooling. The `pendingAttachment` cache is in-process (single PM2 instance).
+conversation retention / purge tooling. The `pendingAttachment` cache and the entity ledger are in-process (single PM2 instance; a restart just makes the model resolve again).
 The existing manual end-to-end scripts under `supabase/tests/*.mjs` predate the draft / finalize split.

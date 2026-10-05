@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/types/database";
 import { getLLMProvider, type LlmMessage, type LlmContentBlock } from "@/lib/assistant/llm";
 import { getAction, buildLlmTools } from "@/lib/assistant/actions/registry";
-import { hasAccess, type ResultCard, type ReadActionResult, type WriteProposal, type DeliveryHint } from "@/lib/assistant/actions/types";
+import { hasAccess, type ResultCard, type ReadActionResult, type WriteProposal, type DeliveryHint, type ChoiceHint } from "@/lib/assistant/actions/types";
 import { buildSystemPrompt } from "@/lib/assistant/systemPrompt";
 import { createPendingAction, confirmPendingAction, isAffirmativePhrase, findSinglePendingAction } from "@/lib/assistant/confirmation";
 import { rememberPendingAttachment, getPendingAttachment, clearPendingAttachment } from "@/lib/assistant/pendingAttachment";
@@ -20,6 +20,8 @@ export type ChatTurnResult = {
   pendingAction: { id: string; previewText: string } | null;
   /** Files the channel layer must deliver (e.g. the user's own payslip PDF over Telegram) — see DeliveryHint. */
   deliveries?: DeliveryHint[];
+  /** Candidate buttons for an ambiguous entity (Telegram only): `token` is an opaque one-time id, never an entity id. */
+  choices?: ChoiceHint[];
   rateLimited?: boolean;
 };
 
@@ -134,6 +136,7 @@ export async function runChatTurn(
 
   const cards: ResultCard[] = [];
   const deliveries: DeliveryHint[] = [];
+  let choices: ChoiceHint[] = [];
   let pendingAction: ChatTurnResult["pendingAction"] = null;
   let finalText = "";
 
@@ -186,6 +189,7 @@ export async function runChatTurn(
         supabase,
         userId: profile.id,
         profile,
+        userMessageText: userMessageText,
         turnAttachment: effectiveAttachment ? { mediaType: effectiveAttachment.mediaType, data: effectiveAttachment.data } : undefined,
       };
       try {
@@ -212,6 +216,8 @@ export async function runChatTurn(
           const result = (await action.handler(parsed.data, ctx)) as ReadActionResult;
           if (result.cards) cards.push(...result.cards);
           if (result.deliver) deliveries.push(...result.deliver);
+          // the LAST ambiguity of the turn is the one the user is asked about
+          if (result.choices) choices = result.choices;
           resultBlocks.push({ type: "tool_result", toolUseId: tu.id, content: wrapToolResult(action.name, summarizeForModel(result.data)) });
         }
       } catch (err) {
@@ -226,5 +232,5 @@ export async function runChatTurn(
   await saveMessage(supabase, conversationId, "assistant", finalText, { cards, pendingAction });
   await supabase.from("assistant_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
 
-  return { text: finalText, cards, pendingAction, deliveries };
+  return { text: finalText, cards, pendingAction, deliveries, choices: choices.length > 0 && !pendingAction ? choices : undefined };
 }

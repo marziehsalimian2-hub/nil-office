@@ -18,6 +18,8 @@ export type ActionContext = {
    * REGISTER_INCOMING_LETTER, to archive it) reads it from here.
    */
   turnAttachment?: { mediaType: string; data: string };
+  /** The human's own message of THIS turn (set by runChatTurn) — lets the entity resolver tell a user-typed choice from a model re-query. */
+  userMessageText?: string;
 };
 
 /** The small structured "card" shape a read action can attach to its answer (spec §29/§30 — always traceable to a real record). */
@@ -35,7 +37,10 @@ export type ResultCard = {
  */
 export type DeliveryHint = { kind: "PAYSLIP"; payslipId: string; label: string };
 
-export type ReadActionResult = { data: unknown; cards?: ResultCard[]; deliver?: DeliveryHint[] };
+/** A button the channel layer may show under the reply (Telegram): `token` is an opaque one-time id (entityLedger), never an entity id. */
+export type ChoiceHint = { token: string; label: string };
+
+export type ReadActionResult = { data: unknown; cards?: ResultCard[]; deliver?: DeliveryHint[]; choices?: ChoiceHint[] };
 
 /**
  * What a MEDIUM (write) action's handler returns: NOT the write itself —
