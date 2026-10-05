@@ -49,6 +49,11 @@ begin
     raise exception 'INVALID_TYPE' using errcode = '22023';
   end if;
 
+  -- the per-type gate runs BEFORE any short-circuit: a profile without the module role is refused even for an empty query
+  if p_type = 'contact' and not (v_prof.role = 'ADMIN' or v_prof.crm_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
+  if p_type = 'contract' and not (v_prof.role = 'ADMIN' or v_prof.contract_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
+  if p_type = 'project' and not (v_prof.role = 'ADMIN' or v_prof.project_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
+
   v_limit := least(greatest(coalesce(p_limit, 25), 1), 50);
   v_q := public.assistant_norm_fa(p_query);
   if length(v_q) < 2 then return '[]'::jsonb; end if;
@@ -68,7 +73,6 @@ begin
        limit v_limit) x;
 
   elsif p_type = 'contact' then
-    if not (v_prof.role = 'ADMIN' or v_prof.crm_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
     select coalesce(jsonb_agg(x.j order by x.hits desc, x.sim desc), '[]'::jsonb) into v_rows from (
       select jsonb_build_object('id', cc.id, 'name', btrim(coalesce(cc.first_name, '') || ' ' || coalesce(cc.last_name, '')),
                                 'aliases', '[]'::jsonb, 'secondary', co.legal_name, 'number', null, 'company_id', cc.company_id) as j, h.hits, h.sim
@@ -83,7 +87,6 @@ begin
        limit v_limit) x;
 
   elsif p_type = 'contract' then
-    if not (v_prof.role = 'ADMIN' or v_prof.contract_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
     select coalesce(jsonb_agg(x.j order by x.hits desc, x.sim desc), '[]'::jsonb) into v_rows from (
       select jsonb_build_object('id', k.id, 'name', k.title,
                                 'aliases', jsonb_build_array(k.display_number, k.external_contract_number),
@@ -99,7 +102,6 @@ begin
        limit v_limit) x;
 
   else  -- 'project'
-    if not (v_prof.role = 'ADMIN' or v_prof.project_role is not null) then raise exception 'NOT_AUTHORIZED' using errcode = '42501'; end if;
     select coalesce(jsonb_agg(x.j order by x.hits desc, x.sim desc), '[]'::jsonb) into v_rows from (
       select jsonb_build_object('id', p.id, 'name', p.title, 'aliases', jsonb_build_array(p.display_number),
                                 'secondary', p.status::text, 'number', p.display_number) as j, h.hits, h.sim
