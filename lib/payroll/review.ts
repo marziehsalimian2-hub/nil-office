@@ -45,6 +45,8 @@ export type ResultLine = {
   method: string; status: "COMPUTED" | "NOT_COMPUTED"; amount: string | null; amount_source: string | null;
   basis: string | null; base_amount: string | null; rate: string | null; rate_source: string | null;
   rule_key: string | null; rule_set_label: string | null; taxable: boolean; insurable: boolean;
+  /** QUANTITY_X_RATE lines (0138): exact decimal strings + a non-secret trace of the wage / divisor / multiplier sources */
+  quantity?: string | null; quantity_unit?: string | null; unit_rate?: string | null; details?: Record<string, unknown> | null;
 };
 
 export type ResultDetail = {

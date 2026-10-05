@@ -8,6 +8,7 @@ import {
 } from "@/lib/enums";
 import { toFaDigits } from "@/lib/jalali";
 import { formatExactAmount } from "@/lib/payroll/format";
+import { describeQuantityLine } from "@/lib/payroll/quantity";
 import type { ResultDetail } from "@/lib/payroll/review";
 import { WarningsList } from "../../WarningsList";
 
@@ -71,9 +72,13 @@ export default async function PayrollResultPage({ params }: { params: Promise<{ 
                 <td className="tnum px-3 py-2 text-ink-muted">
                   {l.basis ? `${PAYROLL_PERCENTAGE_BASIS_LABEL[l.basis as PayrollPercentageBasis] ?? l.basis}${l.base_amount ? `: ${formatExactAmount(l.base_amount)}` : ""}` : "—"}
                 </td>
-                <td className="tnum px-3 py-2 text-ink-muted">{l.rate ? `${formatExactAmount(l.rate)}٪` : "—"}</td>
+                <td className="tnum px-3 py-2 text-ink-muted">
+                  {l.quantity != null ? describeQuantityLine({ quantity: l.quantity, unit: l.quantity_unit, unit_rate: l.unit_rate }, d.result.currency) : l.rate ? `${formatExactAmount(l.rate)}٪` : "—"}
+                </td>
                 <td className="px-3 py-2 text-xs text-ink-muted">
                   {l.rule_set_label ? <div>قاعده: {l.rule_set_label}{l.rule_key ? ` / ${l.rule_key}` : ""}</div> : null}
+                  {l.details?.wage_source ? <div>دستمزد مبنا: {l.details.wage_source === "PROFILE_HOURLY" ? "نرخ ساعتی ثبت‌شده در پروفایل" : "حقوق پایه"}</div> : null}
+                  {l.details?.divisor_rule || l.details?.multiplier_rule ? <div>پارامتر از قاعدهٔ قانونی تأییدشده</div> : null}
                   {l.amount_source ? PAYROLL_AMOUNT_SOURCE_LABEL[l.amount_source] ?? l.amount_source : "—"}
                 </td>
                 <td className={`tnum px-3 py-2 font-medium ${l.status === "NOT_COMPUTED" ? "text-status-cancelled" : "text-ink"}`}>

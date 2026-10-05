@@ -3,6 +3,7 @@ import { Card } from "@/components/ui";
 import { formatJalali } from "@/lib/jalali";
 import { PAYMENT_FREQUENCY_LABEL, SALARY_CALCULATION_METHOD_LABEL, type PaymentFrequency } from "@/lib/enums";
 import { formatCurrencyAmount } from "@/lib/payroll/format";
+import { describeQuantityVersion } from "@/lib/payroll/quantity";
 import { maskIban, maskAccount, maskCard } from "@/lib/payroll/masking";
 import type {
   CompensationProfile, CompensationLine, SalaryComponent, SalaryComponentVersion, PersonnelPaymentDestination,
@@ -12,7 +13,7 @@ import { PaymentDestinationsCard, type MaskedDestination } from "./PaymentDestin
 import type { ComponentOption, LineRow } from "./CompensationLinesEditor";
 
 type LineWithVersion = CompensationLine & {
-  salary_component_versions: Pick<SalaryComponentVersion, "name_fa" | "calculation_method" | "fixed_amount" | "currency" | "percentage" | "rule_key"> | null;
+  salary_component_versions: Pick<SalaryComponentVersion, "name_fa" | "calculation_method" | "fixed_amount" | "currency" | "percentage" | "rule_key" | "quantity_source" | "rate_mode" | "unit_divisor" | "divisor_rule_key" | "rate_multiplier" | "multiplier_rule_key"> | null;
 };
 
 /**
@@ -35,7 +36,7 @@ export async function CompensationTab({ personnelId, canManage, canViewBank }: {
     ids.length
       ? supabase
           .from("compensation_lines")
-          .select("*, salary_component_versions(name_fa, calculation_method, fixed_amount, currency, percentage, rule_key)")
+          .select("*, salary_component_versions(name_fa, calculation_method, fixed_amount, currency, percentage, rule_key, quantity_source, rate_mode, unit_divisor, divisor_rule_key, rate_multiplier, multiplier_rule_key)")
           .in("compensation_profile_id", ids)
       : Promise.resolve({ data: [] }),
     supabase.from("salary_components").select("*, salary_component_versions(*)").eq("is_active", true).order("code"),
@@ -55,7 +56,8 @@ export async function CompensationTab({ personnelId, canManage, canViewBank }: {
     .filter((c) => c.code !== "BASE_SALARY")
     .map((c): ComponentOption | null => {
       const open = c.salary_component_versions.find((v) => v.effective_to === null);
-      return open ? { id: c.id, code: c.code, name_fa: open.name_fa, method: open.calculation_method, hasRuleKey: !!open.rule_key } : null;
+      return open ? { id: c.id, code: c.code, name_fa: open.name_fa, method: open.calculation_method, hasRuleKey: !!open.rule_key,
+        perUnit: open.calculation_method === "QUANTITY_X_RATE" && open.rate_mode === "PER_UNIT" } : null;
     })
     .filter((o): o is ComponentOption => o !== null);
 
@@ -86,6 +88,7 @@ export async function CompensationTab({ personnelId, canManage, canViewBank }: {
     if (v.rule_key) return `از قاعدهٔ «${v.rule_key}»`;
     if (v.calculation_method === "FIXED" && v.fixed_amount != null) return formatCurrencyAmount(v.fixed_amount, v.currency);
     if (v.calculation_method === "PERCENTAGE" && v.percentage != null) return `${v.percentage}%`;
+    if (v.calculation_method === "QUANTITY_X_RATE") return describeQuantityVersion(v) ?? SALARY_CALCULATION_METHOD_LABEL[v.calculation_method];
     return SALARY_CALCULATION_METHOD_LABEL[v.calculation_method];
   }
 

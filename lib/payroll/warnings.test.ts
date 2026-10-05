@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PAYROLL_WARNING_META, KNOWN_WARNING_CODES, describeWarning, blockingCount } from "./warnings";
 
-// Every code literal the engine can emit (0121) — extracted from the SQL so the two cannot drift apart.
+// Every code literal the engine can emit (0138 — PAYROLL_ENGINE_2, which restates 0121) — extracted from the SQL so the two cannot drift apart.
 function sqlCodes(): string[] {
-  const src = readFileSync(join(process.cwd(), "supabase", "migrations", "0121_payroll_calc_engine.sql"), "utf8");
+  const src = readFileSync(join(process.cwd(), "supabase", "migrations", "0138_payroll_engine_2.sql"), "utf8");
   const re = /'(CRITICAL|WARNING|INFO)',\s*'([A-Z][A-Z0-9_]+)'/g;
   const out = new Set<string>();
   for (const m of src.matchAll(re)) out.add(m[2]);
@@ -21,10 +21,10 @@ describe("payroll warnings", () => {
     for (const c of codes) expect(KNOWN_WARNING_CODES, `missing meta for ${c}`).toContain(c);
   });
 
-  it("23 codes: 15 critical, 7 warning, 1 info", () => {
+  it("24 codes: 16 critical, 7 warning, 1 info", () => {
     const sev = (s: string) => Object.values(PAYROLL_WARNING_META).filter((m) => m.severity === s).length;
-    expect(KNOWN_WARNING_CODES.length).toBe(23);
-    expect([sev("CRITICAL"), sev("WARNING"), sev("INFO")]).toEqual([15, 7, 1]);
+    expect(KNOWN_WARNING_CODES.length).toBe(24);
+    expect([sev("CRITICAL"), sev("WARNING"), sev("INFO")]).toEqual([16, 7, 1]);
   });
 
   it("messages carry no digits and no currency (codes can never leak amounts)", () => {

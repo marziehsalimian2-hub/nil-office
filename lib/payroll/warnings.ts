@@ -21,11 +21,12 @@ export const PAYROLL_WARNING_META: Record<string, { severity: WarningSeverity; t
   // ---- CRITICAL: block the later approval phase ----
   MISSING_COMPENSATION: { severity: "CRITICAL", text: () => "برای این فرد پروفایل حقوق و مزایای معتبر در این دوره ثبت نشده است؛ مبلغی محاسبه نشد." },
   UNSUPPORTED_PAYMENT_FREQUENCY: { severity: "CRITICAL", text: () => "دورهٔ پرداخت این فرد ماهانه نیست و در این نسخه محاسبه نمی‌شود." },
-  UNSUPPORTED_METHOD: { severity: "CRITICAL", text: (c) => `روش محاسبهٔ جزء ${comp(c)} (مقدار × نرخ یا فرمول) هنوز پشتیبانی نمی‌شود؛ مبلغی محاسبه نشد.` },
+  UNSUPPORTED_METHOD: { severity: "CRITICAL", text: (c) => `روش محاسبهٔ جزء ${comp(c)} (فرمول، یا تعریف قدیمی «مقدار × نرخ» بدون پارامتر) پشتیبانی نمی‌شود؛ مبلغی محاسبه نشد.` },
+  QUANTITY_MISSING: { severity: "CRITICAL", text: (c) => `مقدار جزء ${comp(c)} (مثلاً ساعت اضافه‌کاری یا روز غیبت) در کارکرد این ماه وارد نشده است؛ مبلغی محاسبه نشد (اگر مقدار واقعاً صفر است، صفر وارد کنید).` },
   RULE_MISSING: { severity: "CRITICAL", text: (c) => `قاعدهٔ ${rule(c)} برای این دوره (و حوزهٔ قانونی دسته) تأیید نشده است؛ مبلغی محاسبه نشد.` },
   RULE_CHANGES_IN_PERIOD: { severity: "CRITICAL", text: (c) => `قاعدهٔ ${rule(c)} در میانهٔ دوره تغییر کرده است؛ محاسبهٔ خودکار انجام نشد.` },
   RULE_AMBIGUOUS: { severity: "CRITICAL", text: (c) => `برای قاعدهٔ ${rule(c)} بیش از یک مقدار تأییدشده وجود دارد؛ محاسبه انجام نشد.` },
-  RULE_VALUE_INVALID: { severity: "CRITICAL", text: (c) => `مقدار قاعدهٔ ${rule(c)} برای درصد معتبر نیست (واحد باید PERCENT و مقدار بین صفر تا صد باشد).` },
+  RULE_VALUE_INVALID: { severity: "CRITICAL", text: (c) => `مقدار یا واحد قاعدهٔ ${rule(c)} برای این استفاده معتبر نیست (درصد: واحد PERCENT؛ ضریب: واحد RATIO؛ مبنای ماه: واحد HOURS یا DAYS هم‌خوان با مقدار جزء).` },
   CURRENCY_MISMATCH: { severity: "CRITICAL", text: (c) => `واحد پول ${c.component_code ? `جزء ${comp(c)}` : "حقوق این فرد"} با واحد پول دسته یکسان نیست؛ مبلغی محاسبه نشد.` },
   COMPONENT_AMOUNT_MISSING: { severity: "CRITICAL", text: (c) => `برای جزء ${comp(c)} مبلغ یا درصد تعریف نشده است.` },
   MANUAL_INPUT_MISSING: { severity: "CRITICAL", text: (c) => `مقدار ورود دستی جزء ${comp(c)} در کارکرد این ماه وارد نشده است (در صورت نبود، صفر وارد کنید).` },
@@ -43,7 +44,7 @@ export const PAYROLL_WARNING_META: Record<string, { severity: WarningSeverity; t
   PERSONNEL_SUSPENDED: { severity: "WARNING", text: () => "وضعیت این فرد «تعلیق» است." },
   COMPONENT_INACTIVE: { severity: "WARNING", text: (c) => `جزء ${comp(c)} غیرفعال شده ولی هنوز در پروفایل فرد هست.` },
   // ---- INFO ----
-  HOURS_NOT_APPLIED: { severity: "INFO", text: () => "اضافه‌کاری، غیبت یا مرخصی بدون‌حقوق ثبت شده ولی در این نسخه اثر مالی خودکار ندارد؛ در صورت نیاز از ورود دستی استفاده کنید." },
+  HOURS_NOT_APPLIED: { severity: "INFO", text: () => "اضافه‌کاری، غیبت یا مرخصی بدون‌حقوق ثبت شده ولی هیچ جزء «مقدار × نرخ» در پروفایل این فرد از آن استفاده نمی‌کند؛ اثر مالی ندارد (در صورت نیاز جزء مربوط را به پروفایل اضافه کنید)." },
 };
 
 export const KNOWN_WARNING_CODES = Object.keys(PAYROLL_WARNING_META);

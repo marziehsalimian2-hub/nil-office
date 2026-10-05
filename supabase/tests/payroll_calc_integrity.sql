@@ -1,5 +1,5 @@
 -- =============================================================================
--- NIL Office — HR & Payroll Phase 3 (calculation engine) integrity tests.
+-- NIL Office — HR & Payroll Phase 3 (calculation engine) integrity tests. (Phase 8: the unsupported-method fixture is now a FORMULA component — QUANTITY_X_RATE is evaluated since 0138.)
 -- Run by hand in the Supabase SQL editor AFTER migrations 0107-0123, with at least
 -- one active ADMIN profile. ONE transaction, ROLLED BACK at the end. The script
 -- temporarily re-roles the first ADMIN profile (rolled back) — do NOT run it while
@@ -107,8 +107,8 @@ begin
               p_calculation_method => 'PERCENTAGE', p_effective_from => date '2000-01-01', p_percentage_basis => 'BASE_SALARY', p_rule_key => 'test_ins_rate')).component_id;
   c_info := (public.create_salary_component(p_code => 'INFO_P3T', p_component_type => 'INFORMATIONAL', p_name_fa => 'اطلاعاتی',
               p_calculation_method => 'FIXED', p_effective_from => date '2000-01-01', p_fixed_amount => 123456, p_currency => 'IRR')).component_id;
-  c_qxr := (public.create_salary_component(p_code => 'QXR_P3T', p_component_type => 'EARNING', p_name_fa => 'مقدار در نرخ',
-              p_calculation_method => 'QUANTITY_X_RATE', p_effective_from => date '2000-01-01')).component_id;
+  c_qxr := (public.create_salary_component(p_code => 'QXR_P3T', p_component_type => 'EARNING', p_name_fa => 'فرمول (هنوز پشتیبانی نمی‌شود)',
+              p_calculation_method => 'FORMULA', p_effective_from => date '2000-01-01')).component_id;
   c_miss := (public.create_salary_component(p_code => 'MISS_P3T', p_component_type => 'DEDUCTION', p_name_fa => 'قاعده ناموجود',
               p_calculation_method => 'PERCENTAGE', p_effective_from => date '2000-01-01', p_percentage_basis => 'BASE_SALARY', p_rule_key => 'test_missing_key')).component_id;
   c_bad := (public.create_salary_component(p_code => 'BAD_P3T', p_component_type => 'DEDUCTION', p_name_fa => 'واحد نامعتبر',

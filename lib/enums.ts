@@ -1254,11 +1254,33 @@ export const SALARY_COMPONENT_TYPE_LABEL: Record<SalaryComponentType, string> = 
 export const SALARY_CALCULATION_METHOD = ["FIXED", "PERCENTAGE", "QUANTITY_X_RATE", "FORMULA", "MANUAL_INPUT"] as const;
 export type SalaryCalculationMethod = (typeof SALARY_CALCULATION_METHOD)[number];
 export const SALARY_CALCULATION_METHOD_LABEL: Record<SalaryCalculationMethod, string> = {
-  FIXED: "مبلغ ثابت", PERCENTAGE: "درصدی", QUANTITY_X_RATE: "مقدار × نرخ (محاسبه در فاز بعد)",
+  FIXED: "مبلغ ثابت", PERCENTAGE: "درصدی", QUANTITY_X_RATE: "مقدار × نرخ (اضافه‌کاری، غیبت، ماموریت …)",
   FORMULA: "فرمول (محاسبه در فاز بعد)", MANUAL_INPUT: "ورود دستی در هر دوره",
 };
-/** Defined but NOT evaluated until the calculation phase — the UI shows a notice. */
-export const DEFERRED_CALCULATION_METHODS: SalaryCalculationMethod[] = ["QUANTITY_X_RATE", "FORMULA"];
+/** Defined but NOT evaluated (PAYROLL_ENGINE_2 evaluates QUANTITY_X_RATE; FORMULA still has no evaluator) — the UI shows a notice. */
+export const DEFERRED_CALCULATION_METHODS: SalaryCalculationMethod[] = ["FORMULA"];
+
+/** QUANTITY_X_RATE (Phase 8, 0137/0138): which work-data field is the quantity, and how the rate is obtained. */
+export const QUANTITY_SOURCE = [
+  "OVERTIME_HOURS", "ABSENCE_HOURS", "ABSENCE_DAYS", "UNPAID_LEAVE_DAYS", "PAID_LEAVE_DAYS",
+  "MISSION_DAYS", "MISSION_HOURS", "WORK_DAYS", "WORK_HOURS",
+] as const;
+export type QuantitySource = (typeof QUANTITY_SOURCE)[number];
+export const QUANTITY_SOURCE_LABEL: Record<QuantitySource, string> = {
+  OVERTIME_HOURS: "اضافه‌کاری (ساعت)", ABSENCE_HOURS: "غیبت (ساعت)", ABSENCE_DAYS: "غیبت (روز)",
+  UNPAID_LEAVE_DAYS: "مرخصی بدون حقوق (روز)", PAID_LEAVE_DAYS: "مرخصی با حقوق (روز)",
+  MISSION_DAYS: "ماموریت (روز)", MISSION_HOURS: "ماموریت (ساعت)", WORK_DAYS: "روز کارکرد", WORK_HOURS: "ساعت کارکرد",
+};
+export type QuantityUnit = "HOURS" | "DAYS";
+export const quantityUnitOf = (s: QuantitySource): QuantityUnit => (s.endsWith("_HOURS") ? "HOURS" : "DAYS");
+export const QUANTITY_UNIT_LABEL: Record<QuantityUnit, string> = { HOURS: "ساعت", DAYS: "روز" };
+
+export const QUANTITY_RATE_MODE = ["PER_UNIT", "WAGE_FRACTION"] as const;
+export type QuantityRateMode = (typeof QUANTITY_RATE_MODE)[number];
+export const QUANTITY_RATE_MODE_LABEL: Record<QuantityRateMode, string> = {
+  PER_UNIT: "نرخ ثابت برای هر واحد",
+  WAGE_FRACTION: "کسری از دستمزد (دستمزد ÷ مبنای ماه × ضریب)",
+};
 
 export const PAYROLL_PERCENTAGE_BASIS = ["BASE_SALARY", "GROSS_EARNINGS"] as const;
 export type PayrollPercentageBasis = (typeof PAYROLL_PERCENTAGE_BASIS)[number];

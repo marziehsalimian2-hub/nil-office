@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  PAYROLL_ROLE, SALARY_COMPONENT_TYPE, SALARY_CALCULATION_METHOD, PAYROLL_PERCENTAGE_BASIS,
+  PAYROLL_ROLE, SALARY_COMPONENT_TYPE, SALARY_CALCULATION_METHOD, PAYROLL_PERCENTAGE_BASIS, QUANTITY_SOURCE, QUANTITY_RATE_MODE,
   PAYMENT_FREQUENCY, CURRENCY, LEGAL_RULE_SET_STATUS, PAYROLL_ROUNDING_MODE, PAYROLL_BATCH_STATUS, ELIGIBILITY_DECISION,
 } from "@/lib/enums";
 import { normalizeIban, normalizeDigits, isValidIranSheba, isValidCardNumber } from "@/lib/payroll/bank-validation";
@@ -20,6 +20,14 @@ const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z
 const optCurrency = z.enum(CURRENCY).optional().or(z.literal("").transform(() => undefined));
 const optBasis = z.enum(PAYROLL_PERCENTAGE_BASIS).optional().or(z.literal("").transform(() => undefined));
 const ruleKey = z.string().trim().regex(/^[a-z][a-z0-9_]{1,63}$/, "کلید قاعده نامعتبر است.");
+const optRuleKey = ruleKey.optional().or(z.literal("").transform(() => undefined));
+// QUANTITY_X_RATE parameters travel as exact decimal STRINGS too. (No .positive()/.gt(): checked in the refinement, like every schema here.)
+const divisorStr = z.string().trim().regex(/^\d{1,3}(\.\d{1,4})?$/, "مبنای ماه نامعتبر است.");
+const multiplierStr = z.string().trim().regex(/^\d{1,2}(\.\d{1,4})?$/, "ضریب نامعتبر است.");
+const optDivisor = divisorStr.optional().or(z.literal("").transform(() => undefined));
+const optMultiplier = multiplierStr.optional().or(z.literal("").transform(() => undefined));
+const optQuantitySource = z.enum(QUANTITY_SOURCE).optional().or(z.literal("").transform(() => undefined));
+const optRateMode = z.enum(QUANTITY_RATE_MODE).optional().or(z.literal("").transform(() => undefined));
 
 export const payrollRoleSchema = z.object({
   user_id: z.string().uuid(),
@@ -38,6 +46,12 @@ const componentFields = {
   percentage: optPct,
   percentage_basis: optBasis,
   rule_key: ruleKey.optional().or(z.literal("").transform(() => undefined)),
+  quantity_source: optQuantitySource,
+  rate_mode: optRateMode,
+  unit_divisor: optDivisor,
+  divisor_rule_key: optRuleKey,
+  rate_multiplier: optMultiplier,
+  multiplier_rule_key: optRuleKey,
   taxable: checkbox,
   insurable: checkbox,
   display_on_payslip: checkbox,
@@ -48,15 +62,38 @@ const componentFields = {
 type ComponentShape = {
   calculation_method: string; fixed_amount?: string; currency?: string; percentage?: string;
   percentage_basis?: string; rule_key?: string;
+  quantity_source?: string; rate_mode?: string; unit_divisor?: string; divisor_rule_key?: string;
+  rate_multiplier?: string; multiplier_rule_key?: string;
 };
 // The DB CHECKs (0115) remain the backstop; this gives a clear Persian message first.
 function refineComponent(d: ComponentShape, ctx: z.RefinementCtx) {
   const bad = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  const isQty = d.calculation_method === "QUANTITY_X_RATE";
   if (d.fixed_amount !== undefined) {
-    if (d.calculation_method !== "FIXED") bad("مبلغ ثابت فقط برای روش «مبلغ ثابت» مجاز است.");
+    if (d.calculation_method !== "FIXED" && !(isQty && d.rate_mode === "PER_UNIT")) bad("مبلغ ثابت فقط برای روش «مبلغ ثابت» یا «مقدار × نرخ ثابت» مجاز است.");
     if (!d.currency) bad("برای مبلغ ثابت، انتخاب واحد پول الزامی است.");
   }
+  // ---- QUANTITY_X_RATE (Phase 8): every parameter explicit; divisor and multiplier each ONE way (number OR approved rule) ----
+  const qtyParams = [d.quantity_source, d.rate_mode, d.unit_divisor, d.divisor_rule_key, d.rate_multiplier, d.multiplier_rule_key];
+  if (!isQty) {
+    if (qtyParams.some((v) => v !== undefined)) bad("پارامترهای «مقدار × نرخ» فقط برای همین روش مجاز است.");
+  } else {
+    if (!d.quantity_source) bad("منبع مقدار (مثلاً اضافه‌کاری ساعتی) را انتخاب کنید.");
+    if (!d.rate_mode) bad("نحوهٔ تعیین نرخ را انتخاب کنید.");
+    if (d.rate_mode === "PER_UNIT") {
+      if (d.fixed_amount === undefined) bad("نرخ هر واحد را وارد کنید.");
+      if ([d.unit_divisor, d.divisor_rule_key, d.rate_multiplier, d.multiplier_rule_key].some((v) => v !== undefined)) bad("برای نرخ ثابت، مبنای ماه و ضریب مجاز نیست.");
+    }
+    if (d.rate_mode === "WAGE_FRACTION") {
+      if (d.fixed_amount !== undefined) bad("در روش «کسری از دستمزد» مبلغ ثابت مجاز نیست.");
+      if ((d.unit_divisor !== undefined) === (d.divisor_rule_key !== undefined)) bad("مبنای ماه را دقیقاً یک‌جور تعیین کنید: عدد روی جزء، یا کلید قاعدهٔ قانونی.");
+      if ((d.rate_multiplier !== undefined) === (d.multiplier_rule_key !== undefined)) bad("ضریب را دقیقاً یک‌جور تعیین کنید: عدد روی جزء، یا کلید قاعدهٔ قانونی.");
+      if (d.unit_divisor !== undefined && !(Number(d.unit_divisor) > 0 && Number(d.unit_divisor) <= 744)) bad("مبنای ماه باید بزرگ‌تر از صفر و حداکثر ۷۴۴ باشد.");
+      if (d.rate_multiplier !== undefined && Number(d.rate_multiplier) > 10) bad("ضریب نمی‌تواند از ۱۰ بیشتر باشد.");
+    }
+  }
   if (d.calculation_method === "FIXED" && d.currency && d.fixed_amount === undefined) bad("مبلغ ثابت را وارد کنید.");
+  if (isQty && d.rate_mode === "PER_UNIT" && !d.currency) bad("برای نرخ ثابت، انتخاب واحد پول الزامی است.");
   if (d.percentage !== undefined && d.calculation_method !== "PERCENTAGE") bad("درصد فقط برای روش «درصدی» مجاز است.");
   if (d.calculation_method === "PERCENTAGE" && !d.percentage_basis) bad("برای روش درصدی، مبنای محاسبه الزامی است.");
   if (d.calculation_method !== "PERCENTAGE" && d.percentage_basis) bad("مبنای درصد فقط برای روش «درصدی» مجاز است.");

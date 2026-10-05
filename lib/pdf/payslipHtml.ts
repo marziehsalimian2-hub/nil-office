@@ -1,4 +1,5 @@
 import { formatExactAmount } from "@/lib/payroll/format";
+import { describeQuantityLine } from "@/lib/payroll/quantity";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { CURRENCY_LABEL, type Currency } from "@/lib/enums";
 import { PAYSLIP_STATE_LABEL, payslipPeriodLabel, type PayslipData } from "@/lib/payroll/payslip";
@@ -20,10 +21,14 @@ export type PayslipHtmlInput = {
 const esc = (s: string | null | undefined) =>
   (s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-function linesTable(title: string, rows: PayslipData["lines"], currencyLabel: string): string {
+function linesTable(title: string, rows: PayslipData["lines"], currencyLabel: string, currencyCode: string): string {
   if (rows.length === 0) return `<p class="muted">${esc(title)}: موردی ثبت نشده است.</p>`;
   return `<table class="data"><thead><tr><th>${esc(title)}</th><th class="amt">مبلغ (${esc(currencyLabel)})</th></tr></thead><tbody>${rows
-    .map((r) => `<tr><td class="name">${esc(r.name)}</td><td class="amt">${esc(formatExactAmount(r.amount))}</td></tr>`)
+    .map((r) => {
+      // overtime / absence lines show how the amount came about («۱۰ ساعت × نرخ»): quantity + unit rate are exact strings from the database
+      const q = describeQuantityLine({ quantity: r.quantity, unit: r.unit, unit_rate: r.unit_rate }, currencyCode);
+      return `<tr><td class="name">${esc(r.name)}${q ? `<div class="muted">${esc(q)}</div>` : ""}</td><td class="amt">${esc(formatExactAmount(r.amount))}</td></tr>`;
+    })
     .join("")}</tbody></table>`;
 }
 
@@ -95,8 +100,8 @@ export function buildPayslipHtml(input: PayslipHtmlInput, fontBase64: string): s
     <tr><td class="k">تاریخ استخدام</td><td class="v">${esc(formatJalali(d.personnel.hire_date))}</td><td class="k">بازهٔ دوره</td><td class="v">${esc(formatJalali(d.period.period_start))} تا ${esc(formatJalali(d.period.period_end))}</td></tr>
   </tbody></table>
   <div class="cols">
-    <div>${linesTable("مزایا", earnings, cur)}</div>
-    <div>${linesTable("کسورات", deductions, cur)}</div>
+    <div>${linesTable("مزایا", earnings, cur, d.batch.currency)}</div>
+    <div>${linesTable("کسورات", deductions, cur, d.batch.currency)}</div>
   </div>
   <table class="totals"><tbody>
     <tr><td class="k">جمع مزایا (ناخالص)</td><td class="amt">${esc(formatExactAmount(d.totals.gross))} ${esc(cur)}</td></tr>
