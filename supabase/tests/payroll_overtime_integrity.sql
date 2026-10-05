@@ -159,7 +159,9 @@ begin
   perform public.create_compensation_version(v_e, date '2070-01-01', 30000000, 'IRR', 'MONTHLY', null, null, jsonb_build_array(
     jsonb_build_object('component_id', c_ot), jsonb_build_object('component_id', c_abs)));
   perform public.create_compensation_version(v_f, date '2070-01-01', 30000000, 'IRR', 'MONTHLY', null, null, jsonb_build_array(jsonb_build_object('component_id', c_ot)));
-  perform public.create_compensation_version(v_g, date '2070-01-01', 30000000, 'IRR', 'MONTHLY', null, null, jsonb_build_array(jsonb_build_object('component_id', c_ot), jsonb_build_object('component_id', c_bad)));
+  perform pg_temp.expect_err(format($q$select public.create_compensation_version(%L, date '2070-01-01', 30000000, 'IRR', 'MONTHLY', null, null,
+      jsonb_build_array(jsonb_build_object('component_id', %L)))$q$, v_g, c_bad), 'COMPONENT_CURRENCY_MISMATCH');   -- a PER_UNIT rate in another currency cannot even be put on an IRR profile (same rule as FIXED)
+  perform public.create_compensation_version(v_g, date '2070-01-01', 30000000, 'IRR', 'MONTHLY', null, null, jsonb_build_array(jsonb_build_object('component_id', c_ot)));
   perform public.create_compensation_version(v_i, date '2070-01-01', 30000000, 'IRR', 'MONTHLY');                                                          -- no quantity component at all
 
   v_period := (public.create_payroll_period(1450, 1, date '2071-03-21', date '2071-04-20')).id;
@@ -234,9 +236,9 @@ begin
   if pg_temp.complete(v_c1, v_e) then raise exception 'FAIL(3): E must be incomplete'; end if;
   if not pg_temp.warn(v_c1, v_f, 'QUANTITY_MISSING', 'CRITICAL') or not pg_temp.warn(v_c1, v_f, 'MISSING_WORK_DATA', 'WARNING') then raise exception 'FAIL(3): F no work data'; end if;
 
-  -- G: explicit zero overtime + currency mismatch on a PER_UNIT component
+  -- G: explicit zero overtime
   perform pg_temp.chk('G zero overtime', pg_temp.line_amt(v_c1, v_g, 'OT_P8T'), 0);
-  if pg_temp.line_status(v_c1, v_g, 'USD_P8T') <> 'NOT_COMPUTED' or not pg_temp.warn(v_c1, v_g, 'CURRENCY_MISMATCH', 'CRITICAL') then raise exception 'FAIL(3): G currency mismatch'; end if;
+  -- (a PER_UNIT currency mismatch is refused when the component is put on the profile — see section 1)
 
   -- I: hours exist but no component of the profile consumes them
   if not pg_temp.warn(v_c1, v_i, 'HOURS_NOT_APPLIED', 'INFO') then raise exception 'FAIL(3): I unconsumed overtime must be flagged'; end if;
