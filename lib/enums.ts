@@ -151,6 +151,22 @@ export const CHEQUE_CURRENCY_LABEL: Record<string, string> = {
 /** Maps RPC/DB error codes to clear Persian messages (never raw SQL). */
 export const ERROR_MESSAGES: Record<string, string> = {
   NOT_AUTHORIZED: "شما مجاز به انجام این عملیات نیستید.",
+  // ---- Factory Reset (0141) ----
+  RESET_PRODUCTION_BLOCKED: "بازنشانی در محیط Production به‌صورت پیش‌فرض بسته است؛ فقط با فعال‌سازی صریح روی سرور ممکن است.",
+  RESET_ENVIRONMENT_INVALID: "محیط سرور (NIL_ENVIRONMENT) معتبر نیست.",
+  RESET_PLAN_INVALID: "این طرح بازنشانی معتبر نیست یا قبلاً استفاده شده است؛ یک Dry Run تازه بگیرید.",
+  RESET_PLAN_EXPIRED: "این طرح منقضی شده است؛ یک Dry Run تازه بگیرید.",
+  RESET_PLAN_STALE: "ساختار پایگاه داده یا مانیفست بعد از Dry Run تغییر کرده است؛ یک Dry Run تازه بگیرید.",
+  RESET_NOT_EXECUTABLE: "اجرا مجاز نیست: جدول طبقه‌بندی‌نشده یا مانع کلید خارجی وجود دارد (گزارش Dry Run را ببینید).",
+  RESET_CONFIRMATION_INVALID: "عبارت تأیید یا تأیید دوم درست نیست.",
+  RESET_BACKUP_REQUIRED: "مرجع و زمان بکاپ (حداکثر ۴۸ ساعت قبل) و تأیید ادمین الزامی است.",
+  RESET_ALREADY_RUNNING: "یک بازنشانی در حال اجراست یا این طرح قبلاً شروع شده است.",
+  RESET_POSTCHECK_FAILED: "بررسی پس از حذف ناموفق بود؛ همهٔ تغییرات برگشت داده شد و چیزی حذف نشد.",
+  RESET_STORAGE_INCOMPLETE: "پاک‌سازی فایل‌ها کامل نشد؛ می‌توانید همان مرحله را ادامه دهید (حذف پایگاه داده دوباره اجرا نمی‌شود).",
+  RESET_PARAMS_INVALID: "پارامترهای بازنشانی نامعتبر است.",
+  RESET_MODE_INVALID: "حالت بازنشانی نامعتبر است.",
+  MODE_NOT_ENABLED: "این حالت در نسخهٔ فعلی قابل اجرا نیست (فقط Dry Run).",
+  RESET_OBJECT_NOT_IN_MANIFEST: "جدولی خارج از مانیفست درخواست شد.",
   NOT_FOUND: "رکورد مورد نظر یافت نشد.",
   ALREADY_NUMBERED: "برای این نامه قبلاً شماره صادر شده است.",
   NOT_ELIGIBLE: "این نامه در وضعیت قابل ثبت نهایی نیست.",

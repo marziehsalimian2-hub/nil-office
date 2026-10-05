@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { allowedDuringMaintenance, isMaintenanceLocked } from "@/lib/system-reset/maintenance";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -30,6 +31,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // Factory Reset maintenance lock: while a reset runs, nothing accepts new business writes. Only the reset console, login and static
+  // assets stay reachable; webhooks get 503 and retry later. Fails open if the probe itself is unavailable (see maintenance.ts).
+  if (!allowedDuringMaintenance(path) && (await isMaintenanceLocked())) {
+    return new NextResponse("سامانه در حال بازنشانی و نگهداری است؛ چند دقیقهٔ دیگر دوباره تلاش کنید.", {
+      status: 503,
+      headers: { "Retry-After": "30", "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
   const isAuthRoute = path.startsWith("/login");
   const isPublicAsset =
     path.startsWith("/_next") ||
