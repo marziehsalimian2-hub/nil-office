@@ -8,6 +8,7 @@ import {
   Inbox,
   FolderOpen,
   FileText,
+  FileSignature,
   BellRing,
   Building2,
   Search,
@@ -31,6 +32,7 @@ const nav = [
   { href: "/documents", label: "اسناد", icon: FileText },
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
+  { href: "/contracts", label: "قراردادها", icon: FileSignature },
   { href: "/archive", label: "آرشیو و جستجو", icon: Search },
   { href: "/settings", label: "تنظیمات", icon: Settings },
 ];

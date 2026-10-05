@@ -30,9 +30,10 @@ export type DocumentTypeT =
   | "OTHER";
 export type FollowupStatusT = "OPEN" | "DONE" | "CANCELLED";
 export type LinkRelationT = "REPLY_TO" | "RELATED_TO";
-export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE";
+export type AttachEntity = "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT";
 
 export type AccountingRoleT = "VIEW" | "CREATE" | "POST" | "ADMIN";
+export type ContractRoleT = "VIEW" | "CREATE" | "EDIT" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -40,6 +41,7 @@ export interface Profile {
   title: string | null;
   role: AppRole;
   accounting_role: AccountingRoleT | null;
+  contract_role: ContractRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;
@@ -358,4 +360,56 @@ export interface PostedLine {
   account_name: string;
   account_type: AccountTypeT;
   nature: AccountNatureT;
+}
+
+/* ============================= Contracts =================================== */
+
+export type ContractStatusT =
+  | "DRAFT" | "UNDER_REVIEW" | "APPROVED" | "ACTIVE" | "SUSPENDED"
+  | "COMPLETED" | "EXPIRED" | "TERMINATED" | "CANCELLED";
+
+export interface ContractType {
+  id: string;
+  code: string;
+  label_fa: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Contract {
+  id: string;
+  sequence_number: number | null;
+  display_number: string | null;
+  year: number | null;
+  title: string;
+  contract_type_id: string;
+  party_company_id: string | null;
+  party_contact_name: string | null;
+  case_id: string | null;
+  contract_date: string | null;
+  effective_date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  currency_code: string;
+  base_amount: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
+  status: ContractStatusT;
+  responsible_user_id: string | null;
+  created_by: string;
+  requires_guarantee: boolean;
+  auto_renewal: boolean;
+  description: string | null;
+  internal_notes: string | null;
+  is_historical: boolean;
+  original_contract_number: string | null;
+  original_contract_date: string | null;
+  finalized_at: string | null;
+  activated_at: string | null;
+  completed_at: string | null;
+  terminated_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

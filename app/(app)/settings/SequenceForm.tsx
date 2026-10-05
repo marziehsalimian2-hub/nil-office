@@ -15,6 +15,7 @@ export function SequenceForm({ currentYear }: { currentYear: number }) {
             <option value="OUTGOING">صادره</option>
             <option value="INCOMING">وارده</option>
             <option value="CASE">پرونده</option>
+            <option value="CONTRACT">قرارداد</option>
           </select>
         </Field>
         <Field label="سال (شمسی)">

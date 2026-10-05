@@ -130,6 +130,20 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_STATUS_TRANSITION: "تغییر وضعیت نامه در این مرحله مجاز نیست.",
   INVALID_SCOPE: "دامنهٔ شماره‌گذاری نامعتبر است.",
   INVALID_VALUE: "مقدار واردشده نامعتبر است.",
+
+  // Contracts — distinct codes from the letter-specific ones above (e.g.
+  // ALREADY_NUMBERED/NOT_ELIGIBLE/DISPLAY_NUMBER_IMMUTABLE/
+  // INVALID_STATUS_TRANSITION say "نامه" explicitly and can't be reused).
+  CONTRACT_NOT_AUTHORIZED: "شما مجاز به انجام این عملیات روی قرارداد نیستید.",
+  CONTRACT_NOT_FOUND: "قرارداد مورد نظر یافت نشد.",
+  CONTRACT_HISTORICAL_NO_NUMBER: "قرارداد تاریخی شماره‌گذاری نمی‌شود.",
+  CONTRACT_NUMBER_ISSUED: "برای این قرارداد قبلاً شماره صادر شده است.",
+  CONTRACT_NOT_APPROVABLE: "این قرارداد در وضعیت قابل تأیید نیست.",
+  CONTRACT_TITLE_REQUIRED: "برای تأیید قرارداد، درج عنوان الزامی است.",
+  CONTRACT_STATUS_LOCKED: "تغییر وضعیت قرارداد در این مرحله مجاز نیست.",
+  CONTRACT_APPROVE_RPC_ONLY: "تأیید قرارداد فقط از مسیر مجاز امکان‌پذیر است.",
+  CONTRACT_NUMBER_LOCKED: "شماره قرارداد قابل تغییر نیست.",
+  CONTRACT_FIELDS_LOCKED: "پس از این مرحله، تغییر مبلغ یا طرف قرارداد مجاز نیست.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -185,4 +199,32 @@ export const ACCOUNTING_ROLE = ["VIEW","CREATE","POST","ADMIN"] as const;
 export type AccountingRole = (typeof ACCOUNTING_ROLE)[number];
 export const ACCOUNTING_ROLE_LABEL: Record<AccountingRole, string> = {
   VIEW: "مشاهده", CREATE: "ثبت", POST: "ثبت قطعی", ADMIN: "مدیر مالی",
+};
+
+/* ============================= Contracts =================================== */
+
+export const CONTRACT_STATUS = [
+  "DRAFT", "UNDER_REVIEW", "APPROVED", "ACTIVE", "SUSPENDED",
+  "COMPLETED", "EXPIRED", "TERMINATED", "CANCELLED",
+] as const;
+export type ContractStatus = (typeof CONTRACT_STATUS)[number];
+
+export const CONTRACT_STATUS_LABEL: Record<ContractStatus, string> = {
+  DRAFT: "پیش‌نویس", UNDER_REVIEW: "در حال بررسی", APPROVED: "تأییدشده",
+  ACTIVE: "فعال", SUSPENDED: "معلق", COMPLETED: "تکمیل‌شده",
+  EXPIRED: "منقضی‌شده", TERMINATED: "فسخ‌شده", CANCELLED: "ابطال‌شده",
+};
+
+// Reuses the existing status-* Tailwind tokens; EXPIRED/TERMINATED/CANCELLED
+// all share "cancelled" — a distinct 9th color isn't essential for v1.
+export const CONTRACT_STATUS_TONE: Record<ContractStatus, string> = {
+  DRAFT: "status-draft", UNDER_REVIEW: "status-review", APPROVED: "status-final",
+  ACTIVE: "status-received", SUSPENDED: "status-waiting", COMPLETED: "status-closed",
+  EXPIRED: "status-cancelled", TERMINATED: "status-cancelled", CANCELLED: "status-cancelled",
+};
+
+export const CONTRACT_ROLE = ["VIEW", "CREATE", "EDIT", "APPROVE", "ADMIN"] as const;
+export type ContractRole = (typeof CONTRACT_ROLE)[number];
+export const CONTRACT_ROLE_LABEL: Record<ContractRole, string> = {
+  VIEW: "مشاهده", CREATE: "ثبت", EDIT: "ویرایش", APPROVE: "تأیید و شماره‌گذاری", ADMIN: "مدیر قراردادها",
 };

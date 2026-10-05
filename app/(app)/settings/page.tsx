@@ -4,16 +4,18 @@ import { PageHeader, Card } from "@/components/ui";
 import { SequenceForm } from "./SequenceForm";
 import { DisplayUnitForm } from "./DisplayUnitForm";
 import { AccountingRoleSelect } from "./AccountingRoleSelect";
+import { ContractRoleSelect } from "./ContractRoleSelect";
+import { ContractTypeForm } from "./ContractTypeForm";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
-import { ACCOUNTING_ROLE_LABEL } from "@/lib/enums";
+import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL } from "@/lib/enums";
 import { currentJalaliYear, toFaDigits } from "@/lib/jalali";
-import type { AppSettings, NumberSequence, Profile } from "@/lib/types/database";
+import type { AppSettings, NumberSequence, Profile, ContractType } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
-const SCOPE_LABEL: Record<string, string> = { OUTGOING: "صادره", INCOMING: "وارده", CASE: "پرونده" };
+const SCOPE_LABEL: Record<string, string> = { OUTGOING: "صادره", INCOMING: "وارده", CASE: "پرونده", CONTRACT: "قرارداد" };
 const ROLE_LABEL: Record<string, string> = { ADMIN: "مدیر", USER: "کاربر" };
 
 export default async function SettingsPage() {
@@ -21,15 +23,17 @@ export default async function SettingsPage() {
   const isAdmin = profile.role === "ADMIN";
   const supabase = await createClient();
 
-  const [{ data: seqs }, { data: users }, { data: settings }] = await Promise.all([
+  const [{ data: seqs }, { data: users }, { data: settings }, { data: cTypes }] = await Promise.all([
     supabase.from("number_sequences").select("*").order("scope").order("year", { ascending: false }),
     supabase.from("profiles").select("*").order("created_at"),
     supabase.from("app_settings").select("*").eq("id", 1).single(),
+    supabase.from("contract_types").select("*").order("sort_order"),
   ]);
   const displayUnit = (settings?.display_unit as "RIAL" | "TOMAN") ?? "RIAL";
   const sequences = (seqs ?? []) as NumberSequence[];
   const people = (users ?? []) as Profile[];
   const appSettings = settings as AppSettings | null;
+  const contractTypes = (cTypes ?? []) as ContractType[];
 
   let signedLetterheadUrl: string | null = null;
   let signedStampUrl: string | null = null;
@@ -125,11 +129,27 @@ export default async function SettingsPage() {
           </Card>
 
           <Card>
+            <p className="mb-1 text-sm font-medium text-ink">انواع قرارداد</p>
+            <p className="mb-4 text-xs text-ink-muted">انواع قابل‌انتخاب هنگام ثبت قرارداد.</p>
+            {contractTypes.length > 0 && (
+              <ul className="mb-4 flex flex-wrap gap-2">
+                {contractTypes.map((t) => (
+                  <li key={t.id} className="badge bg-paper text-ink">
+                    {t.label_fa} <span className="text-ink-muted" dir="ltr">({t.code})</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <ContractTypeForm />
+          </Card>
+
+          <Card>
             <p className="mb-3 text-sm font-medium text-ink">کاربران</p>
             <table className="w-full">
               <thead><tr className="table-head">
                 <th className="px-3 py-2">نام</th><th className="px-3 py-2">عنوان/سمت</th>
                 <th className="px-3 py-2">نقش</th><th className="px-3 py-2">دسترسی مالی</th>
+                <th className="px-3 py-2">دسترسی قرارداد</th>
                 <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
               </tr></thead>
               <tbody>
@@ -142,6 +162,11 @@ export default async function SettingsPage() {
                       {u.role === "ADMIN"
                         ? <span className="text-xs text-ink-muted">{ACCOUNTING_ROLE_LABEL.ADMIN} (کامل)</span>
                         : <AccountingRoleSelect userId={u.id} current={u.accounting_role} />}
+                    </td>
+                    <td className="px-3 py-2">
+                      {u.role === "ADMIN"
+                        ? <span className="text-xs text-ink-muted">{CONTRACT_ROLE_LABEL.ADMIN} (کامل)</span>
+                        : <ContractRoleSelect userId={u.id} current={u.contract_role} />}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
