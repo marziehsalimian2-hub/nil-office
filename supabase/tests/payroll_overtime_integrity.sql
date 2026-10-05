@@ -208,7 +208,7 @@ begin
   perform pg_temp.chk('B net',   pg_temp.tot(v_c1, v_b, 'net'),   31155000);
   v_l := pg_temp.line(v_c1, v_b, 'OT_P8T');
   if v_l.rate_source <> 'PROFILE_HOURLY' or v_l.details ->> 'wage_source' <> 'PROFILE_HOURLY' or v_l.unit_rate <> 210000 then raise exception 'FAIL(3): B hourly-rate metadata (%)', to_jsonb(v_l); end if;
-  if pg_temp.line(v_c1, v_b, 'MISS_P8T').rate_source <> 'COMPENSATION_OVERRIDE' then raise exception 'FAIL(3): B mission override source'; end if;
+  if (pg_temp.line(v_c1, v_b, 'MISS_P8T')).rate_source <> 'COMPENSATION_OVERRIDE' then raise exception 'FAIL(3): B mission override source'; end if;
   if pg_temp.line_status(v_c1, v_b, 'ABS_P8T') <> 'COMPUTED' or pg_temp.warn(v_c1, v_b, 'QUANTITY_MISSING', 'CRITICAL') then raise exception 'FAIL(3): an explicit 0 is a valid zero line'; end if;
 
   -- C: both numbers from the APPROVED rule set
