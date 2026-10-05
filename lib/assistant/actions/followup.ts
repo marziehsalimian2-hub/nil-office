@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition, ResultCard } from "./types";
 
 export const listFollowups: ActionDefinition<Record<string, never>> = {
@@ -38,6 +39,7 @@ export const createFollowupDraft: ActionDefinition<z.infer<typeof createFollowup
   requiresConfirmation: true,
   inputSchema: createFollowupDraftInput,
   handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.company_id);
     const resolved = resolveDatePhrase(input.due_date_phrase);
     if ("error" in resolved) throw new Error(resolved.error);
 

@@ -18,6 +18,9 @@ import { buildSystemPrompt } from "@/lib/assistant/systemPrompt";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
 import { buildInvoicePdf } from "@/lib/pdf/invoiceData";
 import { isUuid } from "@/lib/upload-validation";
+import { consumePickToken, rememberResolved, typeLabelFa } from "@/lib/assistant/entityLedger";
+import { cleanText } from "@/lib/assistant/cashDraft";
+import { MENU_CALLBACK_PREFIX, MENU_TITLE, buildMenuKeyboard, isMenuRequest, resolveMenuCallback } from "./menu";
 import type { Profile } from "@/lib/types/database";
 
 // Minimal shape of what this handler actually reads — not the full Telegram Update schema.
@@ -357,6 +360,29 @@ async function findOrCreateTelegramConversation(sessionClient: SessionClient, pr
   return created.id;
 }
 
+/** Runs one assistant turn for an authorised user and sends the reply (text chunks, confirm / choice keyboard, delivered files). */
+async function runTurnAndReply(
+  auth: { profile: Profile; sessionClient: SessionClient },
+  chatId: number,
+  text: string,
+  attachment?: ChatAttachment,
+): Promise<void> {
+  try {
+    const conversationId = await findOrCreateTelegramConversation(auth.sessionClient, auth.profile.id);
+    const result = await runChatTurn(auth.sessionClient, auth.profile, conversationId, text, attachment, "TELEGRAM");
+    const { chunks, keyboard } = formatChatTurnForTelegram(result);
+    for (let i = 0; i < chunks.length; i++) {
+      await sendMessage(chatId, chunks[i], i === chunks.length - 1 ? keyboard : undefined);
+    }
+    for (const hint of result.deliveries ?? []) {
+      if (hint.kind === "PAYSLIP") await deliverPayslip(auth.sessionClient, auth.profile, chatId, hint);
+    }
+  } catch (err) {
+    console.error("[telegram] turn failed", err);
+    await sendMessage(chatId, UNAVAILABLE_TEXT);
+  }
+}
+
 async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promise<void> {
   if (!isPrivateChat(msg.chat.type)) return; // spec §26/§27 — groups/channels ignored entirely, no reply
   const telegramUserId = msg.from?.id;
@@ -367,6 +393,12 @@ async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promi
   if ("denied" in auth) {
     await refuseUnauthorized(auth.denied);
     await sendMessage(msg.chat.id, auth.denied === "NOT_ALLOWED" ? ACCESS_DENIED_TEXT : NOT_LINKED_TEXT);
+    return;
+  }
+
+  // Optional quick-action menu (spec §58) — a fixed keyboard filtered by the user's role; no LLM, nothing written.
+  if (isMenuRequest(msg.text)) {
+    await sendMessage(msg.chat.id, MENU_TITLE, buildMenuKeyboard(auth.profile));
     return;
   }
 
@@ -411,20 +443,7 @@ async function handleMessage(msg: NonNullable<TelegramUpdate["message"]>): Promi
     text = SLASH_ALIASES[msg.text!.trim()] ?? msg.text!;
   }
 
-  try {
-    const conversationId = await findOrCreateTelegramConversation(auth.sessionClient, auth.profile.id);
-    const result = await runChatTurn(auth.sessionClient, auth.profile, conversationId, text, attachment, "TELEGRAM");
-    const { chunks, keyboard } = formatChatTurnForTelegram(result);
-    for (let i = 0; i < chunks.length; i++) {
-      await sendMessage(msg.chat.id, chunks[i], i === chunks.length - 1 ? keyboard : undefined);
-    }
-    for (const hint of result.deliveries ?? []) {
-      if (hint.kind === "PAYSLIP") await deliverPayslip(auth.sessionClient, auth.profile, msg.chat.id, hint);
-    }
-  } catch (err) {
-    console.error("[telegram] handleMessage failed", err);
-    await sendMessage(msg.chat.id, UNAVAILABLE_TEXT);
-  }
+  await runTurnAndReply(auth, msg.chat.id, text, attachment);
 }
 
 /**
@@ -493,6 +512,38 @@ async function handleCallbackQuery(cb: NonNullable<TelegramUpdate["callback_quer
       }
       await deliverDocumentPdf(auth.sessionClient, cb.message.chat.id, kind, resendId);
     }
+    return;
+  }
+
+  // Quick-action menu tap: opaque key, role re-checked now (the profile above was loaded fresh for THIS tap).
+  if (cb.data.startsWith(MENU_CALLBACK_PREFIX)) {
+    await answerCallbackQuery(cb.id);
+    const item = resolveMenuCallback(cb.data, auth.profile);
+    if (!item) {
+      await sendMessage(cb.message.chat.id, "این گزینه برای شما در دسترس نیست.");
+      return;
+    }
+    if (item.kind === "GUIDE") {
+      await sendMessage(cb.message.chat.id, item.guide ?? "");
+      return;
+    }
+    await runTurnAndReply(auth, cb.message.chat.id, item.prompt ?? "");
+    return;
+  }
+
+  // Candidate button for an AMBIGUOUS entity: the tap is the user's own choice (strongest resolution), then the
+  // original request continues. The token is single-use, user-bound and expiring; callback_data held no id or name.
+  if (cb.data.startsWith("pick:")) {
+    await answerCallbackQuery(cb.id);
+    const picked = consumePickToken(cb.data.slice("pick:".length), auth.profile.id);
+    if (!picked) {
+      await sendMessage(cb.message.chat.id, "این گزینه منقضی شده یا قبلاً استفاده شده؛ لطفاً دوباره درخواستت را بنویس.");
+      return;
+    }
+    rememberResolved(auth.profile.id, picked.type, picked.id, picked.name, 1, 1, "USER_PICKED");
+    await clearInlineKeyboard(cb.message.chat.id, cb.message.message_id);
+    const safeName = cleanText(picked.name, 100) ?? "";
+    await runTurnAndReply(auth, cb.message.chat.id, `من ${typeLabelFa(picked.type)} «${safeName}» را انتخاب کردم (شناسه: ${picked.id}). با همین ادامه بده.`);
     return;
   }
 

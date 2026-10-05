@@ -236,3 +236,68 @@ describe("Action Registry — receipt / payment drafts (Slice 2): draft only, ne
     expect(insert).not.toMatch(/verified_|display_number|sequence_number|journal_entry_id|POSTED/);
   });
 });
+
+describe("Action Registry — entity resolution guard (Slice 3): no write proposal may carry an unresolved entity id", () => {
+  const ENTITY_FIELDS = ["company_id", "contract_id", "project_id", "recipient_company_id", "sender_company_id", "counterparty_company_id"] as const;
+  const dir = join(process.cwd(), "lib", "assistant", "actions");
+  const sources = readdirSync(dir)
+    .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
+    .map((f) => ({ f, code: readFileSync(join(dir, f), "utf8") }));
+
+  const writeActionsWithEntityFields = ACTION_REGISTRY.filter((a) => a.requiresConfirmation).flatMap((a) => {
+    const props = Object.keys(((tools.find((t) => t.name === a.name)!.inputSchema.properties ?? {}) as Record<string, unknown>));
+    const fields = ENTITY_FIELDS.filter((f) => props.includes(f));
+    return fields.length > 0 ? [{ name: a.name, fields }] : [];
+  });
+
+  it("finds the write actions that take an entity id (sanity: the list is not empty)", () => {
+    const names = writeActionsWithEntityFields.map((a) => a.name);
+    for (const n of ["CREATE_TASK_DRAFT", "CREATE_FOLLOWUP_DRAFT", "CREATE_LETTER_DRAFT", "REGISTER_INCOMING_LETTER", "CREATE_INVOICE_DRAFT",
+      "CREATE_CHEQUE_DRAFT", "CREATE_SERVICE_ENTRY_DRAFT", "PREPARE_CLIENT_SERVICE_REPORT", "CREATE_RECEIPT_DRAFT", "CREATE_PAYMENT_DRAFT"]) {
+      expect(names, n).toContain(n);
+    }
+  });
+
+  const TYPES = ["company", "contract", "project"] as const;
+
+  it("every such action calls requireResolved(ctx.userId, <type>, input.<field>) for each of its entity fields", () => {
+    for (const a of writeActionsWithEntityFields) {
+      const file = sources.find((s) => s.code.includes(`name: "${a.name}"`));
+      expect(file, `source of ${a.name}`).toBeDefined();
+      for (const field of a.fields) {
+        const guarded = TYPES.some((t) => file!.code.includes(`requireResolved(ctx.userId, "${t}", input.${field}`));
+        expect(guarded, `${a.name} must guard input.${field} (in ${file!.f})`).toBe(true);
+      }
+    }
+  });
+
+  it("financial / official actions use the STRICT bar", () => {
+    const strictOnes: Record<string, string[]> = {
+      "correspondence.ts": ["recipient_company_id", "sender_company_id"],
+      "invoice.ts": ["company_id", "contract_id"],
+      "cheque.ts": ["counterparty_company_id", "company_id", "contract_id"],
+      "cash.ts": ["company_id", "contract_id"],
+      "serviceLedger.ts": ["company_id"],
+      "serviceLedgerReports.ts": ["company_id"],
+    };
+    for (const [file, fields] of Object.entries(strictOnes)) {
+      const code = sources.find((s) => s.f === file)!.code;
+      for (const field of fields) {
+        const strict = TYPES.some((t) => code.includes(`requireResolved(ctx.userId, "${t}", input.${field}, { strict: true })`));
+        expect(strict, `${file}: input.${field} must use { strict: true }`).toBe(true);
+      }
+    }
+  });
+
+  it("the resolver-backed search tools exist, are LOW reads, and SEARCH_CONTACT is CRM-gated", () => {
+    for (const n of ["SEARCH_COMPANY", "SEARCH_CONTRACT", "SEARCH_PROJECT", "SEARCH_CONTACT"]) {
+      const a = ACTION_REGISTRY.find((x) => x.name === n)!;
+      expect(a, n).toBeDefined();
+      expect(a.riskLevel).toBe("LOW");
+      expect(a.requiresConfirmation).toBe(false);
+    }
+    const gate = ACTION_REGISTRY.find((x) => x.name === "SEARCH_CONTACT")!.requiredAccess!;
+    expect(gate({ role: "USER", crm_role: null } as never)).toBe(false);
+    expect(gate({ role: "USER", crm_role: "VIEW" } as never)).toBe(true);
+  });
+});

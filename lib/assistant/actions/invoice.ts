@@ -4,6 +4,7 @@ import { CURRENCY, CURRENCY_LABEL } from "@/lib/enums";
 import { toFaDigits } from "@/lib/jalali";
 import type { InvoiceDraftInput } from "@/app/actions/invoices";
 import { canCreateInvoice, canApproveInvoice } from "./access";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition } from "./types";
 
 const invoiceItemInput = z.object({
@@ -69,7 +70,9 @@ export const createInvoiceDraft: ActionDefinition<z.infer<typeof createInvoiceDr
   // CREATE tier is enough for a draft (can_create_invoice()); issuing needs APPROVE (ISSUE_SALES_DOCUMENT).
   requiredAccess: canCreateInvoice,
   inputSchema: createInvoiceDraftInput,
-  handler: async (input) => {
+  handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.company_id, { strict: true });
+    requireResolved(ctx.userId, "contract", input.contract_id, { strict: true });
     if (input.items.some((it) => it.quantity <= 0)) {
       throw new Error("تعداد هر ردیف باید بزرگ‌تر از صفر باشد.");
     }

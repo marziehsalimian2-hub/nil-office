@@ -28,6 +28,7 @@ reviewed any-active-user allowlist in that test).
 | `GET_PROJECT_SUMMARY` | ADMIN or `project_role` | |
 | `GET_CONTRACT_SUMMARY` | ADMIN or `contract_role` | |
 | `SEARCH_COMPANY` | any active user | companies are readable by every active user (RLS `p_companies_read`) |
+| `SEARCH_CONTACT` | ADMIN or `crm_role` | contact / person lookup with the same resolver tiers as `SEARCH_COMPANY`; read-only |
 | `SEARCH_OPPORTUNITY` | ADMIN or `crm_role` | |
 | `SEARCH_CONTRACT` | ADMIN or `contract_role` | |
 | `SEARCH_INVOICES` | ADMIN or `invoice_role` | |

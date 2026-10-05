@@ -3,6 +3,7 @@ import { z } from "zod";
 import { toFaDigits, formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
 import { hasProjectAccess } from "./access";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition, ResultCard } from "./types";
 
 export const listMyTasks: ActionDefinition<{ include_done?: boolean }> = {
@@ -54,6 +55,8 @@ export const createTaskDraft: ActionDefinition<z.infer<typeof createTaskDraftInp
   requiresConfirmation: true,
   inputSchema: createTaskDraftInput,
   handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "project", input.project_id);
+    requireResolved(ctx.userId, "company", input.company_id);
     let dueDate: string | null = null;
     let dueDateExplanation = "بدون مهلت";
     if (input.due_date_phrase) {

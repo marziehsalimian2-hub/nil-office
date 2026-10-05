@@ -4,6 +4,7 @@ import { formatJalali } from "@/lib/jalali";
 import { resolveDatePhrase } from "@/lib/assistant/dates";
 import { amountToPersianWords } from "@/lib/cheque/amountToWords";
 import type { ChequeDraftInput } from "@/app/actions/cheques";
+import { requireResolved } from "@/lib/assistant/entityLedger";
 import type { ActionDefinition, ResultCard } from "./types";
 
 const hasChequeAccess = (p: { role: string; cheque_role: string | null }) => p.role === "ADMIN" || p.cheque_role != null;
@@ -157,7 +158,10 @@ export const createChequeDraft: ActionDefinition<z.infer<typeof createChequeDraf
   requiresConfirmation: true,
   requiredAccess: (p) => p.role === "ADMIN" || p.cheque_role === "CREATE" || p.cheque_role === "APPROVE" || p.cheque_role === "ADMIN",
   inputSchema: createChequeDraftInput,
-  handler: async (input) => {
+  handler: async (input, ctx) => {
+    requireResolved(ctx.userId, "company", input.counterparty_company_id, { strict: true });
+    requireResolved(ctx.userId, "company", input.company_id, { strict: true });
+    requireResolved(ctx.userId, "contract", input.contract_id, { strict: true });
     const resolved = resolveDatePhrase(input.cheque_date_phrase);
     if ("error" in resolved) throw new Error(resolved.error);
 
