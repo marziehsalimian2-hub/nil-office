@@ -1769,6 +1769,9 @@ export interface SalaryComponentVersion {
   fixed_amount: number | null; currency: string | null; percentage: number | null; percentage_basis: string | null;
   rule_key: string | null; taxable: boolean; insurable: boolean; display_on_payslip: boolean; display_order: number;
   effective_from: string; effective_to: string | null; change_note: string | null;
+  /** QUANTITY_X_RATE parameters (0137); all null for every other method. Decimal columns arrive as numbers from PostgREST — display only, never calculate with them. */
+  quantity_source: string | null; rate_mode: string | null; unit_divisor: number | null; divisor_rule_key: string | null;
+  rate_multiplier: number | null; multiplier_rule_key: string | null;
   created_by: string; created_at: string; updated_at: string;
 }
 export interface CompensationProfile {

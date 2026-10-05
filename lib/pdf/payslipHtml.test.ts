@@ -35,6 +35,23 @@ describe("payslip HTML", () => {
     expect(html).toContain("محرمانه");
   });
 
+  it("an overtime / absence line shows how its amount came about (quantity x unit rate), other lines stay plain", () => {
+    const d: PayslipData = {
+      ...base,
+      lines: [
+        ...base.lines,
+        { code: "OT", name: "اضافه‌کاری", type: "EARNING", amount: "1909091.0000", quantity: "10.0000", unit: "HOURS", unit_rate: "190909.090909" },
+        { code: "ABS", name: "کسر غیبت", type: "DEDUCTION", amount: "2000000.0000", quantity: "2.0000", unit: "DAYS", unit_rate: "1000000.000000" },
+      ],
+    };
+    const html = buildPayslipHtml(input(d), "AAAA");
+    expect(html).toContain("۱۰ ساعت × ۱۹۰٬۹۰۹٫۰۹");
+    expect(html).toContain("۲ روز × ۱٬۰۰۰٬۰۰۰");
+    expect(html).toContain("۱٬۹۰۹٬۰۹۱");                                   // the authoritative amount is still the database's number
+    const baseHtml = buildPayslipHtml(input(base), "AAAA");
+    expect(baseHtml).not.toContain("ساعت ×");
+  });
+
   it("a NOT_PAID payslip never claims it was paid", () => {
     const html = buildPayslipHtml(input(base), "AAAA");
     expect(html).toContain("در انتظار پرداخت");

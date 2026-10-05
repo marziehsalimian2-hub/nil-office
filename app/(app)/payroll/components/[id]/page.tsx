@@ -9,6 +9,7 @@ import {
 } from "@/lib/enums";
 import { formatJalali } from "@/lib/jalali";
 import { formatCurrencyAmount } from "@/lib/payroll/format";
+import { describeQuantityVersion } from "@/lib/payroll/quantity";
 import type { SalaryComponent, SalaryComponentVersion } from "@/lib/types/database";
 import { NoRuleBanner } from "../../NoRuleBanner";
 import { ComponentForm } from "../ComponentForm";
@@ -23,6 +24,7 @@ function describeValue(v: SalaryComponentVersion): string {
     const basis = v.percentage_basis ? PAYROLL_PERCENTAGE_BASIS_LABEL[v.percentage_basis as PayrollPercentageBasis] : "";
     return v.percentage != null ? `${v.percentage}% از ${basis}` : `درصد تعیین‌نشده (مبنا: ${basis})`;
   }
+  if (v.calculation_method === "QUANTITY_X_RATE") return describeQuantityVersion(v) ?? "—";
   return "—";
 }
 

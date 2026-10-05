@@ -22,6 +22,8 @@ type ComponentInput = {
   name_fa: string; name_en?: string; calculation_method: string; effective_from: string;
   fixed_amount?: string; currency?: string; percentage?: string; percentage_basis?: string; rule_key?: string;
   taxable: boolean; insurable: boolean; display_on_payslip: boolean; display_order: number; change_note?: string;
+  quantity_source?: string; rate_mode?: string; unit_divisor?: string; divisor_rule_key?: string;
+  rate_multiplier?: string; multiplier_rule_key?: string;
 };
 const componentParams = (d: ComponentInput) => ({
   p_name_fa: d.name_fa,
@@ -38,6 +40,13 @@ const componentParams = (d: ComponentInput) => ({
   p_display_on_payslip: d.display_on_payslip,
   p_display_order: d.display_order,
   p_change_note: d.change_note ?? null,
+  // QUANTITY_X_RATE parameters (0137) — exact decimal strings, nothing is defaulted here
+  p_quantity_source: d.quantity_source ?? null,
+  p_rate_mode: d.rate_mode ?? null,
+  p_unit_divisor: d.unit_divisor ?? null,
+  p_divisor_rule_key: d.divisor_rule_key ?? null,
+  p_rate_multiplier: d.rate_multiplier ?? null,
+  p_multiplier_rule_key: d.multiplier_rule_key ?? null,
 });
 
 /** Creates a salary component identity + its first (v1) definition. Amounts stay exact strings end to end. */

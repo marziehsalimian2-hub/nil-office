@@ -10,6 +10,8 @@ export type ComponentOption = {
   name_fa: string;
   method: string;
   hasRuleKey: boolean;
+  /** QUANTITY_X_RATE with a fixed rate per unit: a per-person rate override is allowed (0137) */
+  perUnit?: boolean;
 };
 export type LineRow = { component_id: string; amount_override: string; percentage_override: string; notes: string };
 
@@ -43,7 +45,7 @@ export function CompensationLinesEditor({ options, initial }: { options: Compone
       {options.length === 0 && <p className="text-xs text-ink-muted">هنوز جزء حقوقی فعالی تعریف نشده است (حقوق پایه در خود فرم ثبت می‌شود).</p>}
       {rows.map((r, i) => {
         const opt = byId.get(r.component_id);
-        const canAmount = opt?.method === "FIXED" && !opt.hasRuleKey;
+        const canAmount = (opt?.method === "FIXED" && !opt.hasRuleKey) || !!opt?.perUnit;
         const canPct = opt?.method === "PERCENTAGE" && !opt.hasRuleKey;
         return (
           <div key={i} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-start">

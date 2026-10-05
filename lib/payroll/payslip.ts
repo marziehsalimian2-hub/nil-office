@@ -9,7 +9,7 @@ export type PayslipData = {
   batch: { id: string; batch_number: string; currency: string };
   period: { jalali_year: number; jalali_month: number; period_start: string; period_end: string };
   personnel: { number: string; name: string; job_title: string | null; department: string | null; hire_date: string | null };
-  lines: { code: string; name: string; type: "EARNING" | "DEDUCTION"; amount: string }[];
+  lines: { code: string; name: string; type: "EARNING" | "DEDUCTION"; amount: string; quantity?: string; unit?: "HOURS" | "DAYS"; unit_rate?: string }[];
   totals: { gross: string; deductions: string; net: string };
   payment: { state: PayslipState; paid: string; last_date: string | null; numbers: string[] };
   next_revision: number;
