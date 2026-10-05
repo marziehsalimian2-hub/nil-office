@@ -121,6 +121,27 @@ describe("reset migration safety", () => {
   });
 });
 
+describe("Supabase pg-safeupdate", () => {
+  it("every UPDATE / DELETE in the reset migrations has a WHERE clause (the API role refuses a bare one)", () => {
+    for (const f of ["0141_factory_reset.sql", "0142_factory_reset_safeupdate_fix.sql"]) {
+      let src = strip(sql(f));
+      // 0141's system_reset_execute_db had a bare UPDATE (aborted the DB phase on first use); 0142 replaces that function — judge the CURRENT body only
+      if (f.startsWith("0141")) {
+        const a = src.indexOf("create or replace function public.system_reset_execute_db(");
+        const b = src.indexOf("create or replace function public.system_reset_storage_pending(");
+        expect(a).toBeGreaterThan(0);
+        expect(b).toBeGreaterThan(a);
+        src = src.slice(0, a) + src.slice(b);
+      }
+      const bare: string[] = [];
+      for (const m of src.matchAll(/(^|[\s;(])(update\s+public\.\w+(?:\s+\w+)?\s+set|delete\s+from\s+public\.\w+)\s[^;]*;/gi)) {
+        if (!/\swhere\s/i.test(m[0])) bare.push(m[0].trim().slice(0, 100));
+      }
+      expect(bare, f).toEqual([]);
+    }
+  });
+});
+
 describe("storage rules", () => {
   const rules = [...reset.matchAll(/\('([a-z_/-]+\/)',\s+'(DELETE|PRESERVE)',/g)].map((m) => ({ prefix: m[1], action: m[2] }));
   it("branding and signatures are preserved", () => {
@@ -137,5 +158,16 @@ describe("storage rules", () => {
     const del = new Set(rules.filter((r) => r.action === "DELETE").map((r) => r.prefix));
     for (const e of entities) expect(del.has(`${e.toLowerCase()}/`), `attachment prefix ${e.toLowerCase()}/`).toBe(true);
     for (const p of ["cash-evidence/", "payslips/", "client-service-reports/", "trade/", "external-correspondence/", "correspondence/"]) expect(del.has(p), p).toBe(true);
+  });
+});
+
+describe("0142 replaces the DB phase with a WHERE on every UPDATE", () => {
+  it("restates system_reset_execute_db and keeps the single-TRUNCATE design", () => {
+    const fix = strip(sql("0142_factory_reset_safeupdate_fix.sql"));
+    expect(fix).toContain("create or replace function public.system_reset_execute_db(");
+    expect(fix).toMatch(/update public\.accounting_sequences set last_value = 0, updated_at = now\(\) where last_value >= 0;/);
+    expect(fix).not.toMatch(/truncate[^;]*cascade/i);
+    expect(fix).not.toMatch(/session_replication_role|disable trigger/i);
+    expect(fix).toContain("lock table");
   });
 });
