@@ -15,7 +15,7 @@ export function DisplayUnitForm({ current }: { current: "RIAL" | "TOMAN" }) {
       </div>
       <button className="btn-primary">ذخیره</button>
       <div className="w-full"><FormError message={state?.error} /></div>
-      <p className="w-full text-xs text-ink-muted">این تنظیم فقط برچسب واحد را تغییر می‌دهد؛ هیچ تبدیل خودکاری روی مبالغ انجام نمی‌شود.</p>
+      <p className="w-full text-xs text-ink-muted">این تنظیم فقط برچسب واحد را تغییر می‌دهد؛ هیچ تبدیل خودکاری روی مبالغ انجام نمی‌شود. با واحد «تومان»، دستهٔ حقوقی که به تومان (یا ریالِ هم‌ارز) محاسبه شده می‌تواند سند حسابداری و پرداخت بسازد.</p>
     </form>
   );
 }

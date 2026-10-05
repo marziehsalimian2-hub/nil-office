@@ -52,6 +52,20 @@ describe("payslip HTML", () => {
     expect(baseHtml).not.toContain("ساعت ×");
   });
 
+  it("a prorated part-month line says how many days it covers; full-month lines stay plain", () => {
+    const d: PayslipData = {
+      ...base,
+      lines: [
+        { code: "BASE_SALARY", name: "حقوق پایه", type: "EARNING", amount: "10000000.0000", proration: { employed_days: 10, period_days: 31 } },
+        { code: "HOUSING", name: "حق مسکن", type: "EARNING", amount: "500000.0000", proration: { employed_days: 10, period_days: 31 } },
+        { code: "INS", name: "بیمه", type: "DEDUCTION", amount: "770000.0000" },
+      ],
+    };
+    const html = buildPayslipHtml(input(d), "AAAA");
+    expect(html.match(/متناسب با ۱۰ روز از ۳۱ روز/g)?.length).toBe(2);
+    expect(buildPayslipHtml(input(base), "AAAA")).not.toContain("متناسب با");
+  });
+
   it("a NOT_PAID payslip never claims it was paid", () => {
     const html = buildPayslipHtml(input(base), "AAAA");
     expect(html).toContain("در انتظار پرداخت");

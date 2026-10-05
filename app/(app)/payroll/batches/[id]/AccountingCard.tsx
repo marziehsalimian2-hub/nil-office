@@ -9,7 +9,7 @@ import { POSTING_STATUS_LABEL, type PostingStatus } from "@/lib/enums";
 import { accountingBlockers, type AccountingReadiness } from "@/lib/payroll/review";
 
 const BLOCKER_TEXT: Record<string, string> = {
-  CURRENCY_NOT_BASE: "واحد پول این دسته با واحد پایهٔ دفتر یکسان نیست؛ ساخت سند مجاز نیست.",
+  CURRENCY_NOT_BASE: "واحد پول این دسته با واحد دفتر یکسان نیست؛ ساخت سند مجاز نیست. برای حقوق تومانی، «واحد نمایش» حسابداری را در تنظیمات روی «تومان» بگذارید (هیچ تبدیل ریال/تومانی انجام نمی‌شود).",
   SETTINGS_MISSING: "حساب هزینهٔ حقوق پایه و حساب حقوق پرداختنی هنوز مشخص نشده است.",
   COMPONENTS_UNMAPPED: "برای برخی اجزا حساب مشخص نشده است.",
 };

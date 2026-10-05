@@ -55,6 +55,7 @@ const componentFields = {
   taxable: checkbox,
   insurable: checkbox,
   display_on_payslip: checkbox,
+  prorate_on_partial_period: checkbox,
   display_order: z.coerce.number().int().min(0).default(0),
   change_note: optText,
 };
@@ -64,6 +65,7 @@ type ComponentShape = {
   percentage_basis?: string; rule_key?: string;
   quantity_source?: string; rate_mode?: string; unit_divisor?: string; divisor_rule_key?: string;
   rate_multiplier?: string; multiplier_rule_key?: string;
+  prorate_on_partial_period?: boolean;
 };
 // The DB CHECKs (0115) remain the backstop; this gives a clear Persian message first.
 function refineComponent(d: ComponentShape, ctx: z.RefinementCtx) {
@@ -92,6 +94,7 @@ function refineComponent(d: ComponentShape, ctx: z.RefinementCtx) {
       if (d.rate_multiplier !== undefined && Number(d.rate_multiplier) > 10) bad("ضریب نمی‌تواند از ۱۰ بیشتر باشد.");
     }
   }
+  if (d.prorate_on_partial_period && d.calculation_method !== "FIXED") bad("تناسب در ماه ناقص فقط برای اجزای «مبلغ ثابت» قابل انتخاب است (درصدی‌ها خودکار تابع مبنای خود هستند).");
   if (d.calculation_method === "FIXED" && d.currency && d.fixed_amount === undefined) bad("مبلغ ثابت را وارد کنید.");
   if (isQty && d.rate_mode === "PER_UNIT" && !d.currency) bad("برای نرخ ثابت، انتخاب واحد پول الزامی است.");
   if (d.percentage !== undefined && d.calculation_method !== "PERCENTAGE") bad("درصد فقط برای روش «درصدی» مجاز است.");

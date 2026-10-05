@@ -1,5 +1,6 @@
 import { formatExactAmount } from "@/lib/payroll/format";
 import { describeQuantityLine } from "@/lib/payroll/quantity";
+import { describeProration, readProration } from "@/lib/payroll/proration";
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { CURRENCY_LABEL, type Currency } from "@/lib/enums";
 import { PAYSLIP_STATE_LABEL, payslipPeriodLabel, type PayslipData } from "@/lib/payroll/payslip";
@@ -27,7 +28,9 @@ function linesTable(title: string, rows: PayslipData["lines"], currencyLabel: st
     .map((r) => {
       // overtime / absence lines show how the amount came about («۱۰ ساعت × نرخ»): quantity + unit rate are exact strings from the database
       const q = describeQuantityLine({ quantity: r.quantity, unit: r.unit, unit_rate: r.unit_rate }, currencyCode);
-      return `<tr><td class="name">${esc(r.name)}${q ? `<div class="muted">${esc(q)}</div>` : ""}</td><td class="amt">${esc(formatExactAmount(r.amount))}</td></tr>`;
+      // a part-month line (hired / left mid-period) says how it was prorated («متناسب با ۱۰ روز از ۳۱ روز»)
+      const pr = describeProration(readProration(r.proration));
+      return `<tr><td class="name">${esc(r.name)}${q ? `<div class="muted">${esc(q)}</div>` : ""}${pr ? `<div class="muted">${esc(pr)}</div>` : ""}</td><td class="amt">${esc(formatExactAmount(r.amount))}</td></tr>`;
     })
     .join("")}</tbody></table>`;
 }

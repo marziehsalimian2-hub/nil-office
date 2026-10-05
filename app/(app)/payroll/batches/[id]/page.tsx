@@ -40,7 +40,7 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
   const status = b.status as PayrollBatchStatus;
 
   const showAccounting = b.status === "APPROVED" || b.accounting_journal_entry_id !== null;
-  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }, { data: paySummary }, { data: banks }, { data: slips }] = await Promise.all([
+  const [{ data: grid }, { data: sets }, { data: people }, { data: readiness }, { data: actors }, { data: paySummary }, { data: banks }, { data: slips }, { data: ledger }] = await Promise.all([
     supabase.rpc("payroll_work_grid", { p_period_id: r.period.id, p_batch_id: id }),
     supabase.from("legal_rule_sets").select("jurisdiction"),
     // HR-access users can list personnel (to offer an out-of-period INCLUDE); payroll-only users simply get none.
@@ -50,6 +50,7 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
     b.status === "APPROVED" ? supabase.rpc("payroll_payment_summary", { p_batch_id: id }) : Promise.resolve({ data: null }),
     b.status === "APPROVED" ? supabase.rpc("payroll_bank_accounts") : Promise.resolve({ data: null }),
     b.status === "APPROVED" ? supabase.rpc("payroll_payslips_for_batch", { p_batch_id: id }) : Promise.resolve({ data: null }),
+    b.status === "APPROVED" ? supabase.rpc("accounting_ledger_currencies") : Promise.resolve({ data: null }),
   ]);
   const payslipRows = (slips ?? null) as BatchPayslipRow[] | null;
   const payments = (paySummary ?? null) as PaymentSummary | null;
@@ -136,7 +137,7 @@ export default async function PayrollBatchPage({ params }: { params: Promise<{ i
       </Card>
       {payments && (
         <div className="mb-6">
-          <PaymentsCard batchId={b.id} currency={b.currency} summary={payments} banks={(banks ?? []) as BankAccountOption[]}
+          <PaymentsCard batchId={b.id} currency={b.currency} summary={payments} banks={(banks ?? []) as BankAccountOption[]} ledgerCurrencies={(ledger ?? []) as string[]}
             canCreate={access.approve && acc.create} canOpenAccounting={acc.open} defaultDateISO={new Date().toISOString().slice(0, 10)} />
         </div>
       )}

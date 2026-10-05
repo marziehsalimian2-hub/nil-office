@@ -38,7 +38,8 @@ export const PAYROLL_WARNING_META: Record<string, { severity: WarningSeverity; t
   // ---- WARNING ----
   MISSING_WORK_DATA: { severity: "WARNING", text: () => "کارکرد این ماه برای فرد ثبت نشده است." },
   MISSING_BANK_DESTINATION: { severity: "WARNING", text: () => "برای این فرد حساب پرداخت فعالی ثبت نشده است." },
-  PARTIAL_PERIOD: { severity: "WARNING", text: () => "استخدام یا پایان همکاری در میانهٔ دوره است؛ حقوق به‌صورت کامل (بدون تناسب روزانه) محاسبه شد." },
+  PARTIAL_PERIOD: { severity: "WARNING", text: () => "استخدام یا پایان همکاری در میانهٔ دوره است؛ حقوق پایه و اجزای «مبلغ ثابت» تیک‌خورده به‌صورت تقویمی (روزهای استخدامی ÷ روزهای ماه) متناسب شدند. اضافه‌کاری، غیبت و ورودی‌های دستی متناسب نمی‌شوند." },
+  PRORATION_NOT_APPLIED: { severity: "WARNING", text: () => "این فرد در میانهٔ دوره است ولی روز استخدامی ثبت‌شده‌ای در این ماه ندارد (سوابق استخدام را بررسی کنید)؛ تناسب انجام نشد و حقوق کامل محاسبه شد." },
   COMPENSATION_CHANGED_IN_PERIOD: { severity: "WARNING", text: () => "حقوق و مزایا در میانهٔ دوره تغییر کرده؛ نسخهٔ معتبر در پایان دوره به‌کار رفت." },
   ELIGIBILITY_OVERRIDDEN: { severity: "WARNING", text: () => "این فرد با استثنای دستی (شمول اجباری) در دسته قرار گرفته است." },
   PERSONNEL_SUSPENDED: { severity: "WARNING", text: () => "وضعیت این فرد «تعلیق» است." },

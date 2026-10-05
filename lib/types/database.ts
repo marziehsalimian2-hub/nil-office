@@ -1772,6 +1772,8 @@ export interface SalaryComponentVersion {
   /** QUANTITY_X_RATE parameters (0137); all null for every other method. Decimal columns arrive as numbers from PostgREST — display only, never calculate with them. */
   quantity_source: string | null; rate_mode: string | null; unit_divisor: number | null; divisor_rule_key: string | null;
   rate_multiplier: number | null; multiplier_rule_key: string | null;
+  /** FIXED only (0139): the amount is prorated by calendar days in a partial month. */
+  prorate_on_partial_period: boolean;
   created_by: string; created_at: string; updated_at: string;
 }
 export interface CompensationProfile {

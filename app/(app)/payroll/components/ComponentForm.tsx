@@ -211,6 +211,15 @@ export function ComponentForm({
         </div>
         {!isEarning && <p className="text-xs text-ink-muted">گزینه‌های «مشمول مالیات/بیمه» فقط برای اجزای نوع «مزایا» قابل تعیین است.</p>}
 
+        {method === "FIXED" && (
+          <div className="rounded-lg border border-line p-3">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" name="prorate_on_partial_period" defaultChecked={initial?.prorate_on_partial_period ?? false} /> در ماه ناقص (استخدام یا پایان همکاری در میانهٔ ماه) متناسب با روزهای کارکرد محاسبه شود
+            </label>
+            <p className="mt-1 text-xs text-ink-muted">تناسب تقویمی: مبلغ × روزهای استخدامی ÷ روزهای ماه. حقوق پایه همیشه متناسب می‌شود؛ این گزینه فقط برای همین جزء است. اینکه کدام مزایا باید متناسب شوند تصمیم شرکت (حسابدار) است. مزایای درصدی خودکار تابع مبنای خود هستند.</p>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="ترتیب نمایش"><input name="display_order" type="number" min={0} className="input tnum" defaultValue={initial?.display_order ?? 0} /></Field>
           <Field label="یادداشت تغییر"><input name="change_note" className="input" /></Field>

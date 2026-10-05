@@ -179,7 +179,7 @@ begin
   v_batch := (public.create_payroll_batch(v_period, 'IRR', 0, 'HALF_UP', 'TEST-P8')).id;
   v_c1 := (public.calculate_payroll_batch(v_batch)).id;
   execute 'reset role';
-  if (select engine_version from public.payroll_calculations where id = v_c1) <> 'PAYROLL_ENGINE_2' then raise exception 'FAIL(3): engine version'; end if;
+  if (select engine_version from public.payroll_calculations where id = v_c1) <> 'PAYROLL_ENGINE_3' then raise exception 'FAIL(3): engine version'; end if;
 
   -- A: numbers on the component, base salary basis
   perform pg_temp.chk('A overtime', pg_temp.line_amt(v_c1, v_a, 'OT_P8T'), 1909091);
