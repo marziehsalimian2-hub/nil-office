@@ -7,6 +7,14 @@ const SAFE_CHUNK_SIZE = 3800; // headroom below the hard limit
 const MAX_CARDS_SHOWN = 6;
 
 /**
+ * The bot sends PLAIN text (no parse_mode), so the model's markdown emphasis shows up as literal asterisks.
+ * Removes bold / italic markers (`**x**`, `__x__`) and leading heading hashes; text content is untouched.
+ */
+export function stripMarkdownEmphasis(text: string): string {
+  return text.replace(/\*\*/g, "").replace(/__/g, "").replace(/^#{1,6}[ \t]+/gm, "");
+}
+
+/**
  * ChatTurnResult (the same shape the web ChatPanel already renders) ->
  * Telegram text + inline keyboard. Kept short and bulleted (spec §18) —
  * this is a phone screen, not the Executive Dashboard. Long answers are
@@ -14,7 +22,7 @@ const MAX_CARDS_SHOWN = 6;
  */
 export function formatChatTurnForTelegram(result: ChatTurnResult): { chunks: string[]; keyboard?: InlineKeyboardButton[][] } {
   // (callback_data of a choice button is `pick:<opaque token>` — no entity id or name ever travels through Telegram)
-  let text = result.text.trim();
+  let text = stripMarkdownEmphasis(result.text.trim());
 
   // A payslip card is a web-only link to the PDF stream; over Telegram the file itself is delivered (handleUpdate).
   const cards = result.cards.filter((c) => c.kind !== "payslip");

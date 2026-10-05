@@ -4,7 +4,7 @@ import { isAllowedTelegramUser, isPrivateChat } from "./security";
 import { resolveProfileForTelegramUser } from "./identity";
 import { getSessionClientForProfile } from "./session";
 import { sendMessage, answerCallbackQuery, clearInlineKeyboard, getFileDownloadUrl, sendDocument } from "./bot";
-import { formatChatTurnForTelegram } from "./format";
+import { formatChatTurnForTelegram, stripMarkdownEmphasis } from "./format";
 import { detectTelegramAttachment, MAX_TELEGRAM_ATTACHMENT_BYTES } from "./attachment";
 import { runChatTurn, saveMessage, type ChatAttachment } from "@/lib/assistant/orchestrator";
 import { confirmPendingAction, cancelPendingAction, createPendingAction } from "@/lib/assistant/confirmation";
@@ -131,7 +131,7 @@ async function suggestIncomingLetterFollowup(sessionClient: SessionClient, profi
       tools: [],
     });
     if (result.usage) await recordUsage(sessionClient, profile.id, "TELEGRAM", "LLM", result.usage.inputTokens, result.usage.outputTokens, Date.now() - startedAt);
-    const text = result.text.trim();
+    const text = stripMarkdownEmphasis(result.text.trim());
     if (!text) return;
     await sendMessage(chatId, text);
     await saveMessage(sessionClient, conversationId, "assistant", text);
