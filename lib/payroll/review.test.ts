@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortWarnings, groupWarningsByPersonnel, defaultRounding, canSubmitForReview, canApproveBatch, accountingBlockers, hasAvailable } from "./review";
+import { sortWarnings, groupWarningsByPersonnel, defaultRounding, canSubmitForReview, canApproveBatch, accountingBlockers, hasAvailable, bankMatchesBatch } from "./review";
 import { PAYROLL_APPROVAL_BLOCKER_LABEL, PAYROLL_STALE_REASON_LABEL, PAYROLL_PAYMENT_STATE, PAYROLL_PAYMENT_STATE_LABEL, PAYROLL_PAYMENT_STATE_TONE } from "@/lib/enums";
 
 describe("review helpers", () => {
@@ -65,5 +65,22 @@ describe("review helpers", () => {
       expect(PAYROLL_PAYMENT_STATE_LABEL[st]).toBeTruthy();
       expect(PAYROLL_PAYMENT_STATE_TONE[st]).toBeTruthy();
     }
+  });
+});
+
+describe("bankMatchesBatch (Toman ledger, 0140)", () => {
+  it("the same currency always matches", () => {
+    expect(bankMatchesBatch("IRR", "IRR")).toBe(true);
+    expect(bankMatchesBatch("USD", "USD", ["IRR"])).toBe(true);
+  });
+  it("IRR and TOMAN match each other only when both are ledger currencies (display unit = Toman)", () => {
+    expect(bankMatchesBatch("IRR", "TOMAN", ["IRR", "TOMAN"])).toBe(true);
+    expect(bankMatchesBatch("TOMAN", "IRR", ["IRR", "TOMAN"])).toBe(true);
+    expect(bankMatchesBatch("IRR", "TOMAN", ["IRR"])).toBe(false);   // display unit Rial: no silent x10
+    expect(bankMatchesBatch("IRR", "TOMAN")).toBe(false);
+  });
+  it("a foreign currency never matches a ledger currency", () => {
+    expect(bankMatchesBatch("USD", "TOMAN", ["IRR", "TOMAN"])).toBe(false);
+    expect(bankMatchesBatch("IRR", "USD", ["IRR", "TOMAN"])).toBe(false);
   });
 });

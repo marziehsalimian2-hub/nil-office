@@ -64,6 +64,25 @@ describe("QUANTITY_X_RATE component validation (Phase 8)", () => {
   });
 });
 
+describe("proration tick (Phase 9)", () => {
+  const fixed = { ...base, calculation_method: "FIXED", fixed_amount: "1550000", currency: "IRR" };
+  it("is accepted on a FIXED component and defaults to off", () => {
+    const on = salaryComponentCreateSchema.safeParse({ ...fixed, prorate_on_partial_period: "on" });
+    expect(on.success && on.data.prorate_on_partial_period).toBe(true);
+    const off = salaryComponentCreateSchema.safeParse(fixed);
+    expect(off.success && off.data.prorate_on_partial_period).toBe(false);
+  });
+  it("is refused on every other method", () => {
+    expect(issue({ ...base, calculation_method: "PERCENTAGE", percentage: "7", percentage_basis: "BASE_SALARY", prorate_on_partial_period: "on" })).toContain("فقط برای اجزای «مبلغ ثابت»");
+    expect(issue({ ...base, calculation_method: "MANUAL_INPUT", prorate_on_partial_period: "on" })).toContain("فقط برای اجزای «مبلغ ثابت»");
+    expect(issue(qty({ quantity_source: "OVERTIME_HOURS", rate_mode: "WAGE_FRACTION", unit_divisor: "220", rate_multiplier: "1.4", prorate_on_partial_period: "on" }))).toContain("فقط برای اجزای «مبلغ ثابت»");
+  });
+  it("the version schema carries it too", () => {
+    const ok = salaryComponentVersionSchema.safeParse({ component_id: "0bfe144c-f0a1-40ca-8010-cf6fca5ae7d9", name_fa: "x", effective_from: "2026-01-01", calculation_method: "FIXED", fixed_amount: "1", currency: "IRR", prorate_on_partial_period: "on" });
+    expect(ok.success && ok.data.prorate_on_partial_period).toBe(true);
+  });
+});
+
 describe("quantity enums", () => {
   it("the unit follows the source name", () => {
     for (const s of QUANTITY_SOURCE) expect(quantityUnitOf(s)).toBe(s.endsWith("_HOURS") ? "HOURS" : "DAYS");

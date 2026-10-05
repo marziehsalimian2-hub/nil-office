@@ -24,6 +24,7 @@ type ComponentInput = {
   taxable: boolean; insurable: boolean; display_on_payslip: boolean; display_order: number; change_note?: string;
   quantity_source?: string; rate_mode?: string; unit_divisor?: string; divisor_rule_key?: string;
   rate_multiplier?: string; multiplier_rule_key?: string;
+  prorate_on_partial_period?: boolean;
 };
 const componentParams = (d: ComponentInput) => ({
   p_name_fa: d.name_fa,
@@ -47,6 +48,8 @@ const componentParams = (d: ComponentInput) => ({
   p_divisor_rule_key: d.divisor_rule_key ?? null,
   p_rate_multiplier: d.rate_multiplier ?? null,
   p_multiplier_rule_key: d.multiplier_rule_key ?? null,
+  // calendar-day proration of a FIXED amount in a partial month (0139); a company decision, default off
+  p_prorate_on_partial_period: d.prorate_on_partial_period ?? false,
 });
 
 /** Creates a salary component identity + its first (v1) definition. Amounts stay exact strings end to end. */

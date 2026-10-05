@@ -10,7 +10,7 @@ import { JalaliDateInput } from "@/components/JalaliDateInput";
 import { POSTING_STATUS_LABEL, PAYROLL_PAYMENT_STATE_LABEL, PAYROLL_PAYMENT_STATE_TONE, type PostingStatus } from "@/lib/enums";
 import { formatExactAmount } from "@/lib/payroll/format";
 import { formatJalali } from "@/lib/jalali";
-import { hasAvailable, type BankAccountOption, type PaymentSummary } from "@/lib/payroll/review";
+import { bankMatchesBatch, hasAvailable, type BankAccountOption, type PaymentSummary } from "@/lib/payroll/review";
 
 const trimZeros = (v: string) => (v.includes(".") ? v.replace(/\.?0+$/, "") : v);
 
@@ -19,9 +19,9 @@ const trimZeros = (v: string) => (v.includes(".") ? v.replace(/\.?0+$/, "") : v)
  * nothing here can mark anything paid. Drafts are verified and posted in Accounting (the normal payments flow).
  */
 export function PaymentsCard({
-  batchId, currency, summary, banks, canCreate, canOpenAccounting, defaultDateISO,
+  batchId, currency, summary, banks, ledgerCurrencies, canCreate, canOpenAccounting, defaultDateISO,
 }: {
-  batchId: string; currency: string; summary: PaymentSummary; banks: BankAccountOption[];
+  batchId: string; currency: string; summary: PaymentSummary; banks: BankAccountOption[]; ledgerCurrencies: string[];
   canCreate: boolean; canOpenAccounting: boolean; defaultDateISO: string;
 }) {
   const router = useRouter();
@@ -37,7 +37,7 @@ export function PaymentsCard({
   });
   const [picked, setPicked] = useState<Set<string>>(() => new Set(summary.rows.filter((r) => hasAvailable(r.available)).map((r) => r.result_id)));
 
-  const eligibleBanks = useMemo(() => banks.filter((b) => b.currency_code === currency), [banks, currency]);
+  const eligibleBanks = useMemo(() => banks.filter((b) => bankMatchesBatch(b.currency_code, currency, ledgerCurrencies)), [banks, currency, ledgerCurrencies]);
   const hasDrafts = summary.rows.some((r) => r.payments.some((p) => p.status === "DRAFT"));
   const journalNotPosted = summary.accounting_journal_status !== "POSTED";
 

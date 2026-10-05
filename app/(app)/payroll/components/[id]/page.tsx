@@ -64,6 +64,9 @@ export default async function ComponentDetailPage({ params }: { params: Promise<
             <p><span className="text-ink-muted">مشمول مالیات: </span>{current.taxable ? "بله" : "خیر"}
               <span className="text-ink-muted"> — مشمول بیمه: </span>{current.insurable ? "بله" : "خیر"}
               <span className="text-ink-muted"> — در فیش: </span>{current.display_on_payslip ? "نمایش" : "پنهان"}</p>
+            {current.calculation_method === "FIXED" && (
+              <p><span className="text-ink-muted">در ماه ناقص: </span>{current.prorate_on_partial_period ? "متناسب با روزهای کارکرد" : "کامل پرداخت می‌شود"}</p>
+            )}
             <p><span className="text-ink-muted">معتبر از: </span><span className="tnum">{formatJalali(current.effective_from)}</span></p>
           </div>
         ) : (

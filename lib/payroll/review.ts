@@ -106,6 +106,9 @@ export function canSubmitForReview(status: string, stale: string[]): boolean {
 
 export type AccountingReadiness = {
   base_currency: string;
+  /** RIAL | TOMAN — with TOMAN, batches / bank accounts coded IRR or TOMAN are both accepted by the ledger (0140). */
+  display_unit?: string;
+  ledger_currencies?: string[];
   currency_ok: boolean;
   settings_ok: boolean;
   missing_components: { code: string; name: string }[];
@@ -127,6 +130,11 @@ export function accountingBlockers(r: AccountingReadiness): string[] {
   if (!r.settings_ok) out.push("SETTINGS_MISSING");
   if (r.missing_components.length > 0) out.push("COMPONENTS_UNMAPPED");
   return out;
+}
+
+/** Mirrors create_payroll_payment_drafts (0140): same currency, or both are ledger currencies. The DB re-checks; this only filters the picker. */
+export function bankMatchesBatch(bankCurrency: string, batchCurrency: string, ledgerCurrencies: string[] = []): boolean {
+  return bankCurrency === batchCurrency || (ledgerCurrencies.includes(bankCurrency) && ledgerCurrencies.includes(batchCurrency));
 }
 
 export type BankAccountOption = { id: string; kind: string; bank_name: string | null; account_title: string; currency_code: string };

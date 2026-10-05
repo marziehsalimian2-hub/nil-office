@@ -9,6 +9,7 @@ import {
 import { toFaDigits } from "@/lib/jalali";
 import { formatExactAmount } from "@/lib/payroll/format";
 import { describeQuantityLine } from "@/lib/payroll/quantity";
+import { describeProration, personProration, readProration } from "@/lib/payroll/proration";
 import type { ResultDetail } from "@/lib/payroll/review";
 import { WarningsList } from "../../WarningsList";
 
@@ -30,6 +31,7 @@ export default async function PayrollResultPage({ params }: { params: Promise<{ 
   const cur = d.result.currency as Currency | null;
   const unit = cur ? (CURRENCY_LABEL[cur] ?? cur) : "";
   const wd = (d.result.inputs?.work_data ?? null) as Record<string, string | number | null> | null;
+  const proration = describeProration(personProration(d.result.inputs));
 
   return (
     <div>
@@ -40,6 +42,11 @@ export default async function PayrollResultPage({ params }: { params: Promise<{ 
       />
       {!d.result.is_current && (
         <div className="mb-4 rounded-lg border border-status-waiting/40 bg-status-waiting/5 px-4 py-3 text-sm text-ink">این نتیجه مربوط به محاسبهٔ قدیمی‌تر است و فقط برای سابقه نگه‌داری می‌شود.</div>
+      )}
+      {proration && (
+        <div className="mb-4 rounded-lg border border-status-waiting/40 bg-status-waiting/5 px-4 py-3 text-sm text-ink">
+          ماه ناقص: حقوق پایه و اجزای «مبلغ ثابت» تیک‌خورده {proration} (تقویمی) محاسبه شده‌اند؛ اضافه‌کاری، غیبت و ورودی‌های دستی متناسب نمی‌شوند.
+        </div>
       )}
       {!d.result.is_complete && (
         <div className="mb-4 rounded-lg border border-status-cancelled/40 bg-status-cancelled/5 px-4 py-3 text-sm text-status-cancelled">
@@ -77,6 +84,7 @@ export default async function PayrollResultPage({ params }: { params: Promise<{ 
                 </td>
                 <td className="px-3 py-2 text-xs text-ink-muted">
                   {l.rule_set_label ? <div>قاعده: {l.rule_set_label}{l.rule_key ? ` / ${l.rule_key}` : ""}</div> : null}
+                  {describeProration(readProration(l.details?.proration)) ? <div>{describeProration(readProration(l.details?.proration))}</div> : null}
                   {l.details?.wage_source ? <div>دستمزد مبنا: {l.details.wage_source === "PROFILE_HOURLY" ? "نرخ ساعتی ثبت‌شده در پروفایل" : "حقوق پایه"}</div> : null}
                   {l.details?.divisor_rule || l.details?.multiplier_rule ? <div>پارامتر از قاعدهٔ قانونی تأییدشده</div> : null}
                   {l.amount_source ? PAYROLL_AMOUNT_SOURCE_LABEL[l.amount_source] ?? l.amount_source : "—"}

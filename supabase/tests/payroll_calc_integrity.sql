@@ -185,7 +185,7 @@ begin
   if not pg_temp.warn(v_c1, v_b, 'MANUAL_INPUT_MISSING', 'CRITICAL') then raise exception 'FAIL(2): MANUAL_INPUT_MISSING'; end if;
   if not pg_temp.warn(v_c1, v_b, 'GROSS_BASIS_INCOMPLETE', 'CRITICAL') then raise exception 'FAIL(2): GROSS_BASIS_INCOMPLETE'; end if;
   if pg_temp.line_amt(v_c1, v_b, 'INS_P3T') is not null then raise exception 'FAIL(2): gross-basis line computed on incomplete gross'; end if;
-  perform pg_temp.chk('B gross', pg_temp.tot(v_c1, v_b, 'gross'), 5000000);
+  perform pg_temp.chk('B gross', pg_temp.tot(v_c1, v_b, 'gross'), 1774194);   -- Phase 9: hired 04-10 => 11 of 31 days: 5,000,000 x 11 / 31 = 1,774,193.55
   if (select is_complete from public.payroll_results where calculation_id = v_c1 and personnel_id = v_b) then raise exception 'FAIL(2): B must be incomplete'; end if;
   if not pg_temp.warn(v_c1, v_b, 'PARTIAL_PERIOD', 'WARNING') or not pg_temp.warn(v_c1, v_b, 'MISSING_WORK_DATA', 'WARNING')
      or not pg_temp.warn(v_c1, v_b, 'MISSING_BANK_DESTINATION', 'WARNING') then raise exception 'FAIL(2): B warnings'; end if;
@@ -193,7 +193,7 @@ begin
   -- E: terminated mid-period (eligible, partial) + circular earning
   if not pg_temp.warn(v_c1, v_e, 'CIRCULAR_BASIS', 'CRITICAL') or pg_temp.line_amt(v_c1, v_e, 'CIRC_P3T') is not null then raise exception 'FAIL(2): CIRCULAR_BASIS'; end if;
   if not pg_temp.warn(v_c1, v_e, 'PARTIAL_PERIOD', 'WARNING') then raise exception 'FAIL(2): E partial'; end if;
-  perform pg_temp.chk('E gross', pg_temp.tot(v_c1, v_e, 'gross'), 3000000);
+  perform pg_temp.chk('E gross', pg_temp.tot(v_c1, v_e, 'gross'), 1451613);   -- Phase 9: terminated 04-05 => 15 of 31 days: 3,000,000 x 15 / 31 = 1,451,612.9
   -- G: negative net = CRITICAL
   perform pg_temp.chk('G net', pg_temp.tot(v_c1, v_g, 'net'), -1000000);
   if not pg_temp.warn(v_c1, v_g, 'NEGATIVE_NET', 'CRITICAL') then raise exception 'FAIL(2): NEGATIVE_NET'; end if;
