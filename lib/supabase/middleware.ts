@@ -53,6 +53,10 @@ export async function updateSession(request: NextRequest) {
   // handlers do all authorization from the token itself; nothing here
   // should ever bounce an anonymous buyer to /login.
   const isTradePortal = path.startsWith("/offer/");
+  // NIL Verify public pages: the QR on every official PDF points to /verify/<unguessable token>, and the page's file check posts to
+  // /api/verify/check. Anonymous BY DESIGN (the holder of a document is usually not a NIL user); both do their own rate limiting and answer
+  // only with the fixed allow-list projection. /api/verify/preview (admin) is NOT public and stays behind the session check.
+  const isVerifyPublic = path.startsWith("/verify/") || path === "/api/verify/check";
   // Telegram webhooks — no Supabase session exists for either (Telegram
   // carries no cookies at all), and neither has a login page to redirect
   // to in the first place. Each does its own authentication entirely
@@ -72,7 +76,7 @@ export async function updateSession(request: NextRequest) {
   // Must NOT be bounced back to /dashboard below, or the two redirects loop forever.
   const isInactiveNotice = path === "/login" && request.nextUrl.searchParams.get("inactive") === "1";
 
-  if (!user && !isAuthRoute && !isPublicAsset && !isTradePortal && !isTelegramWebhook) {
+  if (!user && !isAuthRoute && !isPublicAsset && !isTradePortal && !isTelegramWebhook && !isVerifyPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);

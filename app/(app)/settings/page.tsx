@@ -17,6 +17,7 @@ import { ServiceLedgerRoleSelect } from "./ServiceLedgerRoleSelect";
 import { HrRoleSelect } from "./HrRoleSelect";
 import { PayrollRoleSelect } from "./PayrollRoleSelect";
 import { UserNameTitleEdit } from "./UserNameTitleEdit";
+import { VerifySettingsForm, type VerifySettingsRow, type VerifyTypeRow } from "./VerifySettingsForm";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
@@ -44,6 +45,13 @@ export default async function SettingsPage() {
   const sequences = (seqs ?? []) as NumberSequence[];
   const people = (users ?? []) as Profile[];
   const appSettings = settings as AppSettings | null;
+
+  // NIL Verify configuration (ADMIN only; the RPC enforces it too). Missing migration / error => the section is simply hidden.
+  let verifyCfg: { settings: VerifySettingsRow; types: VerifyTypeRow[] } | null = null;
+  if (isAdmin) {
+    const { data } = await supabase.rpc("verify_get_settings");
+    if (data && (data as { settings?: unknown }).settings) verifyCfg = data as { settings: VerifySettingsRow; types: VerifyTypeRow[] };
+  }
 
   // Factory Reset entry: visible only to an ADMIN who also holds the dedicated SYSTEM_FACTORY_RESET grant (never to ordinary admins).
   let canFactoryReset = false;
@@ -251,6 +259,16 @@ export default async function SettingsPage() {
               </tbody>
             </table>
           </Card>
+          {verifyCfg && (
+            <Card>
+              <h2 className="mb-1 text-sm font-semibold text-ink">استعلام اصالت اسناد (NIL Verify)</h2>
+              <p className="mb-4 text-xs leading-6 text-ink-muted">
+                هر نامهٔ صادره، پیش‌فاکتور، فاکتور و قرارداد نهایی‌شده یک QR و کد استعلام می‌گیرد؛ صفحهٔ عمومی فقط اطلاعات مجاز را نشان می‌دهد و اثر انگشت (SHA-256) فایل
+                نهایی ثبت می‌شود. این قابلیت «امضای دیجیتال قانونی» نیست و برای اسناد قدیمی به‌صورت خودکار فعال نمی‌شود.
+              </p>
+              <VerifySettingsForm settings={verifyCfg.settings} types={verifyCfg.types} />
+            </Card>
+          )}
           {canFactoryReset && (
             <Card>
               <h2 className="mb-2 text-sm font-semibold text-status-cancelled">سیستم — بازنشانی کارخانه (Danger Zone)</h2>

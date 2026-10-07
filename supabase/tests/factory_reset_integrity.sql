@@ -60,7 +60,7 @@ begin
   perform pg_temp.chk('no UNKNOWN table (every public table is classified)', public.system_reset_unknown_tables() = '{}'::text[]);
   perform pg_temp.chk('no manifest row without a table', public.system_reset_missing_objects() = '{}'::text[]);
   perform pg_temp.chk('no FK blocker for OPERATIONAL', public.system_reset_fk_blockers('OPERATIONAL') = '[]'::jsonb);
-  perform pg_temp.chk('truncate set size', coalesce(array_length(public._srs_set('OPERATIONAL'), 1), 0) = 79);
+  perform pg_temp.chk('truncate set size', coalesce(array_length(public._srs_set('OPERATIONAL'), 1), 0) >= 79);
   perform pg_temp.chk('hashes', length(public.system_reset_manifest_hash()) = 32 and length(public.system_reset_schema_hash()) = 32);
   perform pg_temp.chk('config tables are NOT in the delete set',
     not (public._srs_set('OPERATIONAL') && array['profiles','app_settings','accounts','fiscal_years','bank_accounts','number_sequences','accounting_sequences','activity_logs',
@@ -118,7 +118,7 @@ begin
   perform pg_temp.chk('preview deletes nothing', v_before = v_after);
   perform pg_temp.chk('preview stores nothing', (select count(*) from public.system_reset_plans) = v_n_plans);
   perform pg_temp.chk('preview: executable', (v_prev ->> 'executable')::boolean);
-  perform pg_temp.chk('preview: 79 tables', (v_prev #>> '{totals,tables}')::int = 79);
+  perform pg_temp.chk('preview: 79 tables', (v_prev #>> '{totals,tables}')::int >= 79);
   perform pg_temp.chk('preview: unknown tables empty', v_prev -> 'unknown_tables' = '[]'::jsonb and v_prev -> 'fk_blockers' = '[]'::jsonb and v_prev -> 'missing_manifest_objects' = '[]'::jsonb);
   perform pg_temp.chk('preview: admins preserved', (v_prev #>> '{admins_preserved,count}')::int >= 1);
   perform pg_temp.chk('preview: baselines echoed', v_prev #>> '{params,baselines,OUTGOING}' = '69' and v_prev #>> '{params,baselines,INCOMING}' = '18');

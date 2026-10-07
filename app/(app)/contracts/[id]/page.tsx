@@ -7,6 +7,7 @@ import { ContractStatusBadge } from "@/components/ContractStatusBadge";
 import { Tabs } from "@/components/Tabs";
 import { EditableContractCard } from "./EditableContractCard";
 import { DetailActions } from "./DetailActions";
+import { VerificationCard } from "@/components/VerificationCard";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { getDisplayUnit } from "@/app/actions/accounting-options";
@@ -240,6 +241,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         subtitle={k.title}
         action={<ContractStatusBadge status={k.status} />}
       />
+
+      <VerificationCard type="CONTRACT" documentId={k.id} isAdmin={profile.role === "ADMIN"} revalidate={`/contracts/${k.id}`} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

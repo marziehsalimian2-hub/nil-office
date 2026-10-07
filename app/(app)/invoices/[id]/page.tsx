@@ -6,6 +6,7 @@ import { PageHeader, Card } from "@/components/ui";
 import { SalesDocumentStatusBadge } from "@/components/SalesDocumentStatusBadge";
 import { Tabs } from "@/components/Tabs";
 import { DetailActions } from "./DetailActions";
+import { VerificationCard } from "@/components/VerificationCard";
 import { AttachmentUploader } from "@/components/AttachmentUploader";
 import { deleteAttachmentForm } from "@/app/actions/attachments";
 import { getDisplayUnit } from "@/app/actions/accounting-options";
@@ -278,6 +279,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         subtitle={`${SALES_DOCUMENT_TYPE_LABEL[d.type as SalesDocumentType]} — ${d.customer_legal_name_snapshot}`}
         action={<SalesDocumentStatusBadge status={d.status} />}
       />
+
+      <VerificationCard type={d.type === "PROFORMA" ? "PROFORMA" : "INVOICE"} documentId={d.id} isAdmin={profile.role === "ADMIN"} revalidate={`/invoices/${d.id}`} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

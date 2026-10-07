@@ -52,7 +52,7 @@ function textToHtml(text: string | null): string {
 export async function buildContractPdf(
   supabase: SupabaseClient,
   contractId: string,
-  opts?: { noStamp?: boolean },
+  opts?: { noStamp?: boolean; minBottomMarginMm?: number },
 ): Promise<{ buffer: Buffer; fileName: string }> {
   const { data: contract, error } = await supabase
     .from("contracts")
@@ -98,6 +98,7 @@ export async function buildContractPdf(
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
+    minBottomMarginMm: opts?.minBottomMarginMm,
   });
 
   return { buffer, fileName };

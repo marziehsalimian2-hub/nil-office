@@ -22,13 +22,19 @@ function createdTables(): Set<string> {
 }
 
 type Row = { name: string; cls: string; a: string; b: string };
+// Every migration from 0141 on may add manifest rows (a new module classifies its own tables in the migration that creates them);
+// a later row for the same object wins, like the `on conflict do update` in SQL.
 function manifest(): Row[] {
-  const block = reset.slice(reset.indexOf("insert into public.system_reset_manifest"), reset.indexOf("on conflict (object_name)"));
-  const rows: Row[] = [];
-  for (const m of block.matchAll(/\('([a-z_0-9]+)', '([a-z_]+)', '(DELETE|PRESERVE|CONDITIONAL|NEVER_TOUCH)', '([A-Z_]+)', '([A-Z_]+)',/g)) {
-    rows.push({ name: m[1], cls: m[3], a: m[4], b: m[5] });
+  const byName = new Map<string, Row>();
+  for (const { f, s } of all) {
+    if (f < "0141") continue;
+    for (const ins of s.matchAll(/insert into public\.system_reset_manifest[\s\S]*?on conflict \(object_name\)/g)) {
+      for (const m of ins[0].matchAll(/\('([a-z_0-9]+)',\s+'([a-z_]+)',\s+'(DELETE|PRESERVE|CONDITIONAL|NEVER_TOUCH)',\s+'([A-Z_]+)',\s+'([A-Z_]+)',/g)) {
+        byName.set(m[1], { name: m[1], cls: m[3], a: m[4], b: m[5] });
+      }
+    }
   }
-  return rows;
+  return [...byName.values()];
 }
 
 function fkEdges(): [string, string][] {
@@ -51,7 +57,7 @@ describe("reset manifest vs the actual schema", () => {
     expect([...created].filter((t) => !names.includes(t)), "tables missing from the reset manifest (add them to 0141 or a newer migration)").toEqual([]);
     expect(names.filter((n) => !created.has(n)), "manifest rows that are not tables").toEqual([]);
     expect(new Set(names).size).toBe(names.length);
-    expect(rows.length).toBeGreaterThanOrEqual(113);
+    expect(rows.length).toBeGreaterThanOrEqual(117);
   });
 
   it("classification and mode agree", () => {
@@ -143,7 +149,7 @@ describe("Supabase pg-safeupdate", () => {
 });
 
 describe("storage rules", () => {
-  const rules = [...reset.matchAll(/\('([a-z_/-]+\/)',\s+'(DELETE|PRESERVE)',/g)].map((m) => ({ prefix: m[1], action: m[2] }));
+  const rules = all.filter(({ f }) => f >= "0141").flatMap(({ s }) => [...s.matchAll(/\('([a-z_/-]+\/)',\s+'(DELETE|PRESERVE)',/g)].map((m) => ({ prefix: m[1], action: m[2] })));
   it("branding and signatures are preserved", () => {
     expect(rules.find((r) => r.prefix === "settings/")?.action).toBe("PRESERVE");
     expect(rules.find((r) => r.prefix === "signatures/")?.action).toBe("PRESERVE");

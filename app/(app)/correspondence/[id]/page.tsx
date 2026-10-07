@@ -18,6 +18,8 @@ import {
 import { formatJalali, toFaDigits } from "@/lib/jalali";
 import { formatBytes } from "@/lib/utils";
 import { sanitizeLetterHtml } from "@/lib/sanitize-html";
+import { requireProfile } from "@/lib/auth";
+import { VerificationCard } from "@/components/VerificationCard";
 import type { Correspondence, Attachment, CorrespondenceLink, Company, Case, Profile } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,7 @@ export default async function CorrespondenceDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const viewer = await requireProfile();
 
   const { data: letter } = await supabase.from("correspondence").select("*").eq("id", id).single();
   if (!letter) notFound();
@@ -103,6 +106,10 @@ export default async function CorrespondenceDetailPage({
         subtitle={`${DIRECTION_LABEL[l.direction]} — ${l.subject || "(بدون موضوع)"}`}
         action={<StatusBadge status={l.status as CorrStatus} />}
       />
+
+      {l.direction === "OUTGOING" && (
+        <VerificationCard type="OUTGOING_CORRESPONDENCE" documentId={l.id} isAdmin={viewer.role === "ADMIN"} revalidate={`/correspondence/${l.id}`} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

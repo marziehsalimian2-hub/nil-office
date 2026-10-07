@@ -6,6 +6,8 @@ import { PDFDocument } from "pdf-lib";
 
 export type LetterPdfInput = {
   language: "FA" | "EN";
+  /** NIL Verify: minimum bottom page margin (mm) so a verification plate placed in the footer zone never overlaps content. Default = today's layout. */
+  minBottomMarginMm?: number;
   displayNumber: string | null;
   dateLabel: string; // already-formatted Jalali (FA) or Gregorian (EN) date string
   recipientLabel: string | null;
@@ -229,7 +231,7 @@ export async function renderLetterPdf(input: LetterPdfInput): Promise<Buffer> {
     textPdfBytes = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "60mm", bottom: "48mm", left: "20mm", right: "20mm" },
+      margin: { top: "60mm", bottom: `${Math.max(48, input.minBottomMarginMm ?? 0)}mm`, left: "20mm", right: "20mm" },
     });
 
     if (input.letterheadDataUri) {

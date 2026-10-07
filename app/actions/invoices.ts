@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
 import { currentJalaliYear } from "@/lib/jalali";
 import { salesDocumentSchema, salesDocumentItemSchema, invoiceRoleSchema } from "@/lib/validation-invoices";
+import { issueSalesDocumentVerification } from "@/lib/verify/hooks";
 
 export type ActionState = { error?: string } | null;
 
@@ -247,6 +248,8 @@ export async function issueSalesDocumentCore(
   const { error: issueErr } = await supabase.rpc("finalize_sales_document", { p_id: doc.id, p_year: currentJalaliYear() });
   if (issueErr) return { error: persianError(issueErr.message) };
 
+  await issueSalesDocumentVerification(supabase, userId, doc.id);   // NIL Verify (never fails the issuance; PENDING shows a retry)
+
   const { data: fresh } = await supabase.from("sales_documents").select("display_number").eq("id", doc.id).single();
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${doc.id}`);
@@ -344,12 +347,13 @@ export async function setSalesDocumentStatus(_p: ActionState, f: FormData): Prom
 /** Atomically issue a proforma/invoice and assign its official PI-/INV- number. */
 export async function issueSalesDocument(_p: ActionState, f: FormData): Promise<ActionState> {
   const id = String(f.get("id") ?? "");
-  const { supabase } = await ctx();
+  const { supabase, userId } = await ctx();
   const { error } = await supabase.rpc("finalize_sales_document", {
     p_id: id,
     p_year: currentJalaliYear(),
   });
   if (error) return { error: persianError(error.message) };
+  await issueSalesDocumentVerification(supabase, userId, id);   // NIL Verify (never fails the issuance; PENDING shows a retry)
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");
   return null;

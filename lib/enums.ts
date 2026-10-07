@@ -151,6 +151,20 @@ export const CHEQUE_CURRENCY_LABEL: Record<string, string> = {
 /** Maps RPC/DB error codes to clear Persian messages (never raw SQL). */
 export const ERROR_MESSAGES: Record<string, string> = {
   NOT_AUTHORIZED: "شما مجاز به انجام این عملیات نیستید.",
+  // ---- NIL Verify (0143) ----
+  VERIFY_INVALID_TRANSITION: "این تغییر وضعیت برای استعلام مجاز نیست.",
+  VERIFY_INVALID: "ورودی استعلام اصالت نامعتبر است.",
+  VERIFY_DISABLED: "استعلام اصالت برای این نوع سند غیرفعال است.",
+  VERIFY_NOT_ELIGIBLE: "این سند هنوز در وضعیت صدور رسمی نیست؛ برای آن کد استعلام ساخته نمی‌شود.",
+  VERIFY_ALREADY_CLOSED: "استعلام این سند قبلاً ابطال یا جایگزین شده است و دوباره ساخته نمی‌شود.",
+  VERIFY_NOT_PENDING: "این استعلام در وضعیت انتظار نیست.",
+  VERIFY_NO_DELETE: "رکورد استعلام قابل حذف نیست.",
+  VERIFY_FIELD_IMMUTABLE: "اطلاعات هویتی استعلام پس از صدور قابل تغییر نیست.",
+  VERIFY_CODE_COLLISION: "ساخت کد استعلام ناموفق بود؛ دوباره تلاش کنید.",
+  VERIFY_BASE_URL_MISSING: "نشانی پایهٔ سامانه (NEXT_PUBLIC_APP_URL) تنظیم نشده یا نامعتبر است.",
+  VERIFY_STORAGE_FAILED: "ذخیرهٔ فایل نهایی ناموفق بود.",
+  VERIFY_LAYOUT_OUT_OF_PAGE: "جای QR خارج از صفحه است؛ چیدمان را در تنظیمات اصلاح کنید.",
+  VERIFY_FROZEN_PDF_MISSING: "فایل نهایی تأییدشدهٔ این سند در دسترس نیست.",
   // ---- Factory Reset (0141) ----
   RESET_PRODUCTION_BLOCKED: "بازنشانی در محیط Production به‌صورت پیش‌فرض بسته است؛ فقط با فعال‌سازی صریح روی سرور ممکن است.",
   RESET_ENVIRONMENT_INVALID: "محیط سرور (NIL_ENVIRONMENT) معتبر نیست.",
