@@ -17,6 +17,8 @@ export type InvoiceItemInput = {
 
 export type InvoicePdfInput = {
   language: "FA" | "EN";
+  /** NIL Verify: minimum bottom page margin (mm) so a verification plate placed in the footer zone never overlaps content. Default = today's layout. */
+  minBottomMarginMm?: number;
   displayNumber: string | null;
   dateLabel: string; // already-formatted Jalali date label for the header overlay
   docTypeLabel: string; // "پیش‌فاکتور" | "فاکتور"
@@ -385,7 +387,7 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Buffer> 
     textPdfBytes = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "55mm", bottom: "20mm", left: "18mm", right: "18mm" },
+      margin: { top: "55mm", bottom: `${Math.max(20, input.minBottomMarginMm ?? 0)}mm`, left: "18mm", right: "18mm" },
     });
 
     if (input.letterheadDataUri) {

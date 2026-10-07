@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { persianError } from "@/lib/enums";
 import { currentJalaliYear } from "@/lib/jalali";
 import { contractSchema, contractTypeSchema, contractRoleSchema } from "@/lib/validation-contracts";
+import { issueContractVerification } from "@/lib/verify/hooks";
 
 export type ActionState = { error?: string } | null;
 
@@ -147,12 +148,13 @@ export async function setContractStatus(_p: ActionState, f: FormData): Promise<A
 /** Atomically approve a NIL_ISSUED contract and issue its official number. */
 export async function approveContract(_p: ActionState, f: FormData): Promise<ActionState> {
   const id = String(f.get("id") ?? "");
-  const { supabase } = await ctx();
+  const { supabase, userId } = await ctx();
   const { error } = await supabase.rpc("finalize_contract", {
     p_contract_id: id,
     p_year: currentJalaliYear(),
   });
   if (error) return { error: persianError(error.message) };
+  await issueContractVerification(supabase, userId, id);   // NIL Verify (never fails the approval; PENDING shows a retry)
   revalidatePath(`/contracts/${id}`);
   revalidatePath("/contracts");
   return null;

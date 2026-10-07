@@ -37,7 +37,7 @@ async function pathToDataUri(
 export async function buildLetterPdfForCorrespondence(
   supabase: SupabaseClient,
   correspondenceId: string,
-  opts?: { noStamp?: boolean },
+  opts?: { noStamp?: boolean; minBottomMarginMm?: number },
 ): Promise<{ buffer: Buffer; fileName: string }> {
   const noStamp = opts?.noStamp ?? false;
 
@@ -82,6 +82,7 @@ export async function buildLetterPdfForCorrespondence(
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
+    minBottomMarginMm: opts?.minBottomMarginMm,
   });
 
   const docLabel = isEn ? "Letter" : "نامه";

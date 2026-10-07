@@ -1,7 +1,7 @@
 # Reset manifest — what Factory Reset deletes, preserves and never touches
 
 Source of truth: the table `system_reset_manifest` (seeded by `supabase/migrations/0141_factory_reset.sql`, version 1) — generated from the
-ACTUAL schema (migrations 0001–0140: 105 public tables + the reset subsystem's own 8). A vitest guard (`lib/system-reset/manifest.test.ts`)
+ACTUAL schema (migrations 0001–0143: 105 + 4 NIL Verify tables, plus the reset subsystem's own 8). A vitest guard (`lib/system-reset/manifest.test.ts`)
 fails the build if any migration creates a table that is not classified here, and the database refuses to execute while an unclassified
 table exists (it is reported as **UNKNOWN** in the Dry Run).
 
@@ -100,6 +100,8 @@ Mode A = Operational Clean Start (executable). Mode B = Full Factory Reset (Dry 
 | `external_intake_documents` | external_bot | DELETE | DELETE | Intake documents | 110 | - | - | MEDIUM |
 | `external_intake_events` | external_bot | DELETE | DELETE | Intake events | 110 | - | - | LOW |
 | `external_intakes` | external_bot | DELETE | DELETE | External correspondence intakes | 110 | - | external-correspondence/ files | MEDIUM |
+| `document_verifications` | verify | DELETE | DELETE | Verification records of issued documents (operational; their documents are deleted by the reset) | 15 | - | verified/ final PDFs | MEDIUM |
+| `verification_rate_limits` | verify | DELETE | DELETE | Transient public-verify rate-limit counters | 15 | - | - | LOW |
 
 ## PRESERVE (class B) — 23 objects
 
@@ -128,6 +130,8 @@ Mode A = Operational Clean Start (executable). Mode B = Full Factory Reset (Dry 
 | `salary_component_versions` | payroll | PRESERVE | DELETE | Versions of salary component definitions | 200 | - | - | MEDIUM |
 | `salary_components` | payroll | PRESERVE | DELETE | Salary component definitions (company configuration, nothing legal seeded) | 200 | - | - | MEDIUM |
 | `service_categories` | client_service | PRESERVE | PRESERVE | Service category definitions (seeded + configured) | 200 | - | - | LOW |
+| `verification_settings` | verify | PRESERVE | PRESERVE | NIL Verify configuration (enabled, issuer name, public label, contract-amount policy) | 200 | - | - | LOW |
+| `verification_doc_types` | verify | PRESERVE | PRESERVE | NIL Verify per-document-type enablement and QR layout | 200 | - | - | LOW |
 
 ## CONDITIONAL (class C) — 4 objects
 
@@ -198,9 +202,10 @@ Rules (`system_reset_storage_rules`, longest prefix wins):
 | `client-service-reports/` | DELETE |
 | `trade/` | DELETE |
 | `external-correspondence/` | DELETE |
+| `verified/` | DELETE |
 | `settings/` | PRESERVE |
 | `signatures/` | PRESERVE |
 
-Also **DELETE**: any object whose path is registered by a reset table (`attachments`, `trade_offer_documents`, `client_service_reports`, `external_intake_documents`, `payroll_payslips`).
+Also **DELETE**: any object whose path is registered by a reset table (`attachments`, `document_verifications`, `trade_offer_documents`, `client_service_reports`, `external_intake_documents`, `payroll_payslips`).
 Always **PRESERVE**: the current `app_settings.letterhead_path`, `app_settings.stamp_path` and every `profiles.signature_path`, whatever their prefix.
 **UNKNOWN** (any other object): reported, never deleted.

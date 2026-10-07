@@ -5,6 +5,8 @@ import puppeteer, { type Browser } from "puppeteer";
 import { PDFDocument } from "pdf-lib";
 
 export type ContractPdfInput = {
+  /** NIL Verify: minimum bottom page margin (mm) so a verification plate placed in the footer zone never overlaps content. Default = today's layout. */
+  minBottomMarginMm?: number;
   displayNumber: string | null;
   dateLabel: string; // already-formatted Jalali date label for the header overlay
   recipientLabel: string | null; // counterparty company name, shown above the body like a letter's recipient
@@ -228,7 +230,7 @@ export async function renderContractPdf(input: ContractPdfInput): Promise<Buffer
     textPdfBytes = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "60mm", bottom: "20mm", left: "20mm", right: "20mm" },
+      margin: { top: "60mm", bottom: `${Math.max(20, input.minBottomMarginMm ?? 0)}mm`, left: "20mm", right: "20mm" },
     });
 
     if (input.letterheadDataUri) {

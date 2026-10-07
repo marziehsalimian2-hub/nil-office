@@ -9,6 +9,7 @@ import { persianError } from "@/lib/enums";
 import { currentJalaliYear, parseJalali } from "@/lib/jalali";
 import { sanitizeLetterHtml } from "@/lib/sanitize-html";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
+import { issueLetterVerification } from "@/lib/verify/hooks";
 
 export type ActionState = { error?: string } | null;
 
@@ -33,6 +34,11 @@ function fd(formData: FormData) {
  * before this is ever called, and a PDF failure must never undo that.
  */
 async function archiveLetterPdf(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  // NIL Verify: when enabled the archived PDF IS the frozen, QR-stamped, hashed file (stored at verified/..., registered as the letter's attachment).
+  // PENDING (a failure after the number was issued) is never ACTIVE and shows a retry on the letter page; it must not also archive an unstamped copy.
+  const verification = await issueLetterVerification(supabase, userId, id);
+  if (verification.status === "ACTIVE" || verification.status === "PENDING") return;
+  // DISABLED / UNAVAILABLE: today's behaviour, unchanged.
   try {
     const { data: fresh } = await supabase
       .from("correspondence")

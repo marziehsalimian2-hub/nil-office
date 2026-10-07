@@ -55,7 +55,7 @@ async function pathToDataUri(
 export async function buildInvoicePdf(
   supabase: SupabaseClient,
   id: string,
-  opts?: { noStamp?: boolean },
+  opts?: { noStamp?: boolean; minBottomMarginMm?: number },
 ): Promise<{ buffer: Buffer; fileName: string }> {
   const { data: doc, error } = await supabase
     .from("sales_documents")
@@ -163,6 +163,7 @@ export async function buildInvoicePdf(
     letterheadDataUri,
     stampDataUri,
     signatureDataUri,
+    minBottomMarginMm: opts?.minBottomMarginMm,
   });
 
   return { buffer, fileName };
