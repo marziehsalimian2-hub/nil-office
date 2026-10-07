@@ -115,8 +115,8 @@ begin
   v_v_l := (v_b ->> 'id')::uuid;
   perform pg_temp.chk('PENDING with a well-formed code', v_b ->> 'status' = 'PENDING' and v_b ->> 'code' ~ '^NIL-V-[A-Z2-9]{4}-[A-Z2-9]{4}$');
   v_b := public.verify_begin('OUTGOING_CORRESPONDENCE', v_l, pg_temp.h('tok-l-2'));                                  -- retry: same record, new (unused) token
+  execute 'reset role';                                                                                              -- (the verification tables are not readable by `authenticated` - by design)
   perform pg_temp.chk('idempotent: still ONE record, same id, token replaced', (v_b ->> 'id')::uuid = v_v_l and (select count(*) from public.document_verifications where document_id = v_l) = 1);
-  execute 'reset role';
   perform pg_temp.chk('the raw token is not stored, only a hash', (select token_hash from public.document_verifications where id = v_v_l) = pg_temp.h('tok-l-2'));
   perform pg_temp.chk('PENDING is not public (old or new token)', (public.verify_public_lookup(pg_temp.h('tok-l-1')) ->> 'found')::boolean = false and (public.verify_public_lookup(pg_temp.h('tok-l-2')) ->> 'found')::boolean = false);
   perform pg_temp.expect_err(format($q$insert into public.document_verifications (verification_code, token_hash, document_type, document_id, document_number_snapshot, issued_at, issuer_snapshot)
@@ -126,12 +126,12 @@ begin
   perform pg_temp.expect_err(format('select public.verify_activate(%L,%L,%s,%L)', v_v_l, v_hash_l, 100, 'verified/other.pdf'), 'VERIFY_INVALID');                 -- path is derived from the id only
   perform pg_temp.expect_err(format('select public.verify_activate(%L,%L,%s,%L)', v_v_l, v_hash_l, 0, 'verified/' || v_v_l || '.pdf'), 'VERIFY_INVALID');        -- empty file
   perform public.verify_activate(v_v_l, v_hash_l, 4096, 'verified/' || v_v_l || '.pdf');
-  perform pg_temp.chk('ACTIVE with the hash recorded', (select status = 'ACTIVE' and pdf_hash = v_hash_l and pdf_hash_algorithm = 'SHA-256' and activated_at is not null from public.document_verifications where id = v_v_l));
   perform pg_temp.expect_err(format('select public.verify_activate(%L,%L,%s,%L)', v_v_l, v_hash_l, 4096, 'verified/' || v_v_l || '.pdf'), 'VERIFY_NOT_PENDING');
   v_b := public.verify_begin('OUTGOING_CORRESPONDENCE', v_l, pg_temp.h('tok-l-3'));
-  perform pg_temp.chk('begin on an ACTIVE document is a no-op (no second identity)', (v_b ->> 'already_active')::boolean and (select count(*) from public.document_verifications where document_id = v_l) = 1);
-  perform pg_temp.chk('status RPC for the module', (public.verify_document_status('OUTGOING_CORRESPONDENCE', v_l) ->> 'status') = 'ACTIVE');
+  perform pg_temp.chk('status RPC for the module, and begin on an ACTIVE document is a no-op', (public.verify_document_status('OUTGOING_CORRESPONDENCE', v_l) ->> 'status') = 'ACTIVE' and (v_b ->> 'already_active')::boolean);
   execute 'reset role';
+  perform pg_temp.chk('ACTIVE with the hash recorded, and still no second identity', (select status = 'ACTIVE' and pdf_hash = v_hash_l and pdf_hash_algorithm = 'SHA-256' and activated_at is not null from public.document_verifications where id = v_v_l)
+                      and (select count(*) from public.document_verifications where document_id = v_l) = 1);
   perform pg_temp.expect_err(format('update public.document_verifications set pdf_hash = %L where id = %L', v_hash_other, v_v_l), 'VERIFY_FIELD_IMMUTABLE');           -- evidence is frozen
   perform pg_temp.expect_err(format('update public.document_verifications set verification_code = %L where id = %L', 'NIL-V-ZZZZ-ZZZZ', v_v_l), 'VERIFY_FIELD_IMMUTABLE');
   perform pg_temp.expect_err(format('update public.document_verifications set public_metadata_snapshot = %L where id = %L', '{"x":1}', v_v_l), 'VERIFY_FIELD_IMMUTABLE');
@@ -226,7 +226,8 @@ begin
   perform pg_temp.expect_err(format('select public.verify_update_doc_type(%L,true,%L,10,10,5,true,true,%L)', 'INVOICE', 'LAST', 'x'), 'VERIFY_INVALID');         -- size below the minimum
   perform pg_temp.expect_err(format('select public.verify_update_doc_type(%L,true,%L,10,10,22,true,true,%L)', 'PAYSLIP', 'LAST', 'x'), 'NOT_FOUND');
   perform public.verify_update_doc_type('INVOICE', true, 'LAST', 25, 12, 24, true, true, 'استعلام اصالت سند');
-  perform pg_temp.chk('layout saved', (select x_mm = 25 and y_mm = 12 and size_mm = 24 from public.verification_doc_types where document_type = 'INVOICE'));
+  perform pg_temp.chk('layout saved (read back through the admin RPC)', (select (t ->> 'x_mm')::numeric = 25 and (t ->> 'y_mm')::numeric = 12 and (t ->> 'size_mm')::numeric = 24
+                        from jsonb_array_elements(public.verify_get_settings() -> 'types') t where t ->> 'document_type' = 'INVOICE'));
   perform pg_temp.chk('settings readable by the admin', (public.verify_get_settings() -> 'types') is not null and jsonb_array_length(public.verify_get_settings() -> 'types') = 4);
   perform public.verify_update_settings(false, 'شرکت توسعه مدیریت راهبردی نیل', 'استعلام اصالت سند', false);
   perform pg_temp.expect_err(format('select public.verify_begin(%L,%L,%L)', 'OUTGOING_CORRESPONDENCE', v_cancel_l, pg_temp.h('tok-off')), 'VERIFY_DISABLED');          -- global switch off
@@ -235,8 +236,8 @@ begin
 
   -- 9) a cancelled document auto-revokes -------------------------------------------------------------------------------------------------------
   perform pg_temp.persona(v_admin, 'ADMIN');
-  perform public.verify_activate((public.verify_begin('OUTGOING_CORRESPONDENCE', v_cancel_l, pg_temp.h('tok-c')) ->> 'id')::uuid, pg_temp.h('f-c'), 100,
-    'verified/' || (select id from public.document_verifications where document_id = v_cancel_l) || '.pdf');
+  v_b := public.verify_begin('OUTGOING_CORRESPONDENCE', v_cancel_l, pg_temp.h('tok-c'));
+  perform public.verify_activate((v_b ->> 'id')::uuid, pg_temp.h('f-c'), 100, 'verified/' || (v_b ->> 'id') || '.pdf');
   perform public.cancel_correspondence(v_cancel_l);                                    -- the module's own cancel RPCs, as the ADMIN
   execute 'reset role';
   perform pg_temp.chk('letter cancelled -> verification REVOKED (reason DOCUMENT_CANCELLED), page stays',
