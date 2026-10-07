@@ -568,10 +568,10 @@ end $$;
 insert into public.system_reset_manifest
   (object_name, module, classification, mode_a, mode_b, reason, risk, reset_order, sequence_impact, storage_impact, manifest_version)
 values
-  ('document_verifications',   'verify', 'DELETE',   'DELETE',   'DELETE',   'Verification records of issued documents (operational; their documents are deleted by the reset)', 'MEDIUM', 15, '-', 'verified/ final PDFs'),
-  ('verification_rate_limits', 'verify', 'DELETE',   'DELETE',   'DELETE',   'Transient public-verify rate-limit counters', 'LOW', 15, '-', '-'),
-  ('verification_settings',    'verify', 'PRESERVE', 'PRESERVE', 'PRESERVE', 'NIL Verify configuration (enabled, issuer name, public label, contract-amount policy)', 'LOW', 200, '-', '-'),
-  ('verification_doc_types',   'verify', 'PRESERVE', 'PRESERVE', 'PRESERVE', 'NIL Verify per-document-type enablement and QR layout', 'LOW', 200, '-', '-')
+  ('document_verifications',   'verify', 'DELETE',   'DELETE',   'DELETE',   'Verification records of issued documents (operational; their documents are deleted by the reset)', 'MEDIUM', 15, '-', 'verified/ final PDFs', 1),
+  ('verification_rate_limits', 'verify', 'DELETE',   'DELETE',   'DELETE',   'Transient public-verify rate-limit counters', 'LOW', 15, '-', '-', 1),
+  ('verification_settings',    'verify', 'PRESERVE', 'PRESERVE', 'PRESERVE', 'NIL Verify configuration (enabled, issuer name, public label, contract-amount policy)', 'LOW', 200, '-', '-', 1),
+  ('verification_doc_types',   'verify', 'PRESERVE', 'PRESERVE', 'PRESERVE', 'NIL Verify per-document-type enablement and QR layout', 'LOW', 200, '-', '-', 1)
 on conflict (object_name) do update set
   module = excluded.module, classification = excluded.classification, mode_a = excluded.mode_a, mode_b = excluded.mode_b,
   reason = excluded.reason, risk = excluded.risk, reset_order = excluded.reset_order, sequence_impact = excluded.sequence_impact,

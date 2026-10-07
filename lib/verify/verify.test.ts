@@ -230,6 +230,32 @@ describe("migration 0143 (static guards)", () => {
     }
     expect(bare).toEqual([]);
   });
+  it("every INSERT ... VALUES row has exactly as many expressions as target columns (Postgres 42601 otherwise)", () => {
+    for (const ins of sql.matchAll(/insert into public\.(\w+)\s*\(([^)]*)\)\s*values\s*([\s\S]*?)(?:\bon conflict\b|;[ \t]*(?:\r?\n|$))/gi)) {
+      const cols = ins[2].split(",").map((c) => c.trim()).filter(Boolean).length;
+      // split the VALUES list into top-level tuples (quotes-aware)
+      const body = ins[3];
+      let depth = 0, inStr = false, cur = "";
+      const tuples: string[] = [];
+      for (let i = 0; i < body.length; i++) {
+        const ch = body[i];
+        if (inStr) { cur += ch; if (ch === "'") { if (body[i + 1] === "'") { cur += "'"; i++; } else inStr = false; } continue; }
+        if (ch === "'") { inStr = true; cur += ch; continue; }
+        if (ch === "(") { depth++; if (depth === 1) { cur = ""; continue; } }
+        if (ch === ")") { depth--; if (depth === 0) { tuples.push(cur); cur = ""; continue; } }
+        if (depth >= 1) cur += ch;
+      }
+      for (const tup of tuples) {
+        let d = 0, q = false, n = 1;
+        for (let i = 0; i < tup.length; i++) {
+          const ch = tup[i];
+          if (q) { if (ch === "'") { if (tup[i + 1] === "'") i++; else q = false; } continue; }
+          if (ch === "'") q = true; else if (ch === "(") d++; else if (ch === ")") d--; else if (ch === "," && d === 0) n++;
+        }
+        expect(n, `${ins[1]}: ${tup.slice(0, 50)}`).toBe(cols);
+      }
+    }
+  });
   it("Factory Reset: tables classified, verified/ is a DELETE storage prefix, the classifier knows registered verified paths", () => {
     expect(sql).toMatch(/'document_verifications',\s+'verify',\s+'DELETE'/);
     expect(sql).toMatch(/'verification_settings',\s+'verify',\s+'PRESERVE'/);
