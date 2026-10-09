@@ -384,6 +384,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   BOARD_RESOLUTION_NOT_CLOSED: "این مصوبه بسته نیست.",
   BOARD_FILE_PATH_INVALID: "مسیر فایل مستند نامعتبر است.",
   BOARD_TOO_MANY_FILES: "حداکثر ۱۰ فایل برای هر گزارش مجاز است.",
+  // ---- Board Secretariat Phase 3 (0151) ----
+  BOARD_AI_DRAFT_IMMUTABLE: "این پیشنهاد دستیار قبلاً اعمال یا رد شده است.",
 };
 
 export function persianError(message: string | undefined | null): string {

@@ -41,6 +41,19 @@ export const T = {
   error: "در انجام درخواست مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
   sendingPdf: "در حال آماده‌سازی فایل…",
   pdfFailed: "ارسال فایل ناموفق بود. لطفاً بعداً دوباره تلاش کنید.",
+  // Phase 3 — notes → assistant draft (secretary only)
+  notesPickMeeting: "یادداشت‌ها برای کدام جلسه است؟ (فقط جلسه‌های پیش‌نویس)",
+  noDraftMeetings: "جلسهٔ پیش‌نویسی وجود ندارد. ابتدا جلسه را در سامانه بسازید.",
+  notesStart:
+    "یادداشت‌های جلسه را بفرستید — یک یا چند پیام متنی. برای گفتن به‌جای نوشتن، از دکمهٔ میکروفون کیبورد گوشی استفاده کنید (پیام صوتی پذیرفته نمی‌شود).\nبعد «ساخت پیش‌نویس» را بزنید.",
+  notesReceived: (chars: number) => `دریافت شد (${toFaDigits(chars)} نویسه). ادامه دهید یا «ساخت پیش‌نویس» را بزنید.`,
+  notesTooLong: "یادداشت‌ها از سقف ۲۰٬۰۰۰ نویسه گذشت؛ «ساخت پیش‌نویس» را بزنید و بقیه را در نوبت بعد بفرستید.",
+  notesEmpty: "هنوز یادداشتی نفرستاده‌اید.",
+  voiceRejected: "پیام صوتی پردازش نمی‌شود. لطفاً با دکمهٔ میکروفون کیبورد گوشی، متن بفرستید.",
+  drafting: "در حال ساخت پیش‌نویس… (ممکن است تا یک دقیقه طول بکشد)",
+  notDrafter: "ساخت پیش‌نویس فقط برای دبیر هیئت‌مدیره فعال است.",
+  draftReady: (agenda: number, res: number, warnings: number, url: string | null) =>
+    `پیشنهاد دستیار آماده شد: ${toFaDigits(agenda)} بند مذاکرات، ${toFaDigits(res)} مصوبه${warnings ? `، ${toFaDigits(warnings)} نکتهٔ نیازمند بررسی` : ""}.\nهیچ‌چیز هنوز به صورت‌جلسه اضافه نشده؛ در سامانه بررسی و اعمال کنید${url ? `:\n${url}` : "."}`,
 };
 
 export const MAIN_MENU: InlineKeyboardButton[][] = [
@@ -48,21 +61,25 @@ export const MAIN_MENU: InlineKeyboardButton[][] = [
   [{ text: "📄 صورت‌جلسه‌ها", callback_data: "mins" }],
   [{ text: "❓ راهنما", callback_data: "help" }],
 ];
+/** The secretary (a member linked to a profile with board drafting rights) also gets «یادداشت جلسه». */
+export const menuFor = (canDraft: boolean): InlineKeyboardButton[][] =>
+  canDraft ? [[{ text: "📝 یادداشت جلسه (دستیار)", callback_data: "notes" }], ...MAIN_MENU] : MAIN_MENU;
+export const NOTES_KB: InlineKeyboardButton[][] = [[{ text: "ساخت پیش‌نویس", callback_data: "mk" }], [{ text: "انصراف", callback_data: "cancel" }]];
 export const CANCEL_ROW: InlineKeyboardButton[] = [{ text: "انصراف", callback_data: "cancel" }];
 export const SUBMIT_KB: InlineKeyboardButton[][] = [[{ text: "ثبت گزارش", callback_data: "submit" }], CANCEL_ROW];
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 export type Callback =
-  | { t: "menu" } | { t: "my" } | { t: "mins" } | { t: "help" } | { t: "cancel" } | { t: "submit" }
-  | { t: "res"; id: string } | { t: "min"; id: string } | { t: "st"; id: string; status: ReportStatus };
+  | { t: "menu" } | { t: "my" } | { t: "mins" } | { t: "help" } | { t: "cancel" } | { t: "submit" } | { t: "notes" } | { t: "mk" }
+  | { t: "res"; id: string } | { t: "min"; id: string } | { t: "nt"; id: string } | { t: "st"; id: string; status: ReportStatus };
 
 /** Strict parser: anything not exactly one of these shapes is ignored (callback_data is client-controlled). */
 export function parseCallback(data: string | undefined): Callback | null {
   if (!data) return null;
-  if (data === "menu" || data === "my" || data === "mins" || data === "help" || data === "cancel" || data === "submit") return { t: data };
-  let m = new RegExp(`^(res|min):(${UUID})$`).exec(data);
-  if (m) return { t: m[1] as "res" | "min", id: m[2] };
+  if (data === "menu" || data === "my" || data === "mins" || data === "help" || data === "cancel" || data === "submit" || data === "notes" || data === "mk") return { t: data };
+  let m = new RegExp(`^(res|min|nt):(${UUID})$`).exec(data);
+  if (m) return { t: m[1] as "res" | "min" | "nt", id: m[2] };
   m = new RegExp(`^st:(${UUID}):(IN_PROGRESS|PENDING_REVIEW|BLOCKED)$`).exec(data);
   if (m) return { t: "st", id: m[1], status: m[2] as ReportStatus };
   return null;
@@ -104,6 +121,13 @@ export function resolutionActionsKeyboard(id: string): InlineKeyboardButton[][] 
 }
 
 export type MeetingRow = { id: string; meeting_number: number | null; scheduled_at: string };
+
+export function draftMeetingsKeyboard(rows: { id: string; scheduled_at: string }[]): InlineKeyboardButton[][] {
+  return [
+    ...rows.map((m) => [{ text: `پیش‌نویس جلسهٔ ${boardWeekday(m.scheduled_at)} ${boardDate(m.scheduled_at)}`, callback_data: `nt:${m.id}` }]),
+    [{ text: "بازگشت", callback_data: "menu" }],
+  ];
+}
 
 export function minutesKeyboard(rows: MeetingRow[]): InlineKeyboardButton[][] {
   return [

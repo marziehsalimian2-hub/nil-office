@@ -8,10 +8,11 @@ import { tehranDate } from "@/lib/board/time";
 import { answerCallbackQuery, clearInlineKeyboard, downloadTelegramFile, sendDocument, sendMessage } from "./bot";
 import { hashLinkToken, isPrivateChat, parseStartToken } from "./security";
 import {
-  CANCEL_ROW, MAIN_MENU, SUBMIT_KB, T, minutesCaption, minutesKeyboard, myResolutionsKeyboard, parseCallback, resolutionActionsKeyboard,
-  resolutionDetailText, type MeetingRow, type ReportStatus, type ResRow,
+  CANCEL_ROW, MAIN_MENU, NOTES_KB, SUBMIT_KB, T, draftMeetingsKeyboard, menuFor, minutesCaption, minutesKeyboard, myResolutionsKeyboard,
+  parseCallback, resolutionActionsKeyboard, resolutionDetailText, type MeetingRow, type ReportStatus, type ResRow,
 } from "./messages";
 import { dispatchBoardNotifications, minutesPdfForMember } from "./notify";
+import { draftMinutesFromNotes, loadDraftContext, MAX_NOTES_CHARS } from "@/lib/board/assistant/draft";
 
 /**
  * Board bot. Zero trust: a chat is served ONLY if its Telegram account is linked to an ACTIVE board member (board_telegram_links, written
@@ -29,13 +30,19 @@ type TgUpdate = {
     text?: string;
     document?: { file_id: string; file_name?: string; mime_type?: string; file_size?: number };
     photo?: { file_id: string; file_size?: number }[];
+    voice?: unknown;
+    audio?: unknown;
+    video_note?: unknown;
   };
   callback_query?: { id: string; data?: string; from: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } };
 };
 
 type Member = { id: string; full_name: string };
 type PendingFile = { storage_path: string; file_name: string; mime_type: string; size_bytes: number };
-type State = { step: "MENU" | "AWAIT_NOTE" | "AWAIT_FILES"; data: { resolution_id?: string; status?: ReportStatus; note?: string; files?: PendingFile[] } };
+type State = {
+  step: "MENU" | "AWAIT_NOTE" | "AWAIT_FILES" | "AWAIT_NOTES";
+  data: { resolution_id?: string; status?: ReportStatus; note?: string; files?: PendingFile[]; meeting_id?: string; notes?: string };
+};
 
 const MAX_FILES = 5;
 const MIME: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
@@ -82,8 +89,16 @@ async function ownedOpenResolution(service: SupabaseClient, memberId: string, id
   return data as unknown as ResRow & { meeting_id: string };
 }
 
-async function showMenu(chatId: number, prefix?: string) {
-  await sendMessage(chatId, prefix ? `${prefix}\n\n${T.menu}` : T.menu, MAIN_MENU);
+/** The profile a member drafts as (Phase 3): linked to a NIL Office profile holding the board CREATE tier — else null. */
+async function drafterProfile(service: SupabaseClient, memberId: string): Promise<string | null> {
+  const { data, error } = await service.rpc("board_member_drafter_profile", { p_member: memberId });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
+async function showMenu(chatId: number, prefix?: string, ctx?: { service: SupabaseClient; member: Member }) {
+  const canDraft = ctx ? !!(await drafterProfile(ctx.service, ctx.member.id)) : false;
+  await sendMessage(chatId, prefix ? `${prefix}\n\n${T.menu}` : T.menu, canDraft ? menuFor(true) : MAIN_MENU);
 }
 
 export async function handleBoardTelegramUpdate(update: TgUpdate): Promise<void> {
@@ -103,7 +118,8 @@ async function handleMessage(service: SupabaseClient, msg: NonNullable<TgUpdate[
     const r = data as { ok: boolean; reason?: string; name?: string } | null;
     if (error || !r?.ok) return void (await sendMessage(chatId, r?.reason === "ACCOUNT_IN_USE" ? T.linkInUse : T.linkInvalid));
     await clearState(service, chatId);
-    return showMenu(chatId, T.linked(r.name ?? ""));
+    const linked = await linkedMember(service, msg.from.id, chatId);
+    return showMenu(chatId, T.linked(r.name ?? ""), linked ? { service, member: linked } : undefined);
   }
 
   const member = await linkedMember(service, msg.from.id, chatId);
@@ -112,10 +128,18 @@ async function handleMessage(service: SupabaseClient, msg: NonNullable<TgUpdate[
   const text = (msg.text ?? "").trim();
   if (text === "/start" || text === "/menu") {
     await clearState(service, chatId, true);
-    return showMenu(chatId);
+    return showMenu(chatId, undefined, { service, member });
   }
+  if (msg.voice || msg.audio || msg.video_note) return void (await sendMessage(chatId, T.voiceRejected));
 
   const state = await getState(service, chatId);
+  if (state.step === "AWAIT_NOTES") {
+    if (!text || text.startsWith("/")) return void (await sendMessage(chatId, T.notesEmpty, NOTES_KB));
+    const notes = state.data.notes ? `${state.data.notes}\n${text}` : text;
+    if (notes.length > MAX_NOTES_CHARS) return void (await sendMessage(chatId, T.notesTooLong, NOTES_KB));
+    await setState(service, chatId, member.id, { step: "AWAIT_NOTES", data: { ...state.data, notes } });
+    return void (await sendMessage(chatId, T.notesReceived(notes.length), NOTES_KB));
+  }
   if (state.step === "AWAIT_NOTE") {
     if (!text || text.startsWith("/")) return void (await sendMessage(chatId, T.noteEmpty, [CANCEL_ROW]));
     await setState(service, chatId, member.id, { step: "AWAIT_FILES", data: { ...state.data, note: text.slice(0, 4000), files: [] } });
@@ -125,7 +149,7 @@ async function handleMessage(service: SupabaseClient, msg: NonNullable<TgUpdate[
     return receiveFile(service, chatId, member, state, msg);
   }
   if (state.step === "AWAIT_FILES") return void (await sendMessage(chatId, T.askFiles, SUBMIT_KB));
-  return showMenu(chatId);
+  return showMenu(chatId, undefined, { service, member });
 }
 
 async function receiveFile(service: SupabaseClient, chatId: number, member: Member, state: State, msg: NonNullable<TgUpdate["message"]>): Promise<void> {
@@ -134,7 +158,7 @@ async function receiveFile(service: SupabaseClient, chatId: number, member: Memb
   const res = state.data.resolution_id ? await ownedOpenResolution(service, member.id, state.data.resolution_id) : null;
   if (!res) {
     await clearState(service, chatId, true);
-    return showMenu(chatId, T.notAllowed);
+    return showMenu(chatId, T.notAllowed, { service, member });
   }
 
   // photos arrive as JPEG renditions (largest = last); documents keep their own name
@@ -178,18 +202,19 @@ async function handleCallback(service: SupabaseClient, cq: NonNullable<TgUpdate[
   if (cq.message) await clearInlineKeyboard(chatId, cq.message.message_id);
 
   const c = parseCallback(cq.data);
-  if (!c) return showMenu(chatId);
+  const mctx = { service, member };
+  if (!c) return showMenu(chatId, undefined, mctx);
   const today = tehranDate(new Date())!;
 
   switch (c.t) {
     case "menu":
       await clearState(service, chatId, true);
-      return showMenu(chatId);
+      return showMenu(chatId, undefined, mctx);
     case "help":
       return void (await sendMessage(chatId, T.help, MAIN_MENU));
     case "cancel":
       await clearState(service, chatId, true);
-      return showMenu(chatId, T.cancelled);
+      return showMenu(chatId, T.cancelled, mctx);
     case "my": {
       await clearState(service, chatId, true);
       const { data } = await service
@@ -207,13 +232,13 @@ async function handleCallback(service: SupabaseClient, cq: NonNullable<TgUpdate[
     }
     case "res": {
       const r = await ownedOpenResolution(service, member.id, c.id);
-      if (!r) return showMenu(chatId, T.notAllowed);
+      if (!r) return showMenu(chatId, T.notAllowed, mctx);
       const { data: u } = await service.from("board_resolution_updates").select("note").eq("resolution_id", r.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return void (await sendMessage(chatId, resolutionDetailText(r, today, (u?.note as string) ?? null), resolutionActionsKeyboard(r.id)));
     }
     case "st": {
       const r = await ownedOpenResolution(service, member.id, c.id);
-      if (!r) return showMenu(chatId, T.notAllowed);
+      if (!r) return showMenu(chatId, T.notAllowed, mctx);
       await clearState(service, chatId, true);
       await setState(service, chatId, member.id, { step: "AWAIT_NOTE", data: { resolution_id: r.id, status: c.status } });
       return void (await sendMessage(chatId, T.askNote, [CANCEL_ROW]));
@@ -221,17 +246,17 @@ async function handleCallback(service: SupabaseClient, cq: NonNullable<TgUpdate[
     case "submit": {
       const state = await getState(service, chatId);
       const { resolution_id, status, note, files } = state.data;
-      if (state.step !== "AWAIT_FILES" || !resolution_id || !status || !note) return showMenu(chatId);
+      if (state.step !== "AWAIT_FILES" || !resolution_id || !status || !note) return showMenu(chatId, undefined, mctx);
       const { error } = await service.rpc("board_member_report_progress", {
         p_member: member.id, p_resolution: resolution_id, p_status: status, p_note: note, p_files: files ?? [],
       });
       if (error) {
         console.error("[board-telegram] report failed", error.message);
         await clearState(service, chatId, true);
-        return showMenu(chatId, persianError(error.message));
+        return showMenu(chatId, persianError(error.message), mctx);
       }
       await clearState(service, chatId);                 // files are now registered: keep them
-      await showMenu(chatId, status === "PENDING_REVIEW" ? T.submitted : T.submittedProgress);
+      await showMenu(chatId, status === "PENDING_REVIEW" ? T.submitted : T.submittedProgress, mctx);
       await dispatchBoardNotifications(20);
       return;
     }
@@ -250,9 +275,52 @@ async function handleCallback(service: SupabaseClient, cq: NonNullable<TgUpdate[
       await sendMessage(chatId, T.sendingPdf);
       const pdf = await minutesPdfForMember(service, c.id).catch(() => null);
       if (!pdf || !(await sendDocument(chatId, pdf.buffer, pdf.fileName, minutesCaption(pdf.meeting)))) {
-        return showMenu(chatId, T.pdfFailed);
+        return showMenu(chatId, T.pdfFailed, mctx);
       }
-      return showMenu(chatId);
+      return showMenu(chatId, undefined, mctx);
+    }
+    case "notes": {
+      if (!(await drafterProfile(service, member.id))) return showMenu(chatId, T.notDrafter, mctx);
+      await clearState(service, chatId, true);
+      const { data } = await service.from("board_meetings").select("id, scheduled_at").eq("status", "DRAFT").order("scheduled_at").limit(6);
+      const rows = (data ?? []) as { id: string; scheduled_at: string }[];
+      if (!rows.length) return showMenu(chatId, T.noDraftMeetings, mctx);
+      return void (await sendMessage(chatId, T.notesPickMeeting, draftMeetingsKeyboard(rows)));
+    }
+    case "nt": {
+      if (!(await drafterProfile(service, member.id))) return showMenu(chatId, T.notDrafter, mctx);
+      const { data: m } = await service.from("board_meetings").select("id").eq("id", c.id).eq("status", "DRAFT").maybeSingle();
+      if (!m) return showMenu(chatId, T.noDraftMeetings, mctx);
+      await setState(service, chatId, member.id, { step: "AWAIT_NOTES", data: { meeting_id: c.id, notes: "" } });
+      return void (await sendMessage(chatId, T.notesStart, [CANCEL_ROW]));
+    }
+    case "mk": {
+      const profileId = await drafterProfile(service, member.id);
+      if (!profileId) return showMenu(chatId, T.notDrafter, mctx);
+      const state = await getState(service, chatId);
+      const notes = (state.data.notes ?? "").trim();
+      if (state.step !== "AWAIT_NOTES" || !state.data.meeting_id) return showMenu(chatId, undefined, mctx);
+      if (!notes) return void (await sendMessage(chatId, T.notesEmpty, NOTES_KB));
+      const context = await loadDraftContext(service, state.data.meeting_id);
+      if (!context || context.status !== "DRAFT") {
+        await clearState(service, chatId);
+        return showMenu(chatId, T.noDraftMeetings, mctx);
+      }
+      await sendMessage(chatId, T.drafting);
+      const r = await draftMinutesFromNotes({ notes, ctx: context, usageClient: service, profileId, channel: "TELEGRAM" });
+      if (!r.ok) return void (await sendMessage(chatId, r.error, NOTES_KB));   // notes kept: the secretary can retry or add more
+      const { error } = await service.from("board_ai_drafts").insert({
+        meeting_id: state.data.meeting_id, source: "TELEGRAM", notes, suggestion: r.suggestion, model: r.model,
+        input_tokens: r.inputTokens, output_tokens: r.outputTokens, created_by: profileId, created_by_member: member.id,
+      });
+      if (error) {
+        console.error("[board-telegram] storing the draft failed", error.message);
+        return void (await sendMessage(chatId, T.error, NOTES_KB));
+      }
+      await clearState(service, chatId);
+      const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
+      const url = /^https:\/\/[^/]+$/.test(base) ? `${base}/board/meetings/${state.data.meeting_id}` : null;
+      return showMenu(chatId, T.draftReady(r.suggestion.agenda.length, r.suggestion.resolutions.length, r.suggestion.warnings.length, url), mctx);
     }
   }
 }

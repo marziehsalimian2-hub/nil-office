@@ -65,14 +65,17 @@ function client(): Anthropic {
 }
 
 export class AnthropicProvider implements LLMProvider {
-  async converseWithTools(input: { systemPrompt: string; messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmTurnResult> {
+  async converseWithTools(input: {
+    systemPrompt: string; messages: LlmMessage[]; tools: LlmTool[]; maxTokens?: number; forceTool?: string;
+  }): Promise<LlmTurnResult> {
     const model = process.env.LLM_MODEL || "claude-sonnet-5";
     const response = await client().messages.create({
       model,
-      max_tokens: MAX_TOKENS,
+      max_tokens: input.maxTokens ?? MAX_TOKENS,
       system: input.systemPrompt,
       messages: toAnthropicMessages(input.messages),
       tools: toAnthropicTools(input.tools),
+      ...(input.forceTool ? { tool_choice: { type: "tool" as const, name: input.forceTool } } : {}),
     });
 
     let text = "";

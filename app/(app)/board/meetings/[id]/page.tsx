@@ -22,6 +22,7 @@ import {
 } from "@/app/actions/board";
 import { BoardButton, BoardForm } from "../../BoardForm";
 import { MinutesView } from "./MinutesView";
+import { AssistantPanel, type PendingDraft } from "./AssistantPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -132,12 +133,15 @@ export default async function BoardMeetingPage({ params }: { params: Promise<{ i
   }
 
   /* ----------------------------- DRAFT: editor ----------------------------- */
-  const [membersRes, attRes, agendaRes, resRes] = await Promise.all([
+  const [membersRes, attRes, agendaRes, resRes, draftRes] = await Promise.all([
     supabase.from("board_members").select("*").order("sort_order").order("full_name"),
     supabase.from("board_attendance").select("*").eq("meeting_id", m.id),
     supabase.from("board_agenda_items").select("*").eq("meeting_id", m.id).order("position").order("created_at"),
     supabase.from("board_resolutions").select("*").eq("meeting_id", m.id).order("position").order("created_at"),
+    supabase.from("board_ai_drafts").select("id, source, created_at, suggestion").eq("meeting_id", m.id).eq("status", "PENDING")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const pendingDraft = (draftRes.data ?? null) as PendingDraft | null;
   const members = (membersRes.data ?? []) as BoardMember[];
   const attendance = (attRes.data ?? []) as BoardAttendance[];
   const agenda = (agendaRes.data ?? []) as BoardAgendaItem[];
@@ -171,6 +175,8 @@ export default async function BoardMeetingPage({ params }: { params: Promise<{ i
           <p className="text-sm text-ink">هنوز عضوی برای هیئت‌مدیره ثبت نشده است. ابتدا از <Link href="/board/members" className="text-seal underline">اعضا و تنظیمات</Link> اعضا را اضافه کنید.</p>
         </Card>
       )}
+
+      <AssistantPanel key={pendingDraft?.id ?? "new"} meetingId={m.id} pending={pendingDraft} members={members} />
 
       {/* 1. meeting details */}
       <EditorSection n={1} title="مشخصات جلسه" hint="ساعت‌ها به وقت تهران است. ساعت واقعی شروع و پایان را بعد از برگزاری وارد کنید.">
