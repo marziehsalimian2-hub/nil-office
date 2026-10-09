@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildLetterPdfForCorrespondence } from "@/lib/pdf/letterData";
 import { buildInvoicePdf } from "@/lib/pdf/invoiceData";
 import { buildContractPdf } from "@/lib/pdf/contractData";
+import { buildBoardMinutesPdf } from "@/lib/pdf/boardMinutesData";
 import { issueDocumentVerification, type IssueResult } from "./issue";
 import type { VerifyDocumentType } from "./types";
 
@@ -35,9 +36,17 @@ export function issueContractVerification(supabase: SupabaseClient, userId: stri
   });
 }
 
+export function issueBoardMinutesVerification(supabase: SupabaseClient, userId: string, meetingId: string): Promise<IssueResult> {
+  return issueDocumentVerification({
+    supabase, userId, type: "BOARD_MINUTES", documentId: meetingId,
+    buildPdf: ({ minBottomMarginMm }) => buildBoardMinutesPdf(supabase, meetingId, { minBottomMarginMm }),
+  });
+}
+
 /** Retry of a PENDING verification (detail-page button). Dispatches by document type. */
 export async function retryVerification(supabase: SupabaseClient, userId: string, type: VerifyDocumentType, documentId: string): Promise<IssueResult> {
   if (type === "OUTGOING_CORRESPONDENCE") return issueLetterVerification(supabase, userId, documentId);
   if (type === "CONTRACT") return issueContractVerification(supabase, userId, documentId);
+  if (type === "BOARD_MINUTES") return issueBoardMinutesVerification(supabase, userId, documentId);
   return issueSalesDocumentVerification(supabase, userId, documentId);
 }

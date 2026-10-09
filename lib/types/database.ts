@@ -41,6 +41,7 @@ export type ChequeRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type ServiceLedgerRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type HrRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 export type PayrollRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
+export type BoardRoleT = "VIEW" | "CREATE" | "APPROVE" | "ADMIN";
 
 export interface Profile {
   id: string;
@@ -58,6 +59,7 @@ export interface Profile {
   external_correspondence_role: ExternalCorrespondenceRoleT | null;
   hr_role: HrRoleT | null;
   payroll_role: PayrollRoleT | null;
+  board_role: BoardRoleT | null;
   is_active: boolean;
   signature_path: string | null;
   created_at: string;

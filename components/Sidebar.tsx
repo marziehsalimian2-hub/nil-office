@@ -32,6 +32,7 @@ import {
   Users,
   HandCoins,
   ReceiptText,
+  Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ const nav = [
   { href: "/documents", label: "اسناد", icon: FileText },
   { href: "/followups", label: "پیگیری‌ها", icon: BellRing },
   { href: "/companies", label: "شرکت‌ها", icon: Building2 },
+  { href: "/board", label: "هیئت‌مدیره", icon: Gavel },
   { href: "/personnel", label: "پرسنل", icon: Users },
   { href: "/payroll", label: "حقوق و دستمزد", icon: HandCoins },
   { href: "/my-payslips", label: "فیش‌های حقوقی من", icon: ReceiptText },

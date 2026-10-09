@@ -33,6 +33,10 @@ const SPEC: Record<VerifyDocumentType, RowSpec[]> = {
     { key: "contract_date", label: "تاریخ قرارداد", fmt: date },
     { key: "total_amount", label: "مبلغ قرارداد", fmt: () => null },   // only present when the admin explicitly allowed it
   ],
+  // minimal on purpose (0149): who attended, the agenda, discussion and resolutions are never public
+  BOARD_MINUTES: [
+    { key: "meeting_date", label: "تاریخ جلسه", fmt: date },
+  ],
 };
 
 export type PublicRow = { label: string; value: string };

@@ -1,6 +1,6 @@
 /** NIL Verify — shared types and labels. Pure (importable from client components). */
 
-export const VERIFY_DOCUMENT_TYPES = ["OUTGOING_CORRESPONDENCE", "PROFORMA", "INVOICE", "CONTRACT"] as const;
+export const VERIFY_DOCUMENT_TYPES = ["OUTGOING_CORRESPONDENCE", "PROFORMA", "INVOICE", "CONTRACT", "BOARD_MINUTES"] as const;
 export type VerifyDocumentType = (typeof VERIFY_DOCUMENT_TYPES)[number];
 
 export const VERIFY_STATUSES = ["PENDING", "ACTIVE", "REVOKED", "SUPERSEDED"] as const;
@@ -11,6 +11,7 @@ export const VERIFY_DOCUMENT_TYPE_LABEL: Record<VerifyDocumentType, string> = {
   PROFORMA: "پیش‌فاکتور",
   INVOICE: "فاکتور",
   CONTRACT: "قرارداد",
+  BOARD_MINUTES: "صورت‌جلسهٔ هیئت‌مدیره",
 };
 
 export const VERIFY_STATUS_LABEL: Record<VerifyStatus, string> = {
