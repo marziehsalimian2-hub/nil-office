@@ -375,6 +375,15 @@ export const ERROR_MESSAGES: Record<string, string> = {
   uq_board_members_profile: "این کاربر قبلاً به عضو دیگری از هیئت‌مدیره وصل شده است.",
   ck_board_member_external_no_profile: "عضو بیرونی به کاربر سامانه وصل نمی‌شود.",
   ck_board_meeting_times: "ساعت پایان جلسه نمی‌تواند قبل از ساعت شروع باشد.",
+  // ---- Board Secretariat Phase 2 (0150) ----
+  BOARD_FOLLOWUP_RPC_ONLY: "وضعیت پیگیری مصوبه فقط از «ثبت پیشرفت / بستن / بازگشایی» تغییر می‌کند.",
+  BOARD_FOLLOWUP_NOT_ALLOWED: "برای این مصوبه پیگیری ثبت نمی‌شود (صورت‌جلسه هنوز تأیید نشده یا مصوبه اجرایی نیست).",
+  BOARD_FOLLOWUP_APPEND_ONLY: "سابقهٔ پیگیری مصوبات قابل ویرایش نیست.",
+  BOARD_NOTE_REQUIRED: "نوشتن توضیح الزامی است.",
+  BOARD_RESOLUTION_CLOSED: "این مصوبه بسته شده است؛ برای ادامه، ابتدا آن را بازگشایی کنید.",
+  BOARD_RESOLUTION_NOT_CLOSED: "این مصوبه بسته نیست.",
+  BOARD_FILE_PATH_INVALID: "مسیر فایل مستند نامعتبر است.",
+  BOARD_TOO_MANY_FILES: "حداکثر ۱۰ فایل برای هر گزارش مجاز است.",
 };
 
 export function persianError(message: string | undefined | null): string {

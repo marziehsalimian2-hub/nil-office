@@ -18,11 +18,12 @@ type Row = {
 const FILTERS = [
   { key: "open", label: "باز" },
   { key: "overdue", label: "عقب‌افتاده" },
+  { key: "review", label: "منتظر بررسی" },
   { key: "done", label: "انجام‌شده" },
   { key: "all", label: "همه" },
 ] as const;
 
-/** Ledger of APPROVED resolutions only (a draft's resolutions are not decisions yet). Phase 2 adds progress reports + closing. */
+/** Ledger of APPROVED resolutions only (a draft's resolutions are not decisions yet). Each row opens its follow-up page. */
 export default async function BoardResolutionsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { filter: raw } = await searchParams;
   const filter = FILTERS.some((f) => f.key === raw) ? raw! : "open";
@@ -38,10 +39,11 @@ export default async function BoardResolutionsPage({ searchParams }: { searchPar
     .limit(500);
   if (filter === "open") q = q.eq("requires_action", true).not("follow_status", "in", "(DONE,NO_ACTION)");
   if (filter === "overdue") q = q.eq("requires_action", true).not("follow_status", "in", "(DONE,NO_ACTION)").lt("due_date", today);
+  if (filter === "review") q = q.eq("follow_status", "PENDING_REVIEW");
   if (filter === "done") q = q.eq("follow_status", "DONE");
   const { data } = await q;
   const rows = ((data ?? []) as unknown as Row[]).sort((a, b) =>
-    filter === "open" || filter === "overdue"
+    filter === "open" || filter === "overdue" || filter === "review"
       ? (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")
       : (b.meeting?.meeting_number ?? 0) - (a.meeting?.meeting_number ?? 0) ||
         (a.resolution_number ?? "").localeCompare(b.resolution_number ?? "", "en", { numeric: true }),
@@ -69,9 +71,9 @@ export default async function BoardResolutionsPage({ searchParams }: { searchPar
                 const overdue = r.requires_action && !!r.due_date && r.due_date < today && !["DONE", "NO_ACTION"].includes(r.follow_status);
                 return (
                   <tr key={r.id} className="table-row align-top">
-                    <td className="px-3 py-2 tnum font-medium text-ink">{r.resolution_number ? toFaDigits(r.resolution_number) : "—"}</td>
+                    <td className="px-3 py-2 tnum font-medium text-ink"><Link href={`/board/resolutions/${r.id}`} className="hover:text-seal">{r.resolution_number ? toFaDigits(r.resolution_number) : "—"}</Link></td>
                     <td className="max-w-xl px-3 py-2 text-ink">
-                      <span className="line-clamp-3 whitespace-pre-line">{r.text}</span>
+                      <Link href={`/board/resolutions/${r.id}`} className="line-clamp-3 whitespace-pre-line hover:text-seal">{r.text}</Link>
                       {r.expected_output && <span className="mt-1 block text-xs text-ink-muted">خروجی: {r.expected_output}</span>}
                     </td>
                     <td className="px-3 py-2 text-ink-muted">{r.owner?.full_name ?? "—"}</td>

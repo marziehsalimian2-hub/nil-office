@@ -9,7 +9,7 @@ import { join } from "node:path";
  */
 const DIR = join(process.cwd(), "supabase", "migrations");
 const strip = (s: string) => s.replace(/--[^\n]*/g, "");
-const read = (f: string) => strip(readFileSync(join(DIR, f), "utf8"));
+const read = (f: string) => strip(readFileSync(join(DIR, f), "utf8").replace(/\r\n/g, "\n"));   // CRLF on a Windows checkout
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const board = files.filter((f) => f >= "0144" && f < "0150");
 const all = board.map(read).join("\n");
@@ -135,5 +135,50 @@ describe("board migrations (static guards)", () => {
         expect(n, `${ins[1]}: ${tup.slice(0, 50)}`).toBe(cols);
       }
     }
+  });
+});
+
+describe("0150 board follow-up (static guards)", () => {
+  const sql = read("0150_board_followup.sql");
+  const NEW = ["board_resolution_updates", "board_resolution_files", "board_telegram_links", "board_link_tokens", "board_notifications", "board_bot_updates", "board_bot_state"];
+
+  it("RLS on every new table; service_role granted; no browser write path", () => {
+    for (const t of NEW) expect(sql, t).toContain(`alter table public.${t}`);
+    const svc = [...sql.matchAll(/grant [^;]*? on ([^;]*?) to service_role;/g)].map((m) => m[1]).join(",");
+    for (const t of NEW) expect(svc, t).toContain(`public.${t}`);
+    // privilege list = the words between «grant» and «on» (a table NAME such as board_resolution_updates must not count)
+    expect(sql).not.toMatch(/grant\s+[a-z, ]*\b(insert|update|delete)\b[a-z, ]*\s+on\s[^;]*to authenticated/i);
+    expect(sql).not.toMatch(/create policy [^;]* for (insert|update|delete|all)/i);
+  });
+  it("bot / cron functions are service_role only", () => {
+    const serviceOnly = sql.match(/foreach f in array array\[\s*([^\]]*)\]\s*loop\s*execute format\('revoke all on function public\.%s from public, anon, authenticated'/);
+    for (const fn of ["board_member_report_progress", "board_consume_link_token", "board_enqueue_reminders", "board_claim_notifications", "_board_apply_followup", "_board_enqueue"]) {
+      expect(serviceOnly?.[1], fn).toContain(fn);
+    }
+  });
+  it("tokens: only a SHA-256 column, never the raw token", () => {
+    expect(sql).toMatch(/token_hash\s+text not null unique check \(token_hash ~ '\^\[0-9a-f\]\{64\}\$'\)/);
+    expect(sql).not.toMatch(/\btoken\s+text\b/);
+  });
+  it("the restated child guard keeps every earlier rule and adds the follow-up flag", () => {
+    for (const piece of ["BOARD_FIELD_IMMUTABLE", "BOARD_APPROVAL_RPC_ONLY", "BOARD_MEETING_LOCKED", "nil.board_approve", "(to_jsonb(new) - 'follow_status' - 'updated_at') = (to_jsonb(old) - 'follow_status' - 'updated_at')"]) {
+      expect(sql, piece).toContain(piece);
+    }
+    expect(sql).toContain("current_setting('nil.board_follow', true)");
+    expect(sql).toContain("BOARD_FOLLOWUP_RPC_ONLY");
+  });
+  it("closing / reopening needs the APPROVE tier; members can only report on resolutions they own", () => {
+    const close = sql.slice(sql.indexOf("function public.board_close_resolution("));
+    expect(close.slice(0, 400)).toContain("can_approve_board()");
+    const member = sql.slice(sql.indexOf("function public.board_member_report_progress("));
+    expect(member.slice(0, 900)).toContain("r.owner_member_id = p_member");
+    expect(member.slice(0, 900)).toContain("board_telegram_links");
+  });
+  it("no UPDATE/DELETE without WHERE (Supabase pg-safeupdate)", () => {
+    const bare: string[] = [];
+    for (const m of sql.matchAll(/(^|[\s;(])(update\s+public\.\w+(?:\s+\w+)?\s+set|delete\s+from\s+public\.\w+)\s[^;]*;/gi)) {
+      if (!/\swhere\s/i.test(m[0])) bare.push(m[0].trim().slice(0, 100));
+    }
+    expect(bare).toEqual([]);
   });
 });

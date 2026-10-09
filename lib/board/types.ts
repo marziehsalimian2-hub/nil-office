@@ -37,6 +37,7 @@ export type BoardMember = {
   is_active: boolean;
   sort_order: number;
   notes: string | null;
+  is_notice_recipient: boolean;
 };
 
 export type BoardMeeting = {

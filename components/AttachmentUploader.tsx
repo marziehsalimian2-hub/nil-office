@@ -12,7 +12,7 @@ export function AttachmentUploader({
 }: {
   entityType:
     | "CORRESPONDENCE" | "DOCUMENT" | "CASE" | "CONTRACT" | "SALES_DOCUMENT" | "COMPANY"
-    | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE" | "PERSONNEL";
+    | "OPPORTUNITY" | "PROJECT" | "TASK" | "CHEQUE" | "SERVICE_ENTRY" | "SERVICE_EXPENSE" | "PERSONNEL" | "BOARD_MEETING";
   entityId: string;
   /** Extra hidden fields the action needs — e.g. { company_id } for SERVICE_ENTRY/SERVICE_EXPENSE, whose ENTITY_MAP entry (app/actions/attachments.ts) reads a parentIdField to revalidate the right page (these entities live inside a company's tab, not their own top-level route). */
   extraFields?: Record<string, string>;

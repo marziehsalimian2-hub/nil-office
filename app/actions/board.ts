@@ -8,16 +8,20 @@ import { persianError } from "@/lib/enums";
 import { combineTehran } from "@/lib/board/time";
 import { BOARD_ATTENDANCE_STATUS } from "@/lib/board/types";
 import { issueBoardMinutesVerification } from "@/lib/verify/hooks";
+import { randomUUID } from "node:crypto";
+import { validateUpload, extensionOf, signatureCheckable, checkSignature } from "@/lib/upload-validation";
+import { buildLinkUrl, generateLinkToken, hashLinkToken } from "@/lib/board/telegram/security";
+import { dispatchBoardNotifications } from "@/lib/board/telegram/notify";
 import {
   boardAgendaItemSchema, boardApproveSchema, boardMeetingCreateSchema, boardMeetingUpdateSchema, boardMemberSchema, boardResolutionSchema,
-  boardRoleSchema, boardSettingsSchema,
+  boardRoleSchema, boardSettingsSchema, boardProgressSchema, boardCloseSchema,
 } from "@/lib/validation-board";
 
 /**
  * Board Secretariat server actions. They only shape input and report errors in Persian: every permission and every lock is enforced
  * by the database (RLS 0148, triggers 0146, board_approve_meeting 0147) — an approved meeting cannot be changed from here or anywhere.
  */
-export type BoardActionState = { error?: string; ok?: boolean; message?: string } | null;
+export type BoardActionState = { error?: string; ok?: boolean; message?: string; link?: string } | null;
 
 async function ctx() {
   const supabase = await createClient();
@@ -275,7 +279,103 @@ export async function approveBoardMeeting(_p: BoardActionState, f: FormData): Pr
   if (error) return { error: persianError(error.message) };
   const v = await issueBoardMinutesVerification(supabase, userId, d.meeting_id);
   if (v.status === "PENDING") console.error("approveBoardMeeting: verification stayed PENDING", d.meeting_id, v.error);
+  // Phase 2: the frozen minutes to every linked member + each owner's new resolutions (best effort — never undoes the approval)
+  const { error: qErr } = await supabase.rpc("board_enqueue_minutes", { p_meeting: d.meeting_id });
+  if (qErr) console.error("approveBoardMeeting: enqueue minutes failed", qErr.message);
+  else await dispatchBoardNotifications(50);
   revalidatePath("/board");
   revalidatePath("/board/resolutions");
   redirect(meetingPath(d.meeting_id));
+}
+
+/* ------------------------------- Phase 2: follow-up ------------------------------- */
+
+const resolutionPath = (id: string) => `/board/resolutions/${id}`;
+
+/** Uploads evidence files under the resolution's own folder (storage policy: board CREATE tier). Returns the RPC's files payload. */
+async function uploadEvidence(
+  supabase: Awaited<ReturnType<typeof createClient>>, meetingId: string, resolutionId: string, files: File[],
+): Promise<{ files: { storage_path: string; file_name: string; mime_type: string | null; size_bytes: number }[] } | { error: string }> {
+  if (files.length > 10) return { error: "حداکثر ۱۰ فایل برای هر گزارش مجاز است." };
+  const out: { storage_path: string; file_name: string; mime_type: string | null; size_bytes: number }[] = [];
+  for (const file of files) {
+    const check = validateUpload(file.name, file.type, file.size);
+    if (!check.ok) return { error: `${file.name}: ${check.error}` };
+    const ext = extensionOf(file.name)!;
+    if (signatureCheckable(ext)) {
+      const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      if (!checkSignature(ext, head)) return { error: `${file.name}: محتوای فایل با پسوند آن هم‌خوان نیست.` };
+    }
+    const path = `board_meeting/${meetingId}/followup/${resolutionId}/${randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("nil-files").upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+    if (error) {
+      if (out.length) await supabase.storage.from("nil-files").remove(out.map((f) => f.storage_path));
+      return { error: "بارگذاری فایل ناموفق بود." };
+    }
+    out.push({ storage_path: path, file_name: file.name.slice(0, 200), mime_type: file.type || null, size_bytes: file.size });
+  }
+  return { files: out };
+}
+
+/** Progress recorded on the web (e.g. reported by phone or in a meeting) — with optional evidence files. */
+export async function reportResolutionProgress(_p: BoardActionState, f: FormData): Promise<BoardActionState> {
+  const parsed = boardProgressSchema.safeParse(entries(f));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { supabase } = await ctx();
+  const { data: r } = await supabase.from("board_resolutions").select("id, meeting_id").eq("id", parsed.data.resolution_id).maybeSingle();
+  if (!r) return { error: "مصوبه یافت نشد." };
+  const files = f.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
+  const up = await uploadEvidence(supabase, r.meeting_id as string, r.id as string, files);
+  if ("error" in up) return { error: up.error };
+  const { error } = await supabase.rpc("board_report_progress", {
+    p_resolution: r.id, p_status: parsed.data.status, p_note: parsed.data.note, p_files: up.files,
+  });
+  if (error) {
+    if (up.files.length) await supabase.storage.from("nil-files").remove(up.files.map((x) => x.storage_path));
+    return { error: persianError(error.message) };
+  }
+  await dispatchBoardNotifications(20);
+  revalidatePath(resolutionPath(r.id as string));
+  revalidatePath("/board/resolutions");
+  return { ok: true, message: "گزارش ثبت شد." };
+}
+
+/** Closing (secretary's decision, APPROVE tier) or reopening a resolution — always with a written outcome / reason. */
+export async function closeOrReopenResolution(_p: BoardActionState, f: FormData): Promise<BoardActionState> {
+  const parsed = boardCloseSchema.safeParse(entries(f));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { supabase } = await ctx();
+  const { error } = parsed.data.action === "close"
+    ? await supabase.rpc("board_close_resolution", { p_resolution: parsed.data.resolution_id, p_note: parsed.data.note })
+    : await supabase.rpc("board_reopen_resolution", { p_resolution: parsed.data.resolution_id, p_note: parsed.data.note });
+  if (error) return { error: persianError(error.message) };
+  await dispatchBoardNotifications(20);
+  revalidatePath(resolutionPath(parsed.data.resolution_id));
+  revalidatePath("/board/resolutions");
+  return { ok: true, message: parsed.data.action === "close" ? "مصوبه بسته شد." : "مصوبه بازگشایی شد." };
+}
+
+/* ------------------------------- Phase 2: Telegram linking ------------------------------- */
+
+/** One-time link (7 days). The raw token is shown ONCE here and never stored — only its SHA-256 (board_link_tokens). */
+export async function issueTelegramLink(_p: BoardActionState, f: FormData): Promise<BoardActionState> {
+  const id = uuid.safeParse(f.get("member_id"));
+  if (!id.success) return { error: "ورودی نامعتبر است." };
+  const token = generateLinkToken();
+  const link = buildLinkUrl(token);
+  if (!link) return { error: "نام کاربری ربات هیئت‌مدیره (BOARD_TELEGRAM_BOT_USERNAME) روی سرور تنظیم نشده است." };
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("board_issue_link_token", { p_member: id.data, p_token_hash: hashLinkToken(token) });
+  if (error) return { error: persianError(error.message) };
+  return { ok: true, link, message: "لینک ساخته شد؛ فقط یک‌بار و تا ۷ روز معتبر است." };
+}
+
+export async function unlinkTelegram(_p: BoardActionState, f: FormData): Promise<BoardActionState> {
+  const id = uuid.safeParse(f.get("member_id"));
+  if (!id.success) return { error: "ورودی نامعتبر است." };
+  const { supabase } = await ctx();
+  const { error } = await supabase.rpc("board_unlink_telegram", { p_member: id.data });
+  if (error) return { error: persianError(error.message) };
+  revalidatePath("/board/members");
+  return { ok: true, message: "اتصال تلگرام قطع شد." };
 }

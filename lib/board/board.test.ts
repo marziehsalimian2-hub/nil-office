@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { addDays, boardDate, boardTime, combineTehran, normalizeTime, tehranDate, tehranTime } from "./time";
 import { approvalReadiness } from "./readiness";
-import { boardAccess, quorumInfo } from "./types";
+import { boardAccess, quorumInfo, type BoardAttendanceStatus } from "./types";
 import {
   boardApproveSchema, boardMeetingUpdateSchema, boardMemberSchema, boardResolutionSchema, boardSettingsSchema,
 } from "@/lib/validation-board";
@@ -60,7 +60,7 @@ describe("approval readiness (mirrors board_approve_meeting)", () => {
       general_notes: null, scheduled_at: "2026-10-20T06:00:00Z",
     },
     members: [{ id: "c", is_active: true }, { id: "s", is_active: true }, { id: "x", is_active: true }, { id: "old", is_active: false }],
-    attendance: [{ member_id: "c", status: "PRESENT" as const }, { member_id: "s", status: "PRESENT" as const }, { member_id: "x", status: "ABSENT" as const }],
+    attendance: [{ member_id: "c", status: "PRESENT" }, { member_id: "s", status: "PRESENT" }, { member_id: "x", status: "ABSENT" }] as { member_id: string; status: BoardAttendanceStatus }[],
     agenda: [{ discussion: "بحث شد" }],
     resolutions: [{ requires_action: true, due_date: "2026-10-30" }, { requires_action: false, due_date: null }],
   };

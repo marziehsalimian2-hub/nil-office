@@ -20,12 +20,13 @@ export default async function BoardPage() {
   const supabase = await createClient();
   const today = tehranDate(new Date())!;
 
-  const [{ data: meetings }, { count: openCount }, { count: overdueCount }] = await Promise.all([
+  const [{ data: meetings }, { count: openCount }, { count: overdueCount }, { count: reviewCount }] = await Promise.all([
     supabase.from("board_meetings").select("id, meeting_number, meeting_type, status, scheduled_at, location").order("scheduled_at", { ascending: false }).limit(300),
     supabase.from("board_resolutions").select("id, board_meetings!inner(status)", { count: "exact", head: true })
       .eq("requires_action", true).not("follow_status", "in", "(DONE,NO_ACTION)").eq("board_meetings.status", "APPROVED"),
     supabase.from("board_resolutions").select("id, board_meetings!inner(status)", { count: "exact", head: true })
       .eq("requires_action", true).not("follow_status", "in", "(DONE,NO_ACTION)").eq("board_meetings.status", "APPROVED").lt("due_date", today),
+    supabase.from("board_resolutions").select("id", { count: "exact", head: true }).eq("follow_status", "PENDING_REVIEW"),
   ]);
   const rows = (meetings ?? []) as Row[];
   const now = Date.now();
@@ -43,11 +44,12 @@ export default async function BoardPage() {
         )}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="جلسهٔ پیش رو" value={upcoming ? `${boardDate(upcoming.scheduled_at)}` : "—"} href={upcoming ? `/board/meetings/${upcoming.id}` : undefined} tone="seal" />
         <StatCard label="آخرین صورت‌جلسهٔ تأییدشده" value={lastApproved?.meeting_number ? `شمارهٔ ${toFaDigits(lastApproved.meeting_number)}` : "—"} href={lastApproved ? `/board/meetings/${lastApproved.id}` : undefined} />
         <StatCard label="مصوبات باز" value={toFaDigits(openCount ?? 0)} href="/board/resolutions" />
         <StatCard label="مصوبات عقب‌افتاده" value={toFaDigits(overdueCount ?? 0)} href="/board/resolutions?filter=overdue" tone={(overdueCount ?? 0) > 0 ? "danger" : "ink"} />
+        <StatCard label="منتظر بررسی شما" value={toFaDigits(reviewCount ?? 0)} href="/board/resolutions?filter=review" tone={(reviewCount ?? 0) > 0 ? "warn" : "ink"} />
       </div>
 
       {rows.length === 0 ? (

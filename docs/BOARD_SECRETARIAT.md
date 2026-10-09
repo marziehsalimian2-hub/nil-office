@@ -68,10 +68,61 @@ margin). Frozen file served by `/api/board/<id>/pdf`.
 - `supabase/tests/board_integrity.sql` — run by hand in the Supabase SQL editor after 0149 (one transaction, rolled back). Verified locally on
   PGlite (real Postgres) with all 149 migrations applied, including negative controls.
 
+## Phase 2 — follow-up, board bot, reminders (migration 0150)
+
+Decisions (user, 2026-10-09): a **dedicated board bot**; members (internal and external) **report progress from the bot** (status + note +
+evidence); **closing is the secretary's decision only**; the frozen minutes PDF goes to **all active linked members**; reminders **3 days
+before / on the deadline / every 3 days overdue** at 09:00 Tehran.
+
+- **Follow-up history** `board_resolution_updates` (append-only; WEB or TELEGRAM; who, when, status, note) + `board_resolution_files`
+  (evidence under `board_meeting/<meeting>/followup/<resolution>/`, board access only). `follow_status` now changes **only** through
+  `board_report_progress` (web, CREATE tier), `board_member_report_progress` (bot, service_role — linked active owner only),
+  `board_close_resolution` / `board_reopen_resolution` (APPROVE tier, note required). Web: `/board/resolutions/<id>`.
+- **Linking** (Members page → «ساخت لینک اتصال»): a one-time `t.me/<bot>?start=<token>` link, 7 days; only its SHA-256 is stored; a new link
+  revokes the previous; one Telegram account = one member; «قطع اتصال» removes it. `board_telegram_links` has **no browser write path** —
+  an editor cannot point a member's messages (the minutes) at their own chat.
+- **Bot** (`/api/telegram/board-webhook`, `lib/board/telegram/`): unlinked chats get one fixed reply and nothing else. Menu: «مصوبات من»
+  (own open resolutions → in progress / done-for-review / blocked → note → optional PDF/JPG/PNG ≤ 10 MB, magic-byte checked, max 5),
+  «صورت‌جلسه‌ها» (the frozen verified PDF; never a draft). A member cannot close a resolution from the bot.
+- **Notifications** — outbox `board_notifications` (dedupe key, 5-min lease, 8 attempts): minutes + each owner's new resolutions after
+  approval; review request to the **notice recipients** (member flag «گیرندهٔ اعلان‌های دبیرخانه» — tick it on your own member row and link
+  your Telegram); closed / reopened to the owner; reminders; a daily digest (overdue + awaiting review) to the notice recipients.
+- **Signed scan**: approved meeting page → «نسخهٔ امضاشده» (generic attachments, entity `BOARD_MEETING`, board access only).
+- `next.config.mjs`: server-action body limit raised to 26 MB (the default 1 MB blocked uploads larger than 1 MB through actions).
+
+### One-time setup (run by the user)
+
+1. **@BotFather** → `/newbot` → e.g. «NIL Board» / `@NilBoard_bot` → copy the token.
+2. Server `/root/nil-office/.env.local` (never reuse the other bots' values):
+   ```
+   BOARD_TELEGRAM_BOT_TOKEN=<token from BotFather>
+   BOARD_TELEGRAM_BOT_USERNAME=NilBoard_bot
+   BOARD_TELEGRAM_WEBHOOK_SECRET=<openssl rand -hex 32>
+   BOARD_CRON_SECRET=<openssl rand -hex 32>
+   ```
+   then `npm run build && pm2 restart nil-office`.
+3. Webhook:
+   ```
+   curl -X POST "https://api.telegram.org/bot<BOARD_TELEGRAM_BOT_TOKEN>/setWebhook" -H "Content-Type: application/json" \
+     -d '{"url":"https://office.nil-management.ir/api/telegram/board-webhook","secret_token":"<BOARD_TELEGRAM_WEBHOOK_SECRET>","allowed_updates":["message","callback_query"]}'
+   ```
+4. Daily job at 09:00 Tehran (= 05:30 UTC; Iran has no DST). Check the server clock with `timedatectl`; for a UTC server, `crontab -e`:
+   ```
+   30 5 * * * curl -fsS -X POST -H "x-board-cron-secret: <BOARD_CRON_SECRET>" https://office.nil-management.ir/api/board/cron >/dev/null 2>&1
+   ```
+   The call is idempotent per Tehran day and also retries earlier failed sends.
+
+### Phase 2 tests
+
+- `lib/board/telegram/telegram.test.ts` — tokens, deep link, constant-time secrets, strict callback parser, 64-byte callback limit, no DONE from
+  the bot, every notification text, middleware carve-out, no other bot's tokens/tables.
+- `lib/board/migrations.test.ts` (0150 block) — RLS + service_role grants, no browser write path, service-only bot/cron functions, hash-only
+  tokens, restated guard keeps every earlier rule, WHERE on every UPDATE/DELETE.
+- `supabase/tests/board_followup_integrity.sql` — run after 0150 (rolled back). Verified locally on PGlite with all 150 migrations.
+
 ## Next phases
 
 | Phase | Scope |
 |---|---|
-| 2 | resolution follow-up (progress + evidence + close by the secretary), Telegram for internal + external members (only their own items), reminders, signed-scan upload |
 | 3 | assistant: voice / text → draft discussion and resolutions → secretary approves |
 | 4 | amendment of approved minutes referencing the original |
