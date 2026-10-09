@@ -28,6 +28,10 @@ const targets = [
   ["scenario-telegram-to-letter", "#p15 .scen", 2],
   ["scenario-board-to-minutes", "#p15 .scen", 3],
   ["deployment-phases", "#p18 .phases"],
+  ["board-phases", "#pb1 .phasebar"],
+  ["board-meeting-lifecycle", "#pb1 .flow"],
+  ["board-followup-flow", "#pb2 .flow", 0],
+  ["board-assistant-flow", "#pb2 .flow", 1],
   ["value-matrix", "#p16 .matrix"],
 ];
 

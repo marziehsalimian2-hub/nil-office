@@ -25,6 +25,6 @@ Needs Node + puppeteer (already in the project) and Python with Pillow and PyMuP
 
 ## Content rules followed
 Only capabilities verified in the product audit (`NIL_OFFICE_PRODUCT_AUDIT.md`) are described. Not claimed anywhere: WhatsApp bot, multi-tenant SaaS,
-per-module licensing, board follow-up bot (Phase 2, unverified), tested backup restore, ROI/percentage figures. Trade Portal appears as "pilot".
-No contact block yet (no confirmed phone/e-mail/web address) — add one to page 19 when available.
-Test figures on page 17 (416 tests / 39 suites) were measured on `origin/master` @ `db66a56`; update if you re-issue later.
+per-module licensing, unverified board claims (Phase 2 is shown as "deployed, field test in progress", Phase 3 as "in development and test"), tested backup restore, ROI/percentage figures. Trade Portal appears as "pilot".
+Contact details (phone, WhatsApp, web, e-mail) are on the closing page.
+Test figures on the "provable advantages" page (416 tests / 39 suites) were measured on `origin/master` @ `db66a56`; update if you re-issue later.

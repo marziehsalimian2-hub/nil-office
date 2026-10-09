@@ -1,0 +1,134 @@
+/* NIL Office — product catalog · design system
+   Palette (fixed by brief): navy #10233F · champagne gold #B99558 · ivory #F7F5F0 · warm grey #D9DDE2
+   Font: Vazirmatn (SIL OFL 1.1) — embedded in the PDF by Chromium. RTL, Persian digits. */
+
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-300.ttf") format("truetype"); font-weight: 300; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-400.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-500.ttf") format("truetype"); font-weight: 500; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-600.ttf") format("truetype"); font-weight: 600; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-700.ttf") format("truetype"); font-weight: 700; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-800.ttf") format("truetype"); font-weight: 800; font-style: normal; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets-share/fonts/Vazirmatn-900.ttf") format("truetype"); font-weight: 900; font-style: normal; }
+
+:root {
+  --navy: #10233F;
+  --navy-2: #172E4F;
+  --navy-3: #22406A;
+  --gold: #B99558;
+  --gold-soft: rgba(185,149,88,.16);
+  --ivory: #F7F5F0;
+  --grey: #D9DDE2;
+  --ink: #10233F;
+  --muted: #5B677A;
+  --line: rgba(16,35,63,.14);
+  --white: #FFFFFF;
+}
+
+@page { size: 210mm 297mm; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #888; }
+body {
+  font-family: "Vazirmatn", sans-serif;
+  direction: rtl;
+  color: var(--ink);
+  font-size: 9.6pt;
+  line-height: 1.95;
+  font-feature-settings: "kern", "liga";
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+.page {
+  width: 210mm; height: 297mm; position: relative; overflow: hidden;
+  page-break-after: always; break-after: page;
+}
+.page:last-child { page-break-after: auto; break-after: auto; }
+.ivory { background: var(--ivory); color: var(--ink); }
+.navy  { background: var(--navy);  color: var(--ivory); }
+
+/* ---------- running chrome ---------- */
+.run, .foot {
+  position: absolute; left: 16mm; right: 16mm; display: flex; justify-content: space-between; align-items: center;
+  font-size: 7pt; letter-spacing: .04em; color: var(--muted);
+}
+.run  { top: 11mm; }
+.foot { bottom: 9mm; }
+.run .brand, .foot .brand { font-family: "Vazirmatn"; letter-spacing: .32em; font-weight: 600; direction: ltr; color: var(--gold); font-size: 6.6pt; }
+.navy .run, .navy .foot { color: rgba(247,245,240,.62); }
+.run::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3mm; height: .25mm; background: var(--line); }
+.navy .run::after { background: rgba(247,245,240,.16); }
+.foot .pn { font-weight: 700; font-size: 8pt; color: var(--ink); }
+.navy .foot .pn { color: var(--gold); }
+
+/* ---------- type ---------- */
+.kicker { font-size: 7.4pt; letter-spacing: .34em; color: var(--gold); font-weight: 600; direction: ltr; text-align: right; text-transform: uppercase; }
+h1 { font-weight: 800; font-size: 27pt; line-height: 1.45; letter-spacing: -.01em; }
+h2 { font-weight: 700; font-size: 14.5pt; line-height: 1.6; }
+h3 { font-weight: 700; font-size: 10.6pt; line-height: 1.7; }
+.lead { font-size: 11.2pt; line-height: 2.05; color: var(--muted); font-weight: 400; }
+.navy .lead { color: rgba(247,245,240,.78); }
+p { font-weight: 400; }
+.small { font-size: 8.2pt; line-height: 1.85; color: var(--muted); }
+.navy .small { color: rgba(247,245,240,.66); }
+.gold { color: var(--gold); }
+.b { font-weight: 700; }
+.rule { width: 16mm; height: .6mm; background: var(--gold); border-radius: 1mm; }
+.hair { height: .25mm; background: var(--line); }
+.navy .hair { background: rgba(247,245,240,.18); }
+
+/* ghost section numeral */
+.ghost {
+  position: absolute; font-weight: 900; line-height: .8; color: transparent;
+  -webkit-text-stroke: .3mm rgba(185,149,88,.5); pointer-events: none; letter-spacing: -.02em;
+}
+.navy .ghost { -webkit-text-stroke: .3mm rgba(185,149,88,.38); }
+
+/* ---------- cards / lists ---------- */
+.card { background: var(--white); border: .25mm solid var(--line); border-radius: 2.4mm; padding: 5mm 5.5mm; }
+.card.flat { background: transparent; }
+.navy .card { background: rgba(247,245,240,.05); border-color: rgba(247,245,240,.16); }
+.tag {
+  display: inline-block; font-size: 6.8pt; font-weight: 600; letter-spacing: .02em; padding: .3mm 2.4mm; line-height: 1.7;
+  border-radius: 5mm; border: .25mm solid var(--gold); color: var(--gold);
+}
+.tag.solid { background: var(--gold); color: var(--navy); }
+
+ul.caps { list-style: none; }
+ul.caps li { position: relative; padding-right: 5.2mm; margin-bottom: 1.5mm; font-size: 9.2pt; line-height: 1.85; }
+ul.caps li::before { content: ""; position: absolute; right: 0; top: 2.9mm; width: 1.9mm; height: 1.9mm; background: var(--gold); transform: rotate(45deg); }
+ul.caps.tight li { margin-bottom: .6mm; }
+ul.caps b { font-weight: 700; }
+
+/* screenshot frame — real captures only */
+.shot { background: var(--white); border: .25mm solid var(--line); border-radius: 2.2mm; overflow: hidden; box-shadow: 0 2.2mm 6mm rgba(16,35,63,.13); }
+.shot img { display: block; width: 100%; height: auto; }
+.cap { font-size: 7pt; color: var(--muted); margin-top: 2mm; line-height: 1.7; }
+.navy .cap { color: rgba(247,245,240,.6); }
+.cap::before { content: ""; display: inline-block; width: 1.4mm; height: 1.4mm; background: var(--gold); transform: rotate(45deg); margin-left: 1.6mm; }
+
+/* flow diagrams */
+.flow { display: flex; align-items: stretch; gap: 0; }
+.step {
+  flex: 1; text-align: center; padding: 3.2mm 1.6mm 3mm; background: var(--white); border: .25mm solid var(--line); border-radius: 2mm;
+  font-size: 8.2pt; font-weight: 600; line-height: 1.7; position: relative;
+}
+.step small { display: block; font-weight: 400; color: var(--muted); font-size: 6.9pt; line-height: 1.65; margin-top: .6mm; }
+.step .no { display: block; color: var(--gold); font-weight: 800; font-size: 8pt; letter-spacing: .1em; margin-bottom: .6mm; }
+.step.hl { background: var(--navy); color: var(--ivory); border-color: var(--navy); }
+.step.hl small { color: rgba(247,245,240,.7); }
+.navy .step { background: rgba(247,245,240,.06); border-color: rgba(247,245,240,.18); color: var(--ivory); }
+.navy .step small { color: rgba(247,245,240,.66); }
+.navy .step.hl { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+.navy .step.hl small { color: rgba(16,35,63,.78); }
+.arr { flex: 0 0 4.4mm; align-self: center; height: 3mm; background: var(--gold); clip-path: polygon(100% 0, 0 50%, 100% 100%); margin: 0 .5mm; opacity: .9; }
+
+/* value strip */
+.strip { display: flex; background: var(--navy); color: var(--ivory); border-radius: 2.4mm; overflow: hidden; }
+.strip > div { flex: 1; padding: 4.2mm 5mm; }
+.strip > div + div { border-right: .25mm solid rgba(247,245,240,.16); }
+.strip .t { font-weight: 700; font-size: 9.4pt; color: var(--gold); margin-bottom: .6mm; }
+.strip .d { font-size: 8pt; line-height: 1.85; color: rgba(247,245,240,.82); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.pair .card h3 { margin-bottom: 1mm; }
+.label { font-size: 7pt; letter-spacing: .1em; font-weight: 700; color: var(--gold); margin-bottom: 1mm; }
+.num { font-weight: 800; color: var(--gold); }
