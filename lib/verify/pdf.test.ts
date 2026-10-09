@@ -9,6 +9,7 @@ import sharp from "sharp";
 import { renderLetterPdf } from "@/lib/pdf/renderLetterPdf";
 import { renderInvoicePdf } from "@/lib/pdf/renderInvoicePdf";
 import { renderContractPdf } from "@/lib/pdf/renderContractPdf";
+import { renderBoardMinutesPdf } from "@/lib/pdf/renderBoardMinutesPdf";
 import { stampVerificationQr } from "./stamp";
 import { plateTopMm } from "./layout";
 import { generateVerifyToken, sha256Hex } from "./token";
@@ -28,6 +29,7 @@ const LAYOUT: Record<string, VerifyLayout> = {
   PROFORMA: { page: "LAST", x_mm: 18, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: LABEL },
   INVOICE: { page: "LAST", x_mm: 18, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: LABEL },
   CONTRACT: { page: "LAST", x_mm: 20, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: LABEL },
+  BOARD_MINUTES: { page: "LAST", x_mm: 14, y_mm: 9, size_mm: 20, show_label: true, show_code: true, label_text: LABEL },
 };
 const reserve = (t: string) => Math.ceil(plateTopMm(LAYOUT[t]) + 4);
 
@@ -39,6 +41,27 @@ async function renderSample(type: string): Promise<Buffer> {
     return renderLetterPdf({
       language: "FA", displayNumber: "ص-۱۴۰۵-۰۰۷۰", dateLabel: "۱۴۰۵/۰۷/۱۴", recipientLabel: "شرکت نمونهٔ آزمایشی", subject: "درخواست همکاری",
       bodyHtml: para(6), signatoryLabel: "دکتر نمونه — مدیرعامل", letterheadDataUri: null, stampDataUri: null, signatureDataUri: null, minBottomMarginMm: m,
+    });
+  }
+  if (type === "BOARD_MINUTES") {
+    const people = ["رئیس هیئت‌مدیره نمونه", "مرضیه سلیمیان", "عضو داخلی نمونه", "عضو بیرونی اول", "عضو بیرونی دوم"];
+    return renderBoardMinutesPdf({
+      draft: false, minBottomMarginMm: m,
+      doc: {
+        meeting: {
+          id: "x", number: 12, type: "ORDINARY", scheduled_at: "2026-10-20T06:00:00Z", location: "دفتر نیل", started_at: "2026-10-20T06:05:00Z",
+          ended_at: "2026-10-20T07:40:00Z", invitees: "مدیر مالی", general_notes: para(3).replace(/<[^>]+>/g, "\n"), remaining_topics: "بررسی بودجهٔ سال آینده",
+        },
+        chair: { name: people[0], title: "رئیس هیئت‌مدیره" }, secretary: { name: people[1], title: "دبیر" },
+        attendance: people.map((p, i) => ({ member_id: `m${i}`, name: p, title: i === 0 ? "رئیس هیئت‌مدیره" : "عضو", kind: i > 2 ? "EXTERNAL" : "INTERNAL", status: i === 4 ? "EXCUSED" : "PRESENT", note: null })),
+        agenda: Array.from({ length: 4 }, (_, i) => ({ id: `a${i}`, position: i + 1, title: `بند ${i + 1} دستور جلسه`, discussion: para(3).replace(/<[^>]+>/g, "\n") })),
+        resolutions: Array.from({ length: 5 }, (_, i) => ({
+          id: `r${i}`, number: `12-${i + 1}`, agenda_item_id: null, text: `مصوبهٔ شمارهٔ ${i + 1}: واحد مربوط موظف است گزارش کامل را تهیه و ارائه کند.`, requires_action: i !== 4,
+          owner_name: i !== 4 ? people[1] : null, due_date: i !== 4 ? "2026-11-01" : null, expected_output: i !== 4 ? "گزارش مکتوب" : null, vote_note: i === 0 ? "با اتفاق آرا" : null,
+        })),
+        previous_followups: [{ number: "11-2", text: "پیگیری قرارداد بیمه", owner_name: people[0], due_date: "2026-10-10", follow_status: "IN_PROGRESS" }],
+        approved_at: "2026-10-20T09:00:00Z", approved_by_name: people[1], next_meeting: { scheduled_at: "2026-11-03T06:00:00Z", location: "دفتر نیل" },
+      },
     });
   }
   if (type === "CONTRACT") {
@@ -88,7 +111,7 @@ async function raster(bytes: Uint8Array, pageNo: number, tag: string) {
   }
 }
 
-describe.each(["OUTGOING_CORRESPONDENCE", "PROFORMA", "INVOICE", "CONTRACT"])("real %s PDF", (type) => {
+describe.each(["OUTGOING_CORRESPONDENCE", "PROFORMA", "INVOICE", "CONTRACT", "BOARD_MINUTES"])("real %s PDF", (type) => {
   it("QR is stamped on the final page, scans to the URL, the hash matches, a modified copy mismatches, nothing underneath is covered", async () => {
     const original = await renderSample(type);
     const token = generateVerifyToken();
@@ -103,7 +126,7 @@ describe.each(["OUTGOING_CORRESPONDENCE", "PROFORMA", "INVOICE", "CONTRACT"])("r
     for (let i = 0; i < a.getPageCount(); i++) {
       expect(b.getPage(i).getSize()).toEqual(a.getPage(i).getSize());
     }
-    if (type === "CONTRACT") expect(a.getPageCount()).toBeGreaterThanOrEqual(2);   // the multi-page case
+    if (type === "CONTRACT" || type === "BOARD_MINUTES") expect(a.getPageCount()).toBeGreaterThanOrEqual(2);   // the multi-page case
 
     // hash lifecycle: the hash is of the EXACT final bytes; any change mismatches
     const hash = sha256Hex(stamped.bytes);

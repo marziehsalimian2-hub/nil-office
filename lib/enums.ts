@@ -354,6 +354,27 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PAYROLL_ACCOUNT_INVALID: "حساب انتخاب‌شده معتبر نیست (باید فعال و قابل ثبت سند باشد) یا برای این نوع جزء مجاز نیست.",
   PAYROLL_ACCOUNTING_DRAFT_EXISTS: "برای این دسته قبلاً سند حسابداری پیش‌نویس ساخته شده است.",
   PAYROLL_LEDGER_MISMATCH: "جمع بدهکار و بستانکار سند حقوق برابر نیست؛ ساخت سند متوقف شد.",
+  // ---- Board Secretariat (0146-0149) ----
+  BOARD_MEETING_LOCKED: "این صورت‌جلسه تأیید و قفل شده است و قابل تغییر نیست.",
+  BOARD_APPROVAL_RPC_ONLY: "شماره و تأیید صورت‌جلسه فقط از دکمهٔ «تأیید نهایی» ثبت می‌شود.",
+  BOARD_FIELD_IMMUTABLE: "این اطلاعات قابل جابه‌جایی بین جلسات نیست.",
+  BOARD_INVALID: "بند دستور جلسهٔ انتخاب‌شده متعلق به این جلسه نیست.",
+  BOARD_APPROVE_MISSING_FIELDS: "پیش از تأیید، ساعت واقعی شروع و پایان، رئیس و دبیر جلسه را ثبت کنید.",
+  BOARD_APPROVE_NO_AGENDA: "پیش از تأیید، دست‌کم یک بند دستور جلسه ثبت کنید.",
+  BOARD_APPROVE_NO_DISCUSSION: "پیش از تأیید، خلاصهٔ مذاکرات (کلی یا برای یکی از بندها) را بنویسید.",
+  BOARD_APPROVE_ATTENDANCE_INCOMPLETE: "وضعیت حضور همهٔ اعضای فعال هیئت‌مدیره باید مشخص شود.",
+  BOARD_APPROVE_OFFICIALS_ABSENT: "رئیس و دبیر جلسه باید در فهرست حضور «حاضر» باشند.",
+  BOARD_RESOLUTION_DUE_BEFORE_MEETING: "مهلت یکی از مصوبات قبل از تاریخ جلسه است.",
+  BOARD_NEXT_MEETING_INVALID: "زمان جلسهٔ بعد باید بعد از این جلسه باشد.",
+  BOARD_AUDIT_APPEND_ONLY: "سابقهٔ تغییرات هیئت‌مدیره قابل ویرایش یا حذف نیست.",
+  ck_board_resolution_action: "برای مصوبهٔ اجرایی، مسئول و مهلت الزامی است.",
+  board_attendance_member_id_fkey: "عضو انتخاب‌شده معتبر نیست.",
+  board_resolutions_owner_member_id_fkey: "مسئول انتخاب‌شده معتبر نیست.",
+  board_meetings_chair_member_id_fkey: "عضو انتخاب‌شده معتبر نیست.",
+  board_meetings_secretary_member_id_fkey: "عضو انتخاب‌شده معتبر نیست.",
+  uq_board_members_profile: "این کاربر قبلاً به عضو دیگری از هیئت‌مدیره وصل شده است.",
+  ck_board_member_external_no_profile: "عضو بیرونی به کاربر سامانه وصل نمی‌شود.",
+  ck_board_meeting_times: "ساعت پایان جلسه نمی‌تواند قبل از ساعت شروع باشد.",
 };
 
 export function persianError(message: string | undefined | null): string {
@@ -1441,3 +1462,11 @@ export const PAYROLL_PAYMENT_STATE_TONE: Record<PayrollPaymentState, string> = {
 /* ============================ HR & Payroll — Phase 6 (payslips) =========================== */
 // Payslip payment states (NOT_PAID/PARTIALLY_PAID/PAID — as of issuance) and labels live in lib/payroll/payslip.ts.
 
+
+/* ============================ Board Secretariat — Phase 1 =========================== */
+
+export const BOARD_ROLE = ["VIEW", "CREATE", "APPROVE", "ADMIN"] as const;
+export type BoardRole = (typeof BOARD_ROLE)[number];
+export const BOARD_ROLE_LABEL: Record<BoardRole, string> = {
+  VIEW: "مشاهده", CREATE: "تهیهٔ پیش‌نویس", APPROVE: "تأیید صورت‌جلسه", ADMIN: "مدیر دبیرخانه",
+};

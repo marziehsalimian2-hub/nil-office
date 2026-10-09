@@ -16,6 +16,7 @@ const DEFAULTS: Record<string, VerifyLayout> = {
   PROFORMA: { page: "LAST", x_mm: 18, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: "استعلام اصالت سند — NIL Verify" },
   INVOICE: { page: "LAST", x_mm: 18, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: "استعلام اصالت سند — NIL Verify" },
   CONTRACT: { page: "LAST", x_mm: 20, y_mm: 10, size_mm: 22, show_label: true, show_code: true, label_text: "استعلام اصالت سند — NIL Verify" },
+  BOARD_MINUTES: { page: "LAST", x_mm: 14, y_mm: 9, size_mm: 20, show_label: true, show_code: true, label_text: "استعلام اصالت سند — NIL Verify" },
 };
 
 describe("public token", () => {

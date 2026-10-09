@@ -23,8 +23,8 @@ const entries = (f: FormData) => Object.fromEntries(f.entries());
 
 const uuid = z.string().uuid();
 const docType = z.enum(VERIFY_DOCUMENT_TYPES);
-// the page to refresh: only the three detail routes and settings are accepted (never an arbitrary path from the browser)
-const revalidateTarget = z.string().regex(/^\/(correspondence|invoices|contracts)\/[0-9a-f-]{36}$|^\/settings$/);
+// the page to refresh: only the document detail routes and settings are accepted (never an arbitrary path from the browser)
+const revalidateTarget = z.string().regex(/^\/(correspondence|invoices|contracts|board\/meetings)\/[0-9a-f-]{36}$|^\/settings$/);
 const reason = z.string().trim().min(3, "درج دلیل (حداقل ۳ نویسه) الزامی است.").max(500);
 
 const refresh = (path: string | undefined) => {

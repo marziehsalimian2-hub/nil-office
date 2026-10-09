@@ -16,12 +16,13 @@ import { TradeRoleSelect } from "./TradeRoleSelect";
 import { ServiceLedgerRoleSelect } from "./ServiceLedgerRoleSelect";
 import { HrRoleSelect } from "./HrRoleSelect";
 import { PayrollRoleSelect } from "./PayrollRoleSelect";
+import { BoardRoleSelect } from "./BoardRoleSelect";
 import { UserNameTitleEdit } from "./UserNameTitleEdit";
 import { VerifySettingsForm, type VerifySettingsRow, type VerifyTypeRow } from "./VerifySettingsForm";
 import { BrandingUpload } from "@/components/BrandingUpload";
 import { SignatureUpload } from "@/components/SignatureUpload";
 import { uploadLetterhead, uploadStamp } from "@/app/actions/branding";
-import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL, INVOICE_ROLE_LABEL, CRM_ROLE_LABEL, PROJECT_ROLE_LABEL, TRADE_ROLE_LABEL, SERVICE_LEDGER_ROLE_LABEL, HR_ROLE_LABEL, PAYROLL_ROLE_LABEL } from "@/lib/enums";
+import { ACCOUNTING_ROLE_LABEL, CONTRACT_ROLE_LABEL, INVOICE_ROLE_LABEL, CRM_ROLE_LABEL, PROJECT_ROLE_LABEL, TRADE_ROLE_LABEL, SERVICE_LEDGER_ROLE_LABEL, HR_ROLE_LABEL, PAYROLL_ROLE_LABEL, BOARD_ROLE_LABEL } from "@/lib/enums";
 import { currentJalaliYear, toFaDigits } from "@/lib/jalali";
 import type { AppSettings, NumberSequence, Profile } from "@/lib/types/database";
 
@@ -190,6 +191,7 @@ export default async function SettingsPage() {
                 <th className="px-3 py-2">دسترسی خدمات مشتری</th>
                 <th className="px-3 py-2">دسترسی منابع انسانی</th>
                 <th className="px-3 py-2">دسترسی حقوق و دستمزد</th>
+                <th className="px-3 py-2">دسترسی هیئت‌مدیره</th>
                 <th className="px-3 py-2">امضا</th><th className="px-3 py-2">وضعیت</th>
               </tr></thead>
               <tbody>
@@ -243,6 +245,11 @@ export default async function SettingsPage() {
                       {u.role === "ADMIN"
                         ? <span className="text-xs text-ink-muted">{PAYROLL_ROLE_LABEL.ADMIN} (کامل)</span>
                         : <PayrollRoleSelect userId={u.id} current={u.payroll_role} />}
+                    </td>
+                    <td className="px-3 py-2">
+                      {u.role === "ADMIN"
+                        ? <span className="text-xs text-ink-muted">{BOARD_ROLE_LABEL.ADMIN} (کامل)</span>
+                        : <BoardRoleSelect userId={u.id} current={u.board_role} />}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">

@@ -30,6 +30,7 @@ const ATTACH_ENTITY: Record<VerifyDocumentType, string> = {
   PROFORMA: "SALES_DOCUMENT",
   INVOICE: "SALES_DOCUMENT",
   CONTRACT: "CONTRACT",
+  BOARD_MINUTES: "BOARD_MEETING",
 };
 
 export async function issueDocumentVerification(args: {
