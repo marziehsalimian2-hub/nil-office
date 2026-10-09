@@ -106,11 +106,18 @@ before / on the deadline / every 3 days overdue** at 09:00 Tehran.
    curl -X POST "https://api.telegram.org/bot<BOARD_TELEGRAM_BOT_TOKEN>/setWebhook" -H "Content-Type: application/json" \
      -d '{"url":"https://office.nil-management.ir/api/telegram/board-webhook","secret_token":"<BOARD_TELEGRAM_WEBHOOK_SECRET>","allowed_updates":["message","callback_query"]}'
    ```
-4. Daily job at 09:00 Tehran (= 05:30 UTC; Iran has no DST). Check the server clock with `timedatectl`; for a UTC server, `crontab -e`:
+4. Daily job at 09:00 Tehran (= 05:30 UTC; Iran has no DST; the server runs on UTC — `timedatectl`). A wrapper reads the secret from
+   `.env.local`, so the secret is never written into the crontab (as set up live on 2026-10-09):
    ```
-   30 5 * * * curl -fsS -X POST -H "x-board-cron-secret: <BOARD_CRON_SECRET>" https://office.nil-management.ir/api/board/cron >/dev/null 2>&1
+   # /root/board-cron.sh  (chmod 700)
+   #!/bin/sh
+   SECRET=$(grep '^BOARD_CRON_SECRET=' /root/nil-office/.env.local | cut -d= -f2- | tr -d '\r" ')
+   curl -fsS -X POST -H "x-board-cron-secret: $SECRET" https://office.nil-management.ir/api/board/cron
    ```
+   `crontab -e`: `30 5 * * * /root/board-cron.sh >/dev/null 2>&1`. Manual check: `/root/board-cron.sh` → `{"ok":true,...}`.
    The call is idempotent per Tehran day and also retries earlier failed sends.
+5. Linking tip: on some Telegram clients (notably desktop, or when the bot chat already exists) opening the deep link does NOT send the
+   code. Then send `/start <code>` manually — the code is the part of the link after `start=`.
 
 ### Phase 2 tests
 
