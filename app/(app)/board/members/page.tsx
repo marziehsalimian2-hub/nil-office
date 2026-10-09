@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { BOARD_MEMBER_KIND, BOARD_MEMBER_KIND_LABEL, boardAccess, type BoardMember } from "@/lib/board/types";
 import { deleteBoardMember, saveBoardMember, saveBoardSettings } from "@/app/actions/board";
 import { BoardButton, BoardForm } from "../BoardForm";
+import { TelegramLink } from "./TelegramLink";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,15 @@ function MemberFields({ m, profiles, defaultSort }: { m?: BoardMember; profiles:
         <Field label="ترتیب"><input name="sort_order" type="number" min={0} max={1000} defaultValue={m?.sort_order ?? defaultSort ?? 0} className="input text-center tnum" /></Field>
         <Field label="یادداشت"><input name="notes" defaultValue={m?.notes ?? ""} className="input" /></Field>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-sm text-ink">
-        <input type="checkbox" name="is_active" defaultChecked={m ? m.is_active : true} className="h-4 w-4" /> عضو فعال است
-      </label>
+      <div className="mt-3 flex flex-wrap gap-5">
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" name="is_active" defaultChecked={m ? m.is_active : true} className="h-4 w-4" /> عضو فعال است
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" name="is_notice_recipient" defaultChecked={m?.is_notice_recipient ?? false} className="h-4 w-4" />
+          گیرندهٔ اعلان‌های دبیرخانه (گزارش‌های منتظر بررسی و خلاصهٔ روزانه)
+        </label>
+      </div>
     </>
   );
 }
@@ -45,11 +52,13 @@ export default async function BoardMembersPage() {
   const profile = await requireProfile();
   const access = boardAccess(profile);
   const supabase = await createClient();
-  const [{ data: membersData }, { data: profilesData }, { data: settings }] = await Promise.all([
+  const [{ data: membersData }, { data: profilesData }, { data: settings }, { data: linksData }] = await Promise.all([
     supabase.from("board_members").select("*").order("sort_order").order("full_name"),
     supabase.from("profiles").select("id, full_name, title").eq("is_active", true).order("full_name"),
     supabase.from("board_settings").select("last_manual_meeting_number, default_location").eq("id", 1).maybeSingle(),
+    supabase.from("board_telegram_links").select("member_id, linked_at"),
   ]);
+  const linkedAt = new Map(((linksData ?? []) as { member_id: string; linked_at: string }[]).map((l) => [l.member_id, l.linked_at]));
   const members = (membersData ?? []) as BoardMember[];
   const profiles: Opt[] = (profilesData ?? []).map((p) => ({ id: p.id as string, label: `${p.full_name ?? "—"}${p.title ? ` — ${p.title}` : ""}` }));
 
@@ -68,7 +77,10 @@ export default async function BoardMembersPage() {
                     {m.position_title && <span className="text-ink-muted">— {m.position_title}</span>}
                     <span className={cn("badge bg-paper", m.kind === "EXTERNAL" ? "status-waiting" : "status-sent")}>{BOARD_MEMBER_KIND_LABEL[m.kind]}</span>
                     {!m.is_active && <span className="badge bg-paper status-cancelled">غیرفعال</span>}
+                    {m.is_notice_recipient && <span className="badge bg-paper status-final">گیرندهٔ اعلان‌ها</span>}
+                    {linkedAt.has(m.id) && <span className="badge bg-paper status-sent">تلگرام</span>}
                   </summary>
+                  <TelegramLink memberId={m.id} linkedAt={linkedAt.get(m.id) ?? null} canManage={access.create} isActive={m.is_active} />
                   {access.create && (
                     <div className="mt-3">
                       <BoardForm

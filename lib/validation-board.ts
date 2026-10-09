@@ -37,6 +37,7 @@ export const boardMemberSchema = z
     sort_order: smallInt(1000).default(0),
     notes: optText(2000),
     is_active: checkbox,
+    is_notice_recipient: checkbox,
   })
   .transform((d) => ({ ...d, profile_id: d.kind === "EXTERNAL" ? null : d.profile_id }));
 
@@ -101,4 +102,16 @@ export const boardApproveSchema = z
 export const boardSettingsSchema = z.object({
   last_manual_meeting_number: smallInt(99999),
   default_location: optText(300),
+});
+
+export const boardProgressSchema = z.object({
+  resolution_id: z.string().uuid(),
+  status: z.enum(["IN_PROGRESS", "BLOCKED", "PENDING_REVIEW"]),
+  note: z.string().trim().min(1, "توضیح را بنویسید.").max(4000),
+});
+
+export const boardCloseSchema = z.object({
+  resolution_id: z.string().uuid(),
+  action: z.enum(["close", "reopen"]),
+  note: z.string().trim().min(1, "نتیجه یا دلیل را بنویسید.").max(4000),
 });

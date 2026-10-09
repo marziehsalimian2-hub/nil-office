@@ -71,7 +71,10 @@ export async function updateSession(request: NextRequest) {
   // history), and reproduced live for the external bot's own separate
   // path when it was first wired up, since this check only ever
   // matched the internal bot's exact path.
-  const isTelegramWebhook = path === "/api/telegram/webhook" || path === "/api/telegram/external-webhook";
+  // (Board Secretariat Phase 2 adds the board bot's own webhook, and the daily board job — called by the server crontab with its own
+  // secret header, no session either; both authenticate inline: lib/board/telegram/security.ts.)
+  const isTelegramWebhook =
+    path === "/api/telegram/webhook" || path === "/api/telegram/external-webhook" || path === "/api/telegram/board-webhook" || path === "/api/board/cron";
   // Set by requireProfile() when the signed-in user has no active profile.
   // Must NOT be bounced back to /dashboard below, or the two redirects loop forever.
   const isInactiveNotice = path === "/login" && request.nextUrl.searchParams.get("inactive") === "1";

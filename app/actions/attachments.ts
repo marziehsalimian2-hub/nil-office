@@ -33,6 +33,7 @@ const ENTITY_MAP: Record<string, { path: string; table: string; parentIdField?: 
   SERVICE_ENTRY: { path: "/companies", table: "service_entries", parentIdField: "company_id" },
   SERVICE_EXPENSE: { path: "/companies", table: "expenses", parentIdField: "company_id" },
   PERSONNEL: { path: "/personnel", table: "personnel" },
+  BOARD_MEETING: { path: "/board/meetings", table: "board_meetings" },
 };
 
 /** Upload a file to the private bucket and record its metadata. */

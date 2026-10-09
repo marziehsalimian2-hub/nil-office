@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Circle, FileDown, Lock } from "lucide-react";
+import { CheckCircle2, Circle, FileDown, Lock, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { Card, PageHeader } from "@/components/ui";
 import { Field } from "@/components/form";
 import { JalaliDateInput } from "@/components/JalaliDateInput";
 import { VerificationCard } from "@/components/VerificationCard";
-import { toFaDigits } from "@/lib/jalali";
-import { cn } from "@/lib/utils";
+import { AttachmentUploader } from "@/components/AttachmentUploader";
+import { formatJalali, toFaDigits } from "@/lib/jalali";
+import { cn, formatBytes } from "@/lib/utils";
 import { addDays, boardDate, boardWeekday, tehranDate, tehranTime } from "@/lib/board/time";
 import { approvalReadiness } from "@/lib/board/readiness";
 import { loadMinutesDoc } from "@/lib/pdf/boardMinutesData";
 import {
-  BOARD_ATTENDANCE_LABEL, BOARD_ATTENDANCE_STATUS, BOARD_MEETING_TYPE, BOARD_MEETING_TYPE_LABEL, boardAccess,
+  BOARD_ATTENDANCE_LABEL, BOARD_ATTENDANCE_STATUS, BOARD_FOLLOW_STATUS_LABEL, BOARD_MEETING_TYPE, BOARD_MEETING_TYPE_LABEL, boardAccess,
   type BoardAgendaItem, type BoardAttendance, type BoardMember, type BoardResolution,
 } from "@/lib/board/types";
 import {
@@ -59,6 +60,20 @@ export default async function BoardMeetingPage({ params }: { params: Promise<{ i
 
   /* ----------------------------- APPROVED: read-only ----------------------------- */
   if (m.status === "APPROVED" || !access.create) {
+    let followUp: { id: string; resolution_number: string | null; text: string; due_date: string | null; follow_status: BoardResolution["follow_status"] }[] = [];
+    let scans: { id: string; file_name: string; size_bytes: number | null; created_at: string; url: string | null }[] = [];
+    if (m.status === "APPROVED") {
+      const [{ data: rs }, { data: atts }] = await Promise.all([
+        supabase.from("board_resolutions").select("id, resolution_number, text, due_date, follow_status").eq("meeting_id", m.id).eq("requires_action", true),
+        supabase.from("attachments").select("id, file_name, size_bytes, created_at, storage_path").eq("entity_type", "BOARD_MEETING").eq("entity_id", m.id)
+          .not("storage_path", "like", "verified/%").order("created_at", { ascending: false }),
+      ]);
+      followUp = ((rs ?? []) as typeof followUp).sort((a, b) => (a.resolution_number ?? "").localeCompare(b.resolution_number ?? "", "en", { numeric: true }));
+      scans = await Promise.all(((atts ?? []) as { id: string; file_name: string; size_bytes: number | null; created_at: string; storage_path: string }[]).map(async (a) => {
+        const { data } = await supabase.storage.from("nil-files").createSignedUrl(a.storage_path, 300);
+        return { id: a.id, file_name: a.file_name, size_bytes: a.size_bytes, created_at: a.created_at, url: data?.signedUrl ?? null };
+      }));
+    }
     return (
       <div>
         <PageHeader
@@ -77,6 +92,38 @@ export default async function BoardMeetingPage({ params }: { params: Promise<{ i
               <Lock className="h-4 w-4" /> این صورت‌جلسه تأیید و قفل شده است؛ متن، حضور و مصوبات آن دیگر تغییر نمی‌کند.
             </div>
             <VerificationCard type="BOARD_MINUTES" documentId={m.id} isAdmin={profile.role === "ADMIN"} revalidate={`/board/meetings/${m.id}`} />
+
+            {followUp.length > 0 && (
+              <Card className="mb-4">
+                <p className="mb-3 text-sm font-medium text-ink">پیگیری مصوبات این جلسه</p>
+                <ul className="divide-y divide-paper-line text-sm">
+                  {followUp.map((r) => (
+                    <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <Link href={`/board/resolutions/${r.id}`} className="text-ink hover:text-seal">
+                        <span className="ml-2 font-medium tnum">{r.resolution_number ? toFaDigits(r.resolution_number) : "—"}</span>{r.text.length > 90 ? `${r.text.slice(0, 90)}…` : r.text}
+                      </Link>
+                      <span className="text-xs text-ink-muted">{r.due_date ? formatJalali(r.due_date) : "—"} · {BOARD_FOLLOW_STATUS_LABEL[r.follow_status]}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
+            <Card className="mb-4">
+              <p className="mb-1 flex items-center gap-2 text-sm font-medium text-ink"><Paperclip className="h-4 w-4" /> نسخهٔ امضاشده</p>
+              <p className="mb-3 text-xs text-ink-muted">اسکن صورت‌جلسهٔ چاپی پس از امضای اعضای حاضر. فقط کاربرانی که دسترسی هیئت‌مدیره دارند آن را می‌بینند.</p>
+              {scans.length > 0 && (
+                <ul className="mb-3 space-y-1 text-sm">
+                  {scans.map((a) => (
+                    <li key={a.id} className="flex items-center gap-2">
+                      {a.url ? <a href={a.url} target="_blank" rel="noopener" className="text-seal hover:underline">{a.file_name}</a> : <span>{a.file_name}</span>}
+                      <span className="text-xs text-ink-muted">{formatBytes(a.size_bytes)} · {formatJalali(a.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {access.create && <AttachmentUploader entityType="BOARD_MEETING" entityId={m.id} />}
+            </Card>
           </>
         )}
         <MinutesView doc={doc} />

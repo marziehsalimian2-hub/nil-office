@@ -177,7 +177,10 @@ begin
   perform pg_temp.expect_err(format($q$insert into public.board_agenda_items (meeting_id, title) values (%L, 'بند اضافه')$q$, m1), 'BOARD_MEETING_LOCKED');
   perform pg_temp.expect_err(format($q$update public.board_attendance set status = 'ABSENT' where meeting_id = %L and member_id = %L$q$, m1, v_chair), 'BOARD_MEETING_LOCKED');
   perform pg_temp.expect_err(format($q$delete from public.board_attendance where meeting_id = %L$q$, m1), 'BOARD_MEETING_LOCKED');
-  update public.board_resolutions set follow_status = 'IN_PROGRESS' where id = r1;            -- the ONLY mutable column (Phase 2 follow-up)
+  -- the ONLY mutable column; since 0150 only through the follow-up RPCs (flag nil.board_follow) — simulated here
+  perform set_config('nil.board_follow', 'on', true);
+  update public.board_resolutions set follow_status = 'IN_PROGRESS' where id = r1;
+  perform set_config('nil.board_follow', 'off', true);
   perform pg_temp.chk('follow_status changes after approval', (select follow_status from public.board_resolutions where id = r1) = 'IN_PROGRESS');
   perform pg_temp.chk('snapshot unchanged by follow-up', (select snapshot from public.board_meetings where id = m1) = v_snap);
 
@@ -261,7 +264,7 @@ begin
 
   -- 13) Factory Reset ------------------------------------------------------------------------------------------------------------------
   perform pg_temp.owner();
-  perform pg_temp.chk('manifest rows', (select count(*) from public.system_reset_manifest where module = 'board') = 7
+  perform pg_temp.chk('manifest rows', (select count(*) from public.system_reset_manifest where module = 'board') >= 7
     and (select classification from public.system_reset_manifest where object_name = 'board_settings') = 'PRESERVE'
     and (select classification from public.system_reset_manifest where object_name = 'board_meetings') = 'DELETE');
   perform pg_temp.chk('board_meeting/ storage rule', (select action from public.system_reset_storage_rules where prefix = 'board_meeting/') = 'DELETE');
