@@ -127,9 +127,32 @@ before / on the deadline / every 3 days overdue** at 09:00 Tehran.
   tokens, restated guard keeps every earlier rule, WHERE on every UPDATE/DELETE.
 - `supabase/tests/board_followup_integrity.sql` — run after 0150 (rolled back). Verified locally on PGlite with all 150 migrations.
 
+## Phase 3 — assistant drafts from the secretary's notes (migration 0151)
+
+Decisions (user, 2026-10-09): input = the secretary's raw notes as **TEXT only** — typed, pasted, or dictated with the phone keyboard's
+microphone (the system never receives or sends audio; the bot rejects voice messages); used from the draft meeting page and from the board
+bot (secretary only); the text goes to the LLM provider (Anthropic, same as the internal assistant).
+
+- **Suggest only (ACTA contract).** `lib/board/assistant/draft.ts` makes ONE forced tool call (`submit_minutes_draft`, up to 8k output tokens,
+  metered by the assistant's daily token cap); `normalize.ts` then validates every fact: each item must quote the notes and the quote must
+  really be in them; an **owner** is kept only if it is a real member AND named in the notes; a **deadline** only if it parses, is not before
+  the meeting day and its day + month are written in the item's own quote. Anything dropped stays visible as a hint + warning.
+- Stored in `board_ai_drafts` (notes kept as the reference the quotes point into; immutable; PENDING → APPLIED | DISCARDED once).
+- **Web** (draft meeting page → «دستیار پیش‌نویس»): notes → suggestion → review: each item ticked by default only when its quote was found;
+  missing owners / deadlines must be filled in before applying; the resolution text is editable. «اعمال موارد انتخاب‌شده» =
+  `board_apply_ai_draft` — ONE transaction (all or nothing), only into a DRAFT meeting, appending (never overwriting) discussion / intro.
+- **Bot** («📝 یادداشت جلسه», only for a member linked to a NIL Office profile with the board CREATE tier — `board_member_drafter_profile`):
+  pick a draft meeting → send one or more text messages → «ساخت پیش‌نویس» → the suggestion is stored and the bot sends the review link
+  (needs `NEXT_PUBLIC_APP_URL`). Nothing is applied from the bot. **Setup:** link your own member row to your NIL Office user (Members page →
+  «کاربر نیل آفیس») and link your Telegram.
+- `LLMProvider.converseWithTools` gained optional `maxTokens` / `forceTool` (no change for existing callers).
+
+Tests: `lib/board/assistant/normalize.test.ts` (the never-invent rules), `lib/board/assistant/migration.test.ts` (0151 guards + "suggest
+only" code contract), `supabase/tests/board_ai_integrity.sql` (run after 0151; verified on PGlite with all 151 migrations + a negative control).
+**Not verified locally:** a real LLM call — the first real use is the live test.
+
 ## Next phases
 
 | Phase | Scope |
 |---|---|
-| 3 | assistant: voice / text → draft discussion and resolutions → secretary approves |
 | 4 | amendment of approved minutes referencing the original |

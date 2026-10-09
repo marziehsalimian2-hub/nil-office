@@ -53,5 +53,9 @@ export interface LLMProvider {
     systemPrompt: string;
     messages: LlmMessage[];
     tools: LlmTool[];
+    /** Optional output cap for this call (default: the provider's own). Used by long structured drafts (board minutes). */
+    maxTokens?: number;
+    /** Optional: force the model to answer by calling exactly this tool (structured extraction). */
+    forceTool?: string;
   }): Promise<LlmTurnResult>;
 }
