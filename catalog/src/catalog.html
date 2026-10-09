@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>NIL Office — کاتالوگ محصول</title>
+<link rel="stylesheet" href="catalog.css">
+<style>
+.inner { position: absolute; left: 16mm; right: 16mm; top: 22mm; bottom: 17mm; display: flex; flex-direction: column; }
+.head { position: relative; margin-bottom: 6mm; }
+.head h1 { margin: 1.6mm 0 3.2mm; max-width: 150mm; }
+.head .rule { margin-bottom: 3.6mm; }
+.head .lead { max-width: 160mm; }
+.head .ghost { left: 0; top: -4mm; font-size: 78pt; }
+.gap { height: 5mm; } .gap2 { height: 8mm; } .gap3 { height: 3mm; }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+.grow { flex: 1; }
+.shotrow { display: grid; gap: 5mm; }
+
+/* ---------- cover ---------- */
+.cover .frame { position: absolute; inset: 9mm; border: .3mm solid rgba(185,149,88,.55); }
+.cover .frame::before { content: ""; position: absolute; inset: 2mm; border: .15mm solid rgba(185,149,88,.25); }
+.cover .wm { position: absolute; width: 205mm; left: -62mm; bottom: -52mm; opacity: .075; }
+.cover .logo { position: absolute; top: 30mm; left: 50%; width: 44mm; transform: translateX(-50%); }
+.cover .title { position: absolute; left: 0; right: 0; top: 142mm; text-align: center; }
+.cover .t1 { direction: ltr; font-weight: 300; font-size: 45pt; letter-spacing: .3em; padding-left: .3em; line-height: 1.2; color: var(--ivory); }
+.cover .t1 b { font-weight: 800; color: var(--gold); }
+.cover .gl { width: 22mm; height: .5mm; background: var(--gold); margin: 7mm auto 7mm; }
+.cover .t2 { font-size: 22pt; font-weight: 700; line-height: 1.6; }
+.cover .t3 { direction: ltr; font-size: 6.9pt; letter-spacing: .34em; margin-top: 4mm; color: rgba(247,245,240,.62); font-weight: 500; }
+.cover .base { position: absolute; left: 22mm; right: 22mm; bottom: 20mm; display: flex; justify-content: space-between; font-size: 8pt; color: rgba(247,245,240,.75); }
+.cover .base b { color: var(--gold); font-weight: 600; }
+
+/* ---------- statement ---------- */
+.statement { font-size: 25pt; font-weight: 800; line-height: 1.7; letter-spacing: -.01em; }
+.statement em { font-style: normal; color: var(--gold); }
+.trio { display: grid; grid-template-columns: repeat(3,1fr); gap: 6mm; }
+.trio .it { border-top: .5mm solid var(--gold); padding-top: 4mm; }
+.trio .n { font-size: 8pt; letter-spacing: .3em; color: var(--gold); font-weight: 700; direction: ltr; text-align: right; }
+.trio h3 { margin: 1mm 0 1.6mm; font-size: 11.4pt; }
+
+/* ---------- islands ---------- */
+.isl { position: relative; height: 92mm; margin: 4mm 0 2mm; }
+.isl .dot { position: absolute; width: 27mm; height: 27mm; border-radius: 50%; border: .3mm dashed rgba(185,149,88,.7); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 8.6pt; font-weight: 600; line-height: 1.5; background: rgba(247,245,240,.04); }
+.isl .q { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 46mm; text-align: center; font-size: 8.6pt; line-height: 1.8; color: var(--gold); font-weight: 600; }
+.isl svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cons { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm 8mm; }
+.cons .c { border-top: .25mm solid rgba(247,245,240,.22); padding-top: 3mm; }
+.cons .c h3 { color: var(--gold); font-size: 10.2pt; }
+.cons .c p { font-size: 8.8pt; color: rgba(247,245,240,.82); line-height: 1.9; }
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4,1fr); border-top: .5mm solid var(--navy); }
+.kpis > div { padding: 4mm 3mm 0; border-right: .25mm solid var(--line); }
+.kpis > div:first-child { border-right: 0; }
+.kpis .v { font-size: 30pt; font-weight: 800; color: var(--gold); line-height: 1.2; }
+.kpis .l { font-size: 8.2pt; color: var(--muted); line-height: 1.7; }
+.pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.pillars .card { padding: 5.5mm 6mm; }
+.pillars .no { font-size: 7.4pt; letter-spacing: .3em; color: var(--gold); font-weight: 700; direction: ltr; text-align: right; }
+.pillars h3 { margin: .8mm 0 1.2mm; }
+.pillars p { font-size: 9pt; color: var(--muted); }
+
+/* ---------- hub ---------- */
+.hubwrap { display: flex; gap: 7mm; align-items: flex-start; }
+.hub { position: relative; width: 128mm; height: 128mm; flex: none; }
+.hub svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hub .core { position: absolute; left: 50%; top: 50%; width: 31mm; height: 31mm; transform: translate(-50%,-50%); border-radius: 50%; background: var(--navy); color: var(--ivory); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 8.2pt; font-weight: 700; line-height: 1.55; box-shadow: 0 0 0 1.6mm var(--ivory), 0 0 0 1.95mm var(--gold); }
+.hub .node { position: absolute; transform: translate(-50%,-50%); background: var(--white); border: .25mm solid var(--line); border-radius: 4mm; padding: .5mm 3mm; font-size: 7.7pt; font-weight: 600; white-space: nowrap; line-height: 1.8; box-shadow: 0 .8mm 2mm rgba(16,35,63,.09); }
+.hub .node.pilot { border-style: dashed; border-color: var(--gold); }
+.hub .node.pilot::after { content: "پایلوت"; margin-right: 1.4mm; font-size: 6pt; color: var(--gold); font-weight: 700; }
+.hub .out { position: absolute; transform: translate(-50%,-50%); background: var(--navy); color: var(--ivory); border-radius: 4mm; padding: .7mm 3.6mm; font-size: 7.6pt; font-weight: 700; white-space: nowrap; line-height: 1.8; }
+.hub .out i { font-style: normal; color: var(--gold); }
+.sidebarshot { width: 40mm; flex: none; }
+.legend { display: flex; gap: 5mm; font-size: 7.4pt; color: var(--muted); margin-top: 2mm; }
+.legend i { display: inline-block; width: 6mm; height: 0; border-top: .5mm solid var(--gold); vertical-align: middle; margin-left: 1.4mm; }
+.legend i.d { border-top: .4mm dashed var(--gold); }
+
+/* ---------- misc pages ---------- */
+.numplate { display: inline-flex; align-items: center; gap: 3mm; direction: ltr; border: .3mm solid var(--navy); border-radius: 2mm; padding: 2mm 5mm; background: var(--white); }
+.numplate .p { font-size: 7pt; color: var(--gold); letter-spacing: .2em; font-weight: 700; }
+.numplate .n { font-size: 15pt; font-weight: 800; letter-spacing: .06em; color: var(--navy); }
+.fmt { display: flex; gap: 4mm; flex-wrap: wrap; }
+.fmt .f { flex: 1; min-width: 40mm; }
+.fmt .f .lbl { font-size: 7.6pt; color: var(--muted); margin-bottom: 1mm; }
+.matrix { width: 100%; border-collapse: collapse; }
+.matrix th { font-size: 7.6pt; letter-spacing: .1em; text-align: right; color: var(--gold); font-weight: 700; padding: 0 3mm 2mm; border-bottom: .5mm solid var(--navy); }
+.matrix td { padding: 3.1mm 3mm; font-size: 8.8pt; line-height: 1.85; border-bottom: .25mm solid var(--line); vertical-align: top; }
+.matrix td:first-child { font-weight: 700; width: 36%; }
+.matrix td:nth-child(3) { color: var(--navy); font-weight: 600; }
+.adv { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.adv .card { padding: 5.2mm 6mm 4.6mm; position: relative; }
+.adv .card h3 { margin-bottom: 1mm; }
+.adv .card p { font-size: 8.8pt; color: var(--muted); }
+.adv .card .ev { margin-top: 2.6mm; padding-top: 2mm; border-top: .25mm dashed var(--line); font-size: 7.4pt; color: var(--gold); font-weight: 600; line-height: 1.7; }
+.adv .card .n { position: absolute; top: 4mm; left: 5mm; font-size: 18pt; font-weight: 800; color: rgba(185,149,88,.35); line-height: 1; }
+.layers { position: relative; }
+.layer { display: flex; align-items: center; gap: 5mm; padding: 3.6mm 5mm; border-radius: 2.2mm; margin-bottom: 2.2mm; border: .25mm solid var(--line); background: var(--white); }
+.layer .n { flex: none; width: 9mm; height: 9mm; border-radius: 50%; background: var(--navy); color: var(--gold); font-weight: 800; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
+.layer h3 { font-size: 10pt; line-height: 1.6; }
+.layer p { font-size: 8.4pt; color: var(--muted); line-height: 1.8; }
+.layer:nth-child(2) { margin-right: 4mm; margin-left: 4mm; }
+.layer:nth-child(3) { margin-right: 8mm; margin-left: 8mm; }
+.layer:nth-child(4) { margin-right: 12mm; margin-left: 12mm; }
+.layer:nth-child(5) { margin-right: 16mm; margin-left: 16mm; }
+.layer:nth-child(6) { margin-right: 20mm; margin-left: 20mm; background: var(--navy); color: var(--ivory); border-color: var(--navy); }
+.layer:nth-child(6) p { color: rgba(247,245,240,.75); }
+.layer:nth-child(6) .n { background: var(--gold); color: var(--navy); }
+.scen { margin-bottom: 7mm; }
+.scen h2 { font-size: 12.4pt; margin-bottom: .6mm; }
+.scen .small { margin-bottom: 3mm; }
+.tl { position: relative; display: flex; gap: 0; margin-top: 1mm; }
+.tl::before { content: ""; position: absolute; right: 3mm; left: 3mm; top: 3.1mm; height: .3mm; background: rgba(185,149,88,.55); }
+.tl .s { flex: 1; text-align: center; position: relative; padding: 0 1mm; }
+.tl .s i { display: block; width: 6.2mm; height: 6.2mm; margin: 0 auto 2.2mm; border-radius: 50%; background: var(--navy); border: .35mm solid var(--gold); position: relative; z-index: 1; font-style: normal; color: var(--gold); font-weight: 800; font-size: 7pt; line-height: 5.4mm; }
+.tl .s b { display: block; font-size: 8.4pt; font-weight: 700; line-height: 1.6; color: var(--ivory); }
+.tl .s span { display: block; font-size: 7.2pt; line-height: 1.7; color: rgba(247,245,240,.62); margin-top: .6mm; }
+.phases { position: relative; padding-right: 9mm; }
+.phases::before { content: ""; position: absolute; right: 3.1mm; top: 2mm; bottom: 2mm; width: .35mm; background: rgba(185,149,88,.6); }
+.ph { position: relative; margin-bottom: 4.4mm; }
+.ph::before { content: ""; position: absolute; right: -8.3mm; top: 2.1mm; width: 3.4mm; height: 3.4mm; border-radius: 50%; background: var(--ivory); border: .5mm solid var(--gold); }
+.ph h3 { font-size: 10pt; line-height: 1.6; }
+.ph h3 span { color: var(--gold); margin-left: 2mm; }
+.ph p { font-size: 8.6pt; color: var(--muted); line-height: 1.85; }
+.tbl2 { width: 100%; border-collapse: collapse; }
+.tbl2 td { padding: 2.2mm 3mm; border-bottom: .25mm solid var(--line); font-size: 8.8pt; vertical-align: top; }
+.tbl2 td:first-child { font-weight: 700; width: 34%; color: var(--navy); }
+.quote { border-right: .8mm solid var(--gold); padding: 1mm 6mm 1mm 0; font-size: 13.6pt; font-weight: 700; line-height: 1.95; color: var(--navy); }
+.stagebar { display: flex; flex-direction: column; gap: 1.8mm; align-items: center; }
+.stagebar div { height: 8.5mm; border-radius: 1.4mm; background: var(--navy); color: var(--ivory); display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 600; }
+.stagebar div:nth-child(2) { background: var(--navy-2); }
+.stagebar div:nth-child(3) { background: var(--navy-3); }
+.stagebar div:nth-child(4) { background: var(--gold); color: var(--navy); }
+
+.head .ghost { top: 3mm !important; }
+.navy .step.hl .no { color: var(--navy); }
+.chipgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0 6mm; border-top: .5mm solid var(--navy); }
+.chipgrid div { padding: 2.6mm 0; border-bottom: .25mm solid var(--line); font-size: 9pt; font-weight: 600; display: flex; justify-content: space-between; }
+.chipgrid div span { font-weight: 400; color: var(--muted); font-size: 7.6pt; }
+.chipgrid div b { color: var(--gold); font-weight: 700; margin-left: 2mm; font-size: 7.6pt; }
+.panel { position: absolute; left: 0; right: 0; bottom: 0; height: 104mm; background: var(--navy); }
+.panel-in { position: absolute; left: 16mm; right: 16mm; bottom: 24mm; }
+.panel .trio .it { border-top-color: var(--gold); }
+.panel .trio h3 { color: var(--ivory); }
+.panel .trio .small { color: rgba(247,245,240,.72); }
+.trace { display: grid; grid-template-columns: 1fr 12mm 1fr 12mm 1fr; align-items: center; margin: 1mm 0; }
+.trace .col { background: var(--white); border: .25mm solid var(--line); border-radius: 2.4mm; padding: 4mm 4.5mm; }
+.trace .col .cl { font-size: 7.6pt; font-weight: 700; color: var(--gold); letter-spacing: .06em; margin-bottom: 2.4mm; }
+.trace .bar { height: 3mm; border-radius: 1.2mm; background: var(--grey); margin-bottom: 1.6mm; }
+.trace .bar.g { background: rgba(185,149,88,.7); }
+.trace .bar.n { background: var(--navy); }
+.trace .bar.s1 { width: 92%; } .trace .bar.s2 { width: 66%; } .trace .bar.s3 { width: 80%; } .trace .bar.s4 { width: 52%; }
+.trace .doc { background: var(--navy); border-color: var(--navy); }
+.trace .doc .bar { background: rgba(247,245,240,.28); }
+.trace .doc .bar.g { background: var(--gold); }
+.trace .doc .cl { color: var(--gold); }
+.trace .ar { height: 3.4mm; background: var(--gold); clip-path: polygon(100% 0,0 50%,100% 100%); margin: 0 auto; width: 6mm; }
+.trace .note { font-size: 7.2pt; color: var(--muted); margin-top: 2mm; line-height: 1.7; }
+.qband { border-top: .25mm solid rgba(247,245,240,.22); border-bottom: .25mm solid rgba(247,245,240,.22); padding: 4mm 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.4mm 8mm; }
+.qband div { font-size: 10.4pt; font-weight: 600; color: var(--ivory); line-height: 1.9; }
+.qband div::before { content: "«"; color: var(--gold); margin-left: 1.2mm; }
+.qband div::after { content: "»"; color: var(--gold); margin-right: 1.2mm; }
+.techs { display: grid; grid-template-columns: repeat(4,1fr); gap: 4mm; }
+.techs .card { padding: 4mm 4.2mm; }
+.techs h3 { font-size: 9.4pt; margin-bottom: .6mm; color: var(--navy); }
+.techs p { font-size: 8pt; color: var(--muted); line-height: 1.8; }
+
+.chipgrid div { display: block; }
+.chipgrid div span { display: block; margin-top: .2mm; }
+.foot.onnavy { color: rgba(247,245,240,.62); } .foot.onnavy .pn { color: var(--gold); }
+.matrix td { padding: 4.4mm 3mm; font-size: 9.3pt; }
+.adv { gap: 6mm; } .adv .card { padding: 8mm 6.4mm 6.2mm; } .adv .card h3 { font-size: 11.4pt; margin-bottom: 2mm; } .adv .card p { font-size: 9.3pt; } .adv .card .ev { margin-top: 4mm; padding-top: 2.6mm; }
+.isl { height: 100mm; margin-bottom: 7mm; }
+
+.panel { height: 92mm; }
+#p4 .pillars { gap: 4mm; } #p4 .pillars .card { padding: 4.2mm 5mm; } #p4 .pillars p { font-size: 8.6pt; line-height: 1.85; }
+#p4 .head { margin-bottom: 4.5mm; }
+#p4 .chipgrid div { padding: 1.7mm 0; }
+#p4 .kpis .v { font-size: 26pt; }
+#p7 .gap2 { height: 5mm; }
+#p7 .head { margin-bottom: 4mm; }
+
+#p12 .gap2, #p13 .gap2 { height: 5mm; }
+#p12 .head, #p13 .head { margin-bottom: 4.5mm; }
+#p12 .card[style*="padding:6mm 7mm"] { padding: 4.6mm 6mm !important; }
+#p19 .statement { font-size: 27pt; }
+.bigq { border: .3mm solid rgba(185,149,88,.6); border-radius: 2.6mm; padding: 7mm 8mm; display: flex; gap: 7mm; align-items: center; }
+.bigq .mk { font-size: 54pt; line-height: .6; color: var(--gold); font-weight: 800; flex: none; }
+.bigq .tx { font-size: 15pt; font-weight: 800; line-height: 1.9; }
+.bigq .tx em { font-style: normal; color: var(--gold); }
+
+.inner > * { flex-shrink: 0; }
+.inner > .grow { flex-shrink: 1; min-height: 0; }
+#p16 .matrix td { padding: 3.3mm 3mm; font-size: 9pt; }
+#p16 .gap2 { height: 5mm; }
+#p10 .gap2 { height: 5mm; }
+#p10 .head { margin-bottom: 4mm; }
+
+#p4 .pillars .card { padding: 3.8mm 5mm; }
+#p4 .chipgrid div { padding: 1.5mm 0; }
+#p12 .gap2 { height: 4mm; }
+#p12 .trace .col { padding: 3mm 4mm; }
+#p12 .trace .bar { height: 2.6mm; margin-bottom: 1.3mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================ ۱ · جلد ============================ -->
+<section class="page navy cover" id="p1">
+  <div class="frame"></div>
+  <img class="wm" src="{{A}}/logo/nil-emblem-gold.png" alt="">
+  <img class="logo" src="{{A}}/logo/nil-logo-ivory.png" alt="NIL — Strategic Management Development">
+  <div class="title">
+    <div class="t1">NIL <b>OFFICE</b></div>
+    <div class="gl"></div>
+    <div class="t2">پلتفرم هوشمند مدیریت یکپارچه سازمان</div>
+    <div class="t3">INTELLIGENT INTEGRATED ENTERPRISE MANAGEMENT PLATFORM</div>
+  </div>
+  <div class="base"><span><b>کاتالوگ محصول</b> · ۱۴۰۵</span><span>شرکت توسعه مدیریت راهبردی نیل</span></div>
+</section>
+
+<!-- ============================ ۲ · بیانیهٔ برند ============================ -->
+<section class="page ivory" id="p2">
+  <header class="run"><span>۰۲ · بیانیهٔ برند و چشم‌انداز</span><span class="brand">NIL OFFICE</span></header>
+  <img src="{{A}}/logo/nil-emblem-navy.png" alt="" style="position:absolute;width:118mm;left:-26mm;top:112mm;opacity:.05">
+  <div class="inner" style="bottom:auto">
+    <div class="kicker" style="margin-top:14mm">VISION</div>
+    <div class="rule" style="margin:3mm 0 9mm"></div>
+    <div class="statement" style="font-size:28pt">سازمانی که تصمیم‌هایش بر <em>یک واقعیتِ واحد</em> بنا شده باشد، سریع‌تر، شفاف‌تر و قابل‌اتکاتر عمل می‌کند.</div>
+    <div style="height:10mm"></div>
+    <p class="lead" style="max-width:152mm">NIL Office از همین باور ساخته شده است: پلتفرمی که مکاتبات، امور مالی، قرارداد، مشتری، نیروی انسانی و هوش مصنوعی را روی یک پایگاه داده، یک مدل دسترسی و یک ردپای ممیزی گرد می‌آورد.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-in">
+      <div class="kicker" style="margin-bottom:5mm">PRINCIPLES</div>
+      <div class="trio">
+        <div class="it"><div class="n">۰۱</div><h3>یک منبع حقیقت</h3><p class="small">هر اطلاعات یک‌بار ثبت می‌شود و در همهٔ ماژول‌ها دیده می‌شود؛ از نامه تا فاکتور، از قرارداد تا فیش حقوقی.</p></div>
+        <div class="it"><div class="n">۰۲</div><h3>سرعتِ ماشین، اختیارِ انسان</h3><p class="small">دستیار هوشمند پیشنهاد می‌دهد و پیش‌نویس می‌سازد؛ ثبت رسمی تنها با تأیید صریح انسان انجام می‌شود.</p></div>
+        <div class="it"><div class="n">۰۳</div><h3>هر سند، قابل اثبات</h3><p class="small">اسناد رسمی شمارهٔ یکتا، ردپای ممیزی و کد استعلام اصالت دارند؛ فایل نهایی با هش <span style="white-space:nowrap">SHA-256</span> قابل تطبیق است.</p></div>
+      </div>
+    </div>
+  </div>
+  <footer class="foot onnavy"><span class="pn">۲</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۳ · مسئله ============================ -->
+<section class="page navy" id="p3">
+  <header class="run"><span>۰۳ · مسئلهٔ مدیریت جزیره‌ای</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost" style="font-size:78pt">۰۳</div>
+      <div class="kicker">THE PROBLEM</div>
+      <h1>مدیریت جزیره‌ای؛<br><span class="gold">هزینهٔ پنهان سازمان‌ها</span></h1>
+      <div class="rule"></div>
+      <p class="lead">وقتی نامه‌ها در یک ابزار، حسابداری در ابزاری دیگر، قراردادها در پوشه‌ها و مشتریان در جدول‌های شخصی‌اند، سازمان یک مجموعهٔ متصل نیست؛ مجموعه‌ای از جزیره‌هاست.</p>
+    </div>
+
+    <div class="isl">
+      <svg viewBox="0 0 178 92" preserveAspectRatio="none">
+        <g stroke="rgba(185,149,88,.28)" stroke-width=".25" stroke-dasharray="1.2 1.6" fill="none">
+          <line x1="31" y1="22" x2="86" y2="46"/><line x1="86" y1="46" x2="147" y2="22"/>
+          <line x1="31" y1="70" x2="86" y2="46"/><line x1="86" y1="46" x2="147" y2="70"/>
+          <line x1="86" y1="12" x2="86" y2="46"/><line x1="86" y1="80" x2="86" y2="46"/>
+        </g>
+      </svg>
+      <div class="dot" style="right:17mm;top:8mm">مکاتبات<br>و بایگانی</div>
+      <div class="dot" style="right:75mm;top:0">حسابداری</div>
+      <div class="dot" style="left:17mm;top:8mm">قراردادها</div>
+      <div class="dot" style="right:17mm;bottom:2mm">مشتریان<br>و فروش</div>
+      <div class="dot" style="right:75mm;bottom:0">فاکتور<br>و وصول</div>
+      <div class="dot" style="left:17mm;bottom:2mm">منابع انسانی<br>و حقوق</div>
+      <div class="q">پیوندها<br>دستی‌اند</div>
+    </div>
+
+    <div class="cons">
+      <div class="c"><h3>یک واقعیت، چند نسخه</h3><p>اطلاعات یک مشتری یا یک قرارداد در چند جا و با چند روایت ثبت می‌شود.</p></div>
+      <div class="c"><h3>مغایرت‌گیری دستی</h3><p>تطبیق فاکتور، دریافت و سند حسابداری به کاری انسانیِ تکراری تبدیل می‌شود.</p></div>
+      <div class="c"><h3>مسئولیتِ مبهم</h3><p>مشخص نیست چه کسی، چه زمانی و بر چه مبنایی یک عدد یا سند را تغییر داده است.</p></div>
+      <div class="c"><h3>تصمیمِ دیرهنگام</h3><p>برای یک پاسخ ساده باید چند نفر و چند فایل را کنار هم گذاشت.</p></div>
+    </div>
+    <div class="grow"></div>
+    <div class="card" style="padding:5mm 6mm">
+      <div class="label">پرسشی که هر مدیرعاملی می‌پرسد</div>
+      <div style="font-size:12pt;font-weight:700;line-height:1.9">«وضعیت قرارداد این مشتری چیست؟ چه فاکتورهایی صادر شده و چه مبلغی وصول شده است؟»</div>
+      <p class="small" style="margin-top:1.4mm">در سازمان جزیره‌ای این پرسش یک جلسه است. در NIL Office همین پرسش از یک صفحه یا از دستیار هوشمند پاسخ می‌گیرد.</p>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۳</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۴ · معرفی ============================ -->
+<section class="page ivory" id="p4">
+  <header class="run"><span>۰۴ · معرفی NIL Office</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۴</div>
+      <div class="kicker">THE PLATFORM</div>
+      <h1>یک پلتفرم،<br>یک حافظهٔ سازمانی</h1>
+      <div class="rule"></div>
+      <p class="lead">NIL Office دامنه‌های کسب‌وکاری سازمان را به‌جای ابزارهای جدا، در یک سامانهٔ هم‌پیوند ارائه می‌کند؛ با رابط کاملاً فارسی، تقویم جلالی و اسناد رسمی ایرانی.</p>
+    </div>
+
+    <div class="pillars">
+      <div class="card"><div class="no">۰۱</div><h3>دامنه‌های هم‌پیوند</h3><p>مکاتبات، حسابداری، قرارداد، فاکتور، مشتری، پروژه، خدمات، نیروی انسانی و هیئت‌مدیره روی یک داده؛ بدون ورود دوباره و بدون انتقال دستی میان واحدها.</p></div>
+      <div class="card"><div class="no">۰۲</div><h3>دسترسیِ نقش‌محور</h3><p>هر کاربر فقط آنچه به نقش او مربوط است را می‌بیند. کنترل در لایهٔ پایگاه داده اعمال می‌شود، نه صرفاً در ظاهر رابط کاربری.</p></div>
+      <div class="card"><div class="no">۰۳</div><h3>اسنادِ رسمیِ قابل‌اثبات</h3><p>شماره‌گذاری اتمیک، تغییرناپذیری پس از ثبت قطعی، ابطال شفاف و کد QR استعلام اصالت برای اسناد خروجی.</p></div>
+      <div class="card"><div class="no">۰۴</div><h3>هوش مصنوعیِ کنترل‌شده</h3><p>دستیار نیل از طریق وب و تلگرام کار می‌کند، اما فقط با عملیات از پیش تعریف‌شده و هرگز بدون تأیید انسان در داده‌ها چیزی نمی‌نویسد.</p></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="label">دامنه‌های کسب‌وکاری در یک نگاه</div>
+    <div class="chipgrid"><div><b>۰۱</b>دبیرخانه و مکاتبات<span>صادره · وارده · پرونده</span></div><div><b>۰۲</b>حسابداری<span>دفاتر و گزارش مالی</span></div><div><b>۰۳</b>دریافت و پرداخت<span>تخصیص و تأیید</span></div><div><b>۰۴</b>پیش‌فاکتور و فاکتور<span>صدور رسمی و تسویه</span></div><div><b>۰۵</b>قراردادها<span>چرخهٔ عمر و تعهدات</span></div><div><b>۰۶</b>مدیریت چک<span>دریافتی و پرداختی</span></div><div><b>۰۷</b>مدیریت ارتباط (CRM)<span>شرکت، مخاطب، فرصت</span></div><div><b>۰۸</b>پروژه و کار<span>پیشرفت و وابستگی</span></div><div><b>۰۹</b>دفتر خدمات مشتریان<span>از خدمت تا صورتحساب</span></div><div><b>۱۰</b>منابع انسانی و حقوق<span>پرسنل، محاسبه، فیش</span></div><div><b>۱۱</b>دبیرخانهٔ هیئت‌مدیره<span>جلسه، صورت‌جلسه، مصوبه</span></div><div><b>۱۲</b>دستیار هوشمند<span>وب و تلگرام</span></div></div>
+    <div class="grow"></div>
+    <div class="kpis">
+      <div><div class="v">۱۲</div><div class="l">نقش دامنه‌ای دسترسی<br>(مالی، قرارداد، حقوق، چک، …)</div></div>
+      <div><div class="v">۴</div><div class="l">سطح دسترسی در هر دامنه<br>مشاهده · ثبت · تأیید · مدیر</div></div>
+      <div><div class="v">۵۸</div><div class="l">عملیات ثبت‌شدهٔ دستیار<br>هوشمند، همگی با گیت دسترسی</div></div>
+      <div><div class="v">۲</div><div class="l">ربات تلگرام عملیاتی<br>داخلی و مکاتبات خارجی</div></div>
+    </div>
+    <p class="small" style="margin-top:2.4mm">ارقام از ساختار واقعی نسخهٔ جاری محصول استخراج شده‌اند.</p>
+    <div style="height:6mm"></div>
+  </div>
+  <footer class="foot"><span class="pn">۴</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۵ · معماری ============================ -->
+<section class="page ivory" id="p5">
+  <header class="run"><span>۰۵ · نقشهٔ معماری و ارتباط ماژول‌ها</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۵</div>
+      <div class="kicker">ARCHITECTURE</div>
+      <h1>ماژول‌هایی که<br>با هم حرف می‌زنند</h1>
+      <div class="rule"></div>
+      <p class="lead">اسناد و اطلاعات میان ماژول‌ها جابه‌جا نمی‌شوند؛ به هم <b>پیوند</b> می‌خورند. فاکتور به قرارداد، دریافت به فاکتور و فیش حقوقی به سند حسابداری وصل است.</p>
+    </div>
+
+    <div class="hubwrap">
+      <div class="hub" id="hub">
+        <svg viewBox="0 0 128 128" id="hubsvg"></svg>
+        <div class="core">هستهٔ یکپارچهٔ<br>داده، دسترسی<br>و ممیزی</div>
+      </div>
+      <div class="sidebarshot">
+        <div class="shot"><img src="{{A}}/screens/sidebar.png" alt="منوی واقعی NIL Office"></div>
+        <div class="cap">منوی واقعی NIL Office</div>
+      </div>
+    </div>
+    <div class="legend"><span><i></i>پیوند مستقیم دادهٔ دو ماژول</span><span><i class="d"></i>ماژول در نسخهٔ پایلوت</span></div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">ثبتِ یک‌باره</div><div class="d">اطلاعات شرکت‌ها، اشخاص و اسناد یک‌بار وارد می‌شود و در همهٔ ماژول‌ها قابل ارجاع است.</div></div>
+      <div><div class="t">پیوندِ مالی</div><div class="d">قرارداد، فاکتور، دریافت، پرداخت، چک و حقوق به سند حسابداری و به یکدیگر متصل‌اند.</div></div>
+      <div><div class="t">لایه‌های مشترک</div><div class="d">دستیار هوشمند، اصالت‌سنجی و گزارش‌ها روی همهٔ ماژول‌ها سوار می‌شوند.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۵</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۶ · دبیرخانه ============================ -->
+<section class="page ivory" id="p6">
+  <header class="run"><span>۰۶ · دبیرخانهٔ هوشمند و مدیریت مکاتبات</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۶</div>
+      <div class="kicker">SECRETARIAT</div>
+      <h1>دبیرخانهٔ هوشمند و<br>مدیریت مکاتبات</h1>
+      <div class="rule"></div>
+      <p class="lead">هر نامه، از پیش‌نویس تا بایگانی، یک ردپای کامل دارد و شمارهٔ رسمی آن هرگز تکرار نمی‌شود.</p>
+    </div>
+
+    <div class="pair">
+      <div class="card"><div class="label">مسئلهٔ مدیریتی</div><p style="font-size:9pt">شمارهٔ تکراری، نامهٔ بی‌ردپا، پیگیری فراموش‌شده و بایگانی‌ای که فقط صاحب آن می‌تواند در آن بگردد.</p></div>
+      <div class="card" style="background:var(--navy);color:var(--ivory);border-color:var(--navy)"><div class="label">پاسخ NIL Office</div><p style="font-size:9pt;color:rgba(247,245,240,.88)">شماره‌گذاری اتمیک در پایگاه داده، چرخهٔ وضعیت کنترل‌شده، جستجوی یکپارچه و پیگیری با سررسید.</p></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="label">چرخهٔ عمر یک نامهٔ صادره</div>
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>پیش‌نویس<small>ویرایش آزاد، بدون شماره</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۲</span>ثبت نهایی<small>دریافت شمارهٔ رسمی</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۳</span>PDF بر سربرگ<small>همراه QR استعلام اصالت</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۴</span>ارسال و بایگانی<small>پیوست در فضای خصوصی</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>پیگیری<small>سررسید و وضعیت</small></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="label">قالب‌های شمارهٔ رسمی</div>
+    <div class="fmt">
+      <div class="f"><div class="lbl">نامهٔ صادره</div><div class="numplate"><span class="p">OUT</span><span class="n">ص-۱۴۰۵-۰۰۷۰</span></div></div>
+      <div class="f"><div class="lbl">نامهٔ وارده</div><div class="numplate"><span class="p">IN</span><span class="n">و-۱۴۰۵-۰۰۱۹</span></div></div>
+      <div class="f"><div class="lbl">پرونده</div><div class="numplate"><span class="p">CASE</span><span class="n">CASE-۱۴۰۵-۰۰۱۲</span></div></div>
+    </div>
+    <p class="small" style="margin-top:2mm">نمونهٔ قالب‌ها؛ سری هر سازمان از شمارهٔ دلخواه آن ادامه می‌یابد.</p>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps">
+        <li><b>نامهٔ صادره و وارده</b> با شماره‌گذاری سالانهٔ جلالی</li>
+        <li><b>پاسخ و پیوند خودکار</b> نامه‌ها به یکدیگر</li>
+        <li><b>پرونده</b>: گردآوری نامه، سند، پیگیری و پیوست</li>
+        <li><b>پیگیری‌ها</b> با دسته‌بندی سررسید، معوق و آینده</li>
+      </ul>
+      <ul class="caps">
+        <li><b>آرشیو و جستجوی یکپارچه</b> در شماره، موضوع، شرکت و پرونده</li>
+        <li><b>ابطال شفاف</b>؛ شماره حفظ می‌شود و دوباره استفاده نمی‌شود</li>
+        <li><b>صندوق مکاتبات خارجی</b> از ربات تلگرام اختصاصی</li>
+        <li><b>پیوندهای خصوصی</b> با لینک امضاشدهٔ موقت</li>
+      </ul>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">ردپای کامل</div><div class="d">هر تغییر وضعیت و ابطال در لاگ ممیزی ثبت می‌شود.</div></div>
+      <div><div class="t">بدون شمارهٔ تکراری</div><div class="d">دو کاربر هم‌زمان هرگز یک شماره نمی‌گیرند.</div></div>
+      <div><div class="t">بازیابی فوری</div><div class="d">هر نامه با چند کلمه از موضوع یا شرکت پیدا می‌شود.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۶</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۷ · حسابداری ============================ -->
+<section class="page ivory" id="p7">
+  <header class="run"><span>۰۷ · حسابداری و مدیریت مالی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۷</div>
+      <div class="kicker">ACCOUNTING</div>
+      <h1>حسابداریِ دوطرفه،<br>با دفترِ تغییرناپذیر</h1>
+      <div class="rule"></div>
+      <p class="lead">سندی که ثبت قطعی شد، دیگر ویرایش یا حذف نمی‌شود؛ هر اصلاح با سند برگشت انجام می‌شود و ردپای آن می‌ماند.</p>
+    </div>
+
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>سند پیش‌نویس<small>ردیف‌های بدهکار و بستانکار</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>کنترل توازن<small>جمع بدهکار = جمع بستانکار</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۳</span>ثبت قطعی<small>قفل سند و تخصیص شماره</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۴</span>دفاتر و گزارش‌ها<small>فقط اقلام ثبت‌قطعی</small></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="shot"><img src="{{A}}/screens/dashboard_full.png" alt="داشبورد مالی"></div>
+    <div class="cap">داشبورد مالی NIL Office — تصویر واقعی نرم‌افزار (محیط بدون داده)</div>
+    <div class="gap3"></div>
+    <div style="display:grid;grid-template-columns:62mm 1fr;gap:7mm;align-items:center">
+      <div style="background:#F8F8F6;border:.25mm solid var(--line);border-radius:2.4mm;padding:5mm 4mm;text-align:center"><img src="{{A}}/screens/balance_ok.png" alt="ترازنامه متوازن است" style="width:88%"></div>
+      <div><h3>نشانگر توازن، همیشه روی صفحه</h3><p class="small">ترازنامه و صورت سود و زیان فقط از اقلام ثبت‌قطعی ساخته می‌شوند و نشانگر توازن آن‌ها روی صفحه است؛ پیش‌نویس هرگز وارد گزارش رسمی نمی‌شود.</p></div>
+    </div>
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps tight">
+        <li><b>کدینگ چهارسطحی</b>: گروه، کل، معین، تفصیلی</li>
+        <li><b>سند دوطرفه</b> با نشانگر توازن در لحظهٔ ثبت</li>
+        <li><b>ثبت قطعی کنترل‌شده</b> با مجوز جداگانه</li>
+        <li><b>سند برگشت</b> به‌جای حذف یا ویرایش</li>
+      </ul>
+      <ul class="caps tight">
+        <li><b>سال مالی</b> و بستن سال با کنترل پیش‌نویس‌های باز</li>
+        <li><b>دفتر روزنامه، کل و معین</b>، تراز آزمایشی</li>
+        <li><b>سود و زیان و ترازنامه</b> از اقلام ثبت‌قطعی</li>
+        <li><b>شمارهٔ سند اتمیک</b> و مقید به سال مالی</li>
+      </ul>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">گزارش قابل‌اتکا</div><div class="d">پیش‌نویس هرگز وارد گزارش رسمی نمی‌شود.</div></div>
+      <div><div class="t">یکپارچگی مالی</div><div class="d">دریافت، پرداخت، فاکتور، چک و حقوق به همین دفتر وصل‌اند.</div></div>
+      <div><div class="t">کنترل داخلی</div><div class="d">تفکیک وظیفهٔ ثبت و ثبت قطعی با مجوزهای جدا.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۷</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۸ · قراردادها ============================ -->
+<section class="page ivory" id="p8">
+  <header class="run"><span>۰۸ · قراردادها و مدیریت تعهدات</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۸</div>
+      <div class="kicker">CONTRACTS</div>
+      <h1>قراردادها و<br>مدیریت تعهدات</h1>
+      <div class="rule"></div>
+      <p class="lead">هر قرارداد یک چرخهٔ عمر مشخص دارد و از لحظهٔ تأیید به جریان‌های مالی، هشدارها و اصالت‌سنجی وصل می‌شود.</p>
+    </div>
+
+    <div class="label">چرخهٔ عمر قرارداد در نرم‌افزار</div>
+    <div class="shot"><img src="{{A}}/screens/contracts_tabs.png" alt="وضعیت‌های قرارداد"></div>
+    <div class="cap">وضعیت‌های واقعی قرارداد: پیش‌نویس، در حال بررسی، تأییدشده، فعال، معلق، تکمیل‌شده، منقضی‌شده، فسخ‌شده و ابطال‌شده</div>
+
+    <div class="gap2"></div>
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>پیش‌نویس<small>تنظیم و ویرایش</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>بررسی<small>مرور داخلی</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۳</span>تأیید<small>شمارهٔ رسمی و PDF با QR</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۴</span>فعال<small>اجرا و پیوند مالی</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>پایان<small>تکمیل یا انقضا</small></div>
+    </div>
+    <p class="small" style="margin-top:2mm">شاخه‌های معلق، فسخ و ابطال در هر مرحلهٔ مجاز، با ثبت دلیل و ردپا قابل اعمال‌اند.</p>
+
+    <div class="gap2"></div>
+    <div class="pair">
+      <div class="card"><div class="label">مسئلهٔ مدیریتی</div><p style="font-size:9pt">تعهدات در فایل‌های پراکنده می‌مانند؛ سررسیدها از دید مدیریت پنهان‌اند و ارتباط قرارداد با فاکتور و وصول دستی پیگیری می‌شود.</p></div>
+      <div class="card" style="background:var(--navy);color:var(--ivory);border-color:var(--navy)"><div class="label">پاسخ NIL Office</div><p style="font-size:9pt;color:rgba(247,245,240,.88)">وضعیت و سررسید هر قرارداد در مرکز فرمان دیده می‌شود و دریافت‌ها، پرداخت‌ها و اسناد حسابداری به خود قرارداد وصل است.</p></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps">
+        <li><b>انواع قرارداد</b> قابل تعریف توسط سازمان</li>
+        <li><b>شمارهٔ رسمی اتمیک</b> هنگام تأیید</li>
+        <li><b>امضاکننده و نمایندهٔ</b> طرف مقابل</li>
+      </ul>
+      <ul class="caps">
+        <li><b>پیوند مالی</b>: دریافت، پرداخت و سند حسابداری</li>
+        <li><b>هشدار پایان قرارداد</b> با آستانهٔ قابل‌تنظیم</li>
+        <li><b>قرارداد تاریخی</b> برای انتقال بایگانی پیشین</li>
+      </ul>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">دید مدیریتی</div><div class="d">سررسید و وضعیت تعهدات بدون جست‌وجوی دستی.</div></div>
+      <div><div class="t">اتصال به پول</div><div class="d">هر ریال دریافتی یا پرداختی به قرارداد مربوط ردیابی می‌شود.</div></div>
+      <div><div class="t">سند قابل‌استعلام</div><div class="d">مخاطب با اسکن QR صحت سند را تطبیق می‌دهد.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۸</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۹ · فاکتور و جریان مالی ============================ -->
+<section class="page navy" id="p9">
+  <header class="run"><span>۰۹ · پیش‌فاکتور، فاکتور و جریان‌های مالی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۰۹</div>
+      <div class="kicker">INVOICING &amp; CASH FLOW</div>
+      <h1>از پیش‌فاکتور تا وصول،<br><span class="gold">در یک مسیر پیوسته</span></h1>
+      <div class="rule"></div>
+      <p class="lead">پیش‌فاکتور و فاکتور، دریافت و پرداخت و چک، هر کدام ماژولی مستقل‌اند؛ اما در یک زنجیرهٔ قابل‌ردیابی به سند حسابداری ختم می‌شوند.</p>
+    </div>
+
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>فرصت تجاری<small>CRM</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>پیش‌فاکتور<small>پیشنهاد قیمت</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۳</span>فاکتور<small>شمارهٔ رسمی + QR</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۴</span>دریافت<small>تخصیص به فاکتور</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>سند حسابداری<small>دوطرفه، متوازن</small></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="shot"><img src="{{A}}/screens/invoices_tabs.png" alt="فهرست فاکتورها"></div>
+    <div class="cap">فهرست پیش‌فاکتور و فاکتور با وضعیت‌های واقعی: پیش‌نویس، پرداخت‌نشده، عقب‌افتاده از سررسید، تسویه‌شده، ابطال‌شده</div>
+
+    <div class="gap2"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm">
+      <div class="card"><h3 class="gold" style="margin-bottom:1.2mm">پیش‌فاکتور و فاکتور</h3>
+        <ul class="caps tight"><li>صدور رسمی با شمارهٔ اتمیک</li><li>فارسی یا انگلیسی</li><li>حساب بانکی و شرایط تسویه</li><li>تسویهٔ خودکار با دریافت‌ها</li></ul></div>
+      <div class="card"><h3 class="gold" style="margin-bottom:1.2mm">دریافت و پرداخت</h3>
+        <ul class="caps tight"><li>سند دوطرفهٔ متوازن</li><li>تخصیص وجه به فاکتور</li><li>تأیید و شمارهٔ رسمی</li><li>رسید PDF</li></ul></div>
+      <div class="card"><h3 class="gold" style="margin-bottom:1.2mm">مدیریت چک</h3>
+        <ul class="caps tight"><li>چک دریافتی و پرداختی</li><li>چاپ بر قالب بانکی با دقت میلی‌متر</li><li>وضعیت‌ها تا وصول یا برگشت</li><li>سند حسابداری در لحظهٔ وصول</li></ul></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="shot"><img src="{{A}}/screens/cheques_header.png" alt="مدیریت چک"></div>
+    <div class="cap">مدیریت چک: داشبورد، دسته‌چک‌ها و قالب‌های چاپ — تصویر واقعی نرم‌افزار</div>
+    <p class="small" style="margin-top:1mm">چک‌های دریافتی و پرداختی دو مسیر جدا و یک مدل داده دارند؛ تا پیش از وصول، سند حسابداری ثبت نمی‌شود.</p>
+    <div class="grow"></div>
+    <div class="bigq"><div class="mk">»</div><div class="tx">از پیش‌فاکتور تا سند حسابداری، <em>هر ریال یک مسیر قابل‌ردیابی</em> دارد.</div></div>
+    <div style="height:2mm"></div>
+  </div>
+  <footer class="foot"><span class="pn">۹</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۰ · CRM ============================ -->
+<section class="page ivory" id="p10">
+  <header class="run"><span>۱۰ · مدیریت ارتباط با مشتریان</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۰</div>
+      <div class="kicker">CRM</div>
+      <h1>مدیریت ارتباط با<br>مشتریان (CRM)</h1>
+      <div class="rule"></div>
+      <p class="lead">شرکت‌ها، اشخاص، فرصت‌ها و تعاملات در یک جا؛ و از همان‌جا به پیش‌فاکتور، قرارداد، پروژه و مکاتبه متصل.</p>
+    </div>
+
+    <div class="shot"><img src="{{A}}/screens/opportunities_filters.png" alt="فرصت‌های تجاری"></div>
+    <div class="cap">پایپ‌لاین فرصت‌ها با فیلتر پایپ‌لاین، مالک، نوع و اولویت، به‌همراه نمای کانبان و داشبورد — تصویر واقعی نرم‌افزار</div>
+
+    <div class="gap2"></div>
+    <div style="display:grid;grid-template-columns:1fr 1.25fr;gap:8mm;align-items:center">
+      <div class="stagebar">
+        <div style="width:100%">مراحل قابل‌تعریف توسط سازمان</div>
+        <div style="width:82%">ارزیابی و پیشنهاد</div>
+        <div style="width:64%">مذاکره</div>
+        <div style="width:46%">برنده شد</div>
+      </div>
+      <div>
+        <h2>قیف فروش، مطابق فرایند شما</h2>
+        <p class="small" style="margin-top:1.4mm">پایپ‌لاین‌ها و مراحل را سازمان تعریف می‌کند؛ هر فرصت مالک، اولویت و نوع دارد. نمودار بالا نمونهٔ مفهومی است و مراحل واقعی هر سازمان متفاوت است.</p>
+      </div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="pair">
+      <div class="card"><div class="label">مسئلهٔ مدیریتی</div><p style="font-size:9pt">فرصت‌ها در حافظهٔ افراد و جدول‌های شخصی می‌مانند؛ مشخص نیست کدام فرصت بی‌پیگیری مانده است.</p></div>
+      <div class="card" style="background:var(--navy);color:var(--ivory);border-color:var(--navy)"><div class="label">پاسخ NIL Office</div><p style="font-size:9pt;color:rgba(247,245,240,.88)">مالک و اولویت هر فرصت روشن است و فرصت‌های بدون پیگیری در مرکز فرمان و از طریق دستیار قابل پرسش‌اند.</p></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps">
+        <li><b>شرکت‌ها</b>: دفترچهٔ طرف‌ها با نقش، وضعیت و مالک</li>
+        <li><b>مخاطبان</b> هر شرکت با راه‌های ارتباطی</li>
+        <li><b>فعالیت‌ها</b> و تاریخچهٔ تعامل</li>
+      </ul>
+      <ul class="caps">
+        <li><b>جزئیات معاملهٔ تجاری</b> و طرف‌های مرتبط با فرصت</li>
+        <li><b>پیوند فرصت به پیش‌فاکتور</b></li>
+        <li><b>پروژه و کار</b> با وابستگی، چک‌لیست و پیشرفت</li>
+      </ul>
+    </div>
+    <div class="gap2"></div>
+    <div class="shot"><img src="{{A}}/screens/projects_tabs.png" alt="پروژه‌ها"></div>
+    <div class="cap">پروژه‌ها با وضعیت‌های فعال، در معرض خطر، عقب‌افتاده، تکمیل‌شده و آرشیو — تصویر واقعی نرم‌افزار</div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">هیچ فرصتی گم نمی‌شود</div><div class="d">هر فرصت مالک و تاریخچه دارد.</div></div>
+      <div><div class="t">از فروش تا اجرا</div><div class="d">فرصت به پیش‌فاکتور، قرارداد و پروژه گره می‌خورد.</div></div>
+      <div><div class="t">تصویر کامل مشتری</div><div class="d">نامه، قرارداد، فاکتور و دریافت کنار هم.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۰</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۱ · منابع انسانی و حقوق ============================ -->
+<section class="page ivory" id="p11">
+  <header class="run"><span>۱۱ · منابع انسانی و حقوق و دستمزد</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head" style="margin-bottom:4mm">
+      <div class="ghost">۱۱</div>
+      <div class="kicker">HR &amp; PAYROLL</div>
+      <h1>حقوق و دستمزد،<br>بدون حدس و فرض قانونی</h1>
+      <div class="rule"></div>
+    </div>
+
+    <div class="quote">هیچ نرخ، آستانه یا حداقل دستمزد قانونی به‌صورت پیش‌فرض در سامانه وجود ندارد؛ همهٔ قواعد باید توسط مدیر وارد و تأیید شوند.</div>
+    <div class="shot" style="margin-top:3.4mm"><img src="{{A}}/screens/payroll_banner.png" alt="هشدار قواعد قانونی"></div>
+    <div class="cap">همین پیام در صفحهٔ حقوق و دستمزد NIL Office نمایش داده می‌شود</div>
+
+    <div class="gap3"></div>
+    <div class="shot"><img src="{{A}}/screens/hr_dashboard.png" alt="داشبورد پرسنل"></div>
+    <div class="cap">داشبورد منابع انسانی: وضعیت پرسنل، استخدام و پایان همکاری، و حقوق منتظر بررسی، تأیید نهایی و پرداخت</div>
+
+    <div class="gap3"></div>
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>کارکرد ماه<small>اضافه‌کار، غیبت، ماموریت</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>محاسبه<small>موتور دقیق اعشاری</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۳</span>بررسی<small>هشدارهای محاسبه</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۴</span>تأیید و قفل<small>سند حسابداری پیش‌نویس</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>پرداخت و فیش<small>فیش PDF برای هر فرد</small></div>
+    </div>
+
+    <div class="gap3"></div>
+    <div class="cols2">
+      <ul class="caps tight">
+        <li><b>پروندهٔ پرسنلی</b> و سوابق استخدام</li>
+        <li><b>اجزای حقوق</b>: مزایا، کسورات و هزینهٔ کارفرما</li>
+        <li><b>قواعد قانونی نسخه‌دار</b>: پیش‌نویس، بررسی، تأیید، بازنشسته</li>
+        <li><b>روش‌های محاسبه</b>: مبلغ ثابت، درصدی، دستی، مقدار × نرخ</li>
+      </ul>
+      <ul class="caps tight">
+        <li><b>تناسب روزهای تقویمی</b> برای ماه ناقص</li>
+        <li><b>خودخدمت کارمند</b>: فقط فیش خودش، فقط‌خواندنی</li>
+        <li><b>۱۴ گزارش</b> با خروجی CSV</li>
+        <li><b>نقش حقوق جدا</b> از نقش منابع انسانی</li>
+      </ul>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">مسئولیتِ روشن</div><div class="d">اعداد قانونی را سازمان تعیین و تأیید می‌کند؛ نرم‌افزار حدس نمی‌زند.</div></div>
+      <div><div class="t">محرمانگی</div><div class="d">دستیار هوشمند فقط فیش خودِ فرد را می‌بیند.</div></div>
+      <div><div class="t">یکپارچگی مالی</div><div class="d">حقوق به سند حسابداری و مسیر پرداخت وصل است.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۱</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۲ · خدمات مشتریان ============================ -->
+<section class="page ivory" id="p12">
+  <header class="run"><span>۱۲ · مدیریت خدمات مشتریان</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۲</div>
+      <div class="kicker">CLIENT SERVICE LEDGER</div>
+      <h1>دفتر خدمات مشتریان؛<br>از ارائهٔ خدمت تا صورتحساب</h1>
+      <div class="rule"></div>
+      <p class="lead">برای سازمان‌هایی که خدمت ارائه می‌دهند: هر خدمتِ انجام‌شده ثبت می‌شود، در دستهٔ صدور جمع می‌شود و با گزارشی شفاف به مشتری ارائه می‌گردد.</p>
+    </div>
+
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>ثبت خدمت<small>دسته‌بندی و نرخ هزینه</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>پورتفوی مشتری<small>خدمات هر مشتری</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۳</span>دستهٔ صدور<small>ردیف‌های ریز و قابل‌ردیابی</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۴</span>گزارش مشتری<small>PDF با قالب قابل‌تنظیم</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>تطبیق دریافت<small>با دریافت‌های ثبت‌شده</small></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="pair">
+      <div class="card"><div class="label">مسئلهٔ مدیریتی</div><p style="font-size:9pt">خدمات در گزارش‌های پراکنده ثبت می‌شود؛ صورتحساب مشتری دیر و به‌سختی ساخته می‌شود و مبلغ قابل‌مطالبه مبهم است.</p></div>
+      <div class="card" style="background:var(--navy);color:var(--ivory);border-color:var(--navy)"><div class="label">پاسخ NIL Office</div><p style="font-size:9pt;color:rgba(247,245,240,.88)">هر خدمت یک ردیف مستقل دارد؛ دستهٔ صدور از همان ردیف‌ها ساخته می‌شود و با دریافت‌ها تطبیق می‌خورد.</p></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps">
+        <li><b>دفتر خدمات</b> با دسته‌بندی و نرخ هزینه</li>
+        <li><b>پورتفوی مشتریان</b> و خلاصهٔ دوره‌ای</li>
+        <li><b>دستهٔ صدور صورتحساب</b> با ردیف‌های ریز، نه جمع کلی</li>
+      </ul>
+      <ul class="caps">
+        <li><b>گزارش مشتری</b> با قالب‌های قابل‌تنظیم و خروجی PDF</li>
+        <li><b>گزارش داخلی</b> برای سنجش سودآوری خدمت</li>
+        <li><b>تطبیق دریافتی</b> با مبلغ قابل‌مطالبه</li>
+      </ul>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="label">ردیابی از مبلغ تا خدمت (نمایش مفهومی)</div>
+    <div class="trace">
+      <div class="col"><div class="cl">ردیف‌های خدمت</div><div class="bar s1"></div><div class="bar s2"></div><div class="bar s3"></div><div class="bar s4"></div></div>
+      <div class="ar"></div>
+      <div class="col"><div class="cl">دستهٔ صدور</div><div class="bar g s1"></div><div class="bar g s2"></div><div class="bar g s3"></div><div class="bar g s4"></div></div>
+      <div class="ar"></div>
+      <div class="col doc"><div class="cl">گزارش مشتری</div><div class="bar s1"></div><div class="bar g s2"></div><div class="bar s3"></div><div class="bar s4"></div></div>
+    </div>
+    <div class="gap2"></div>
+    <div class="card" style="padding:6mm 7mm">
+      <div class="label">اصل طراحی</div>
+      <div style="font-size:12.2pt;font-weight:700;line-height:1.95;color:var(--navy)">هر ردیفِ صورتحساب، ردیفی واقعی از خدمات انجام‌شده است؛ نه یک رقم جمع‌شده.</div>
+      <p class="small" style="margin-top:1.6mm">این اصل باعث می‌شود هر مبلغِ مطالبه‌شده را بتوان تا خدمتِ مبدأ دنبال کرد و در برابر مشتری از آن دفاع کرد.</p>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">مبلغ قابل‌دفاع</div><div class="d">هر ردیف به یک خدمت ثبت‌شده برمی‌گردد.</div></div>
+      <div><div class="t">سرعت صدور</div><div class="d">گزارش مشتری از داده‌های موجود ساخته می‌شود.</div></div>
+      <div><div class="t">مرز روشن با وصول</div><div class="d">مطالبه و دریافت جدا و تطبیق‌پذیرند.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۲</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۳ · دستیار هوشمند ============================ -->
+<section class="page navy" id="p13">
+  <header class="run"><span>۱۳ · دستیار هوشمند سازمانی و ربات‌ها</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۳</div>
+      <div class="kicker">AI ASSISTANT</div>
+      <h1>دستیار نیل:<br><span class="gold">هوشمند، اما زیر نظر انسان</span></h1>
+      <div class="rule"></div>
+      <p class="lead">از وب یا تلگرام بپرسید، پیش‌نویس بخواهید یا کار و پیگیری ثبت کنید؛ دستیار پیشنهاد می‌دهد و شما تأیید می‌کنید.</p>
+    </div>
+
+    <div class="shot"><img src="{{A}}/screens/assistant_chips.png" alt="دستیار نیل"></div>
+    <div style="height:2mm"></div>
+    <div class="shot"><img src="{{A}}/screens/assistant_input.png" alt="ورودی دستیار"></div>
+    <div class="cap">دستیار نیل در محیط وب، با پرسش‌های آمادهٔ مدیریتی — تصویر واقعی نرم‌افزار</div>
+
+    <div class="gap2"></div>
+    <div class="flow">
+      <div class="step"><span class="no">۱</span>درخواست<small>متن، صدا، عکس یا PDF</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۲</span>پیشنهاد<small>فقط از عملیات تعریف‌شده</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۳</span>پیش‌نمایش<small>آنچه نوشته خواهد شد</small></div><div class="arr"></div>
+      <div class="step hl"><span class="no">۴</span>تأیید انسان<small>دکمهٔ صریح</small></div><div class="arr"></div>
+      <div class="step"><span class="no">۵</span>اجرا و ممیزی<small>با همان مجوزهای کاربر</small></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <div>
+        <h3 class="gold" style="margin-bottom:1.4mm">آنچه دستیار انجام می‌دهد</h3>
+        <ul class="caps tight">
+          <li>پاسخ به پرسش‌های مدیریتی: کار امروز، موارد عقب‌افتاده، وضعیت مالی، قراردادهای نزدیک سررسید</li>
+          <li>پیش‌نویس نامه و پاسخ به نامهٔ وارده از متن یا صدا</li>
+          <li>پیش‌نویس دریافت و پرداخت از عکس یا PDF</li>
+          <li>ثبت کار و پیگیری برای خود کاربر؛ جستجو در شرکت‌ها و اسناد</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="gold" style="margin-bottom:1.4mm">آنچه دستیار هرگز انجام نمی‌دهد</h3>
+        <ul class="caps tight">
+          <li>ثبت قطعی سند حسابداری</li>
+          <li>محاسبه، تأیید یا پرداخت حقوق</li>
+          <li>نوشتن بدون تأیید صریح کاربر</li>
+          <li>نمایش حقوق دیگران؛ مبالغ حقوق به مدل زبانی هم ارسال نمی‌شود</li>
+        </ul>
+      </div>
+    </div>
+    <div class="gap2"></div>
+    <div class="label" style="color:var(--gold)">نمونه‌ای از پرسش‌های آمادهٔ دستیار در نرم‌افزار</div>
+    <div class="qband"><div>امروز چه کارهایی دارم؟</div><div>چه چیزهایی عقب افتاده؟</div><div>وضعیت مالی نیل چیست؟</div><div>قراردادهای نزدیک سررسید</div><div>پروژه‌های نیازمند توجه</div><div>فرصت‌های فروش بدون پیگیری</div></div>
+    <div class="grow"></div>
+    <div class="strip" style="background:rgba(247,245,240,.07);border:.25mm solid rgba(247,245,240,.16)">
+      <div><div class="t">۵۸ عملیات ثبت‌شده</div><div class="d">دستیار فقط از فهرست بسته‌ای از عملیات تعریف‌شده استفاده می‌کند؛ ابزار آزاد پایگاه داده ندارد.</div></div>
+      <div><div class="t">ربات تلگرام داخلی</div><div class="d">همان دستیار با همان مجوزها و منوی سریع، برای کار در مسیر.</div></div>
+      <div><div class="t">ربات مکاتبات خارجی</div><div class="d">کانال جداگانه برای دریافت پیام بیرونی با کد رهگیری؛ بدون هوش مصنوعی و بدون دسترسی به داده‌های داخلی.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۳</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۴ · امنیت ============================ -->
+<section class="page ivory" id="p14">
+  <header class="run"><span>۱۴ · امنیت، کنترل دسترسی و ردیابی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۴</div>
+      <div class="kicker">SECURITY &amp; TRACEABILITY</div>
+      <h1>امنیت در لایهٔ داده؛<br>نه فقط در ظاهر برنامه</h1>
+      <div class="rule"></div>
+      <p class="lead">قواعد مهم سازمان در خودِ پایگاه داده اعمال می‌شوند؛ پس دور زدن رابط کاربری هم آن‌ها را دور نمی‌زند.</p>
+    </div>
+
+    <div class="layers">
+      <div class="layer"><div class="n">۱</div><div><h3>احراز هویت و نشست</h3><p>ورود کاربر فعال و کنترل غیرفعال‌سازی؛ کاربر غیرفعال نمی‌تواند خودش را دوباره فعال کند.</p></div></div>
+      <div class="layer"><div class="n">۲</div><div><h3>نقش‌های دامنه‌ای در چهار سطح</h3><p>۱۲ دامنه (مالی، قرارداد، فاکتور، CRM، حقوق، منابع انسانی، چک، هیئت‌مدیره …) × مشاهده، ثبت، تأیید و مدیر.</p></div></div>
+      <div class="layer"><div class="n">۳</div><div><h3>سیاست‌های سطح ردیف (RLS)</h3><p>روی همهٔ جدول‌های پایگاه داده فعال است؛ دسترسی ناشناس به داده‌های سازمان وجود ندارد.</p></div></div>
+      <div class="layer"><div class="n">۴</div><div><h3>منطق حساس در پایگاه داده</h3><p>شماره‌گذاری، ثبت قطعی، تغییرناپذیری اسناد و گذار وضعیت‌ها با توابع و تریگرهای کنترل‌شده.</p></div></div>
+      <div class="layer"><div class="n">۵</div><div><h3>ممیزی تغییرناپذیر</h3><p>لاگ فعالیت‌ها قابل ویرایش یا حذف نیست؛ جداول محرمانهٔ حقوق با ممیزیِ پوشیده از مبلغ.</p></div></div>
+      <div class="layer"><div class="n">۶</div><div><h3>NIL Verify — اصالت سند خروجی</h3><p>QR روی PDF نهایی، صفحهٔ عمومی استعلام و هش SHA-256 فایل نهایی؛ ابطال و جایگزینی فقط توسط مدیر.</p></div></div>
+    </div>
+
+    <div class="gap2"></div>
+    <div class="cols2">
+      <ul class="caps tight">
+        <li><b>فایل‌ها در فضای خصوصی</b>؛ دانلود فقط با لینک امضاشدهٔ موقت</li>
+        <li><b>توکن‌های عمومی</b> (استعلام، پورتال) فقط به‌صورت هش ذخیره می‌شوند</li>
+      </ul>
+      <ul class="caps tight">
+        <li><b>قفل نگهداری</b> هنگام عملیات حساس سیستمی</li>
+        <li><b>دستیار هوشمند</b> با تأیید دومرحله‌ای و بازبینی مجوز در لحظهٔ اجرا</li>
+      </ul>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">پاسخگویی</div><div class="d">مشخص است چه کسی، چه زمانی، چه چیزی را تغییر داده است.</div></div>
+      <div><div class="t">کمینهٔ دسترسی</div><div class="d">هر نقش فقط آنچه لازم دارد را می‌بیند.</div></div>
+      <div><div class="t">اثبات‌پذیری</div><div class="d">صحت اسناد خروجی را خارج از سازمان هم می‌توان سنجید.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۴</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۵ · گردش کار یکپارچه ============================ -->
+<section class="page navy" id="p15">
+  <header class="run"><span>۱۵ · گردش کار یکپارچه و سناریوهای واقعی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۵</div>
+      <div class="kicker">INTEGRATED WORKFLOWS</div>
+      <h1>چهار سناریو،<br><span class="gold">یک زنجیرهٔ بی‌وقفه</span></h1>
+      <div class="rule"></div>
+      <p class="lead">ارزش یک پلتفرم یکپارچه در لحظهٔ عبور اطلاعات از یک ماژول به ماژول بعدی دیده می‌شود.</p>
+    </div>
+
+    <div class="scen">
+      <h2>از فرصت تا وصول</h2>
+      <p class="small">فروش، صدور سند رسمی و ورود وجه در یک مسیر</p>
+      <div class="tl">
+        <div class="s"><i>۱</i><b>فرصت</b><span>ثبت در CRM</span></div>
+        <div class="s"><i>۲</i><b>پیش‌فاکتور</b><span>پیشنهاد قیمت</span></div>
+        <div class="s"><i>۳</i><b>فاکتور</b><span>شمارهٔ رسمی و QR</span></div>
+        <div class="s"><i>۴</i><b>دریافت</b><span>تخصیص به فاکتور</span></div>
+        <div class="s"><i>۵</i><b>سند حسابداری</b><span>ثبت قطعی</span></div>
+        <div class="s"><i>۶</i><b>داشبورد</b><span>مطالبات و وصول</span></div>
+      </div>
+    </div>
+    <div class="hair"></div>
+    <div style="height:6mm"></div>
+
+    <div class="scen">
+      <h2>از کارکرد تا فیش حقوقی</h2>
+      <p class="small">محاسبه، تأیید، پرداخت و محرمانگی</p>
+      <div class="tl">
+        <div class="s"><i>۱</i><b>کارکرد ماه</b><span>اضافه‌کار و غیبت</span></div>
+        <div class="s"><i>۲</i><b>محاسبه</b><span>طبق قواعد تأییدشده</span></div>
+        <div class="s"><i>۳</i><b>تأیید و قفل</b><span>مدیر حقوق</span></div>
+        <div class="s"><i>۴</i><b>سند پیش‌نویس</b><span>حسابداری</span></div>
+        <div class="s"><i>۵</i><b>پرداخت</b><span>از مسیر پرداخت‌ها</span></div>
+        <div class="s"><i>۶</i><b>فیش من</b><span>خودخدمت کارمند</span></div>
+      </div>
+    </div>
+    <div class="hair"></div>
+    <div style="height:6mm"></div>
+
+    <div class="scen">
+      <h2>از تلگرام تا نامهٔ رسمی</h2>
+      <p class="small">دستیار پیش‌نویس می‌سازد؛ رسمی‌شدن تصمیم انسان است</p>
+      <div class="tl">
+        <div class="s"><i>۱</i><b>پیام صوتی</b><span>یا متن و فایل</span></div>
+        <div class="s"><i>۲</i><b>پیش‌نویس</b><span>ساختهٔ دستیار</span></div>
+        <div class="s"><i>۳</i><b>تأیید</b><span>پیش‌نمایش و دکمه</span></div>
+        <div class="s"><i>۴</i><b>شمارهٔ رسمی</b><span>تأیید جداگانه</span></div>
+        <div class="s"><i>۵</i><b>PDF و QR</b><span>بر سربرگ</span></div>
+        <div class="s"><i>۶</i><b>ارسال</b><span>در همان گفتگو</span></div>
+      </div>
+    </div>
+    <div class="hair"></div>
+    <div style="height:6mm"></div>
+
+    <div class="scen" style="margin-bottom:0">
+      <h2>از جلسه تا صورت‌جلسهٔ قابل‌استعلام</h2>
+      <p class="small">دبیرخانهٔ هیئت‌مدیره</p>
+      <div class="tl">
+        <div class="s"><i>۱</i><b>جلسه</b><span>اعضا و نصاب</span></div>
+        <div class="s"><i>۲</i><b>دستور جلسه</b><span>و مذاکرات</span></div>
+        <div class="s"><i>۳</i><b>صورت‌جلسه</b><span>هشت بخش</span></div>
+        <div class="s"><i>۴</i><b>تأیید دبیر</b><span>قفل سند</span></div>
+        <div class="s"><i>۵</i><b>PDF و QR</b><span>افشای حداقلی</span></div>
+        <div class="s"><i>۶</i><b>مصوبات</b><span>ثبت در صورت‌جلسه</span></div>
+      </div>
+    </div>
+    <div class="grow"></div>
+  </div>
+  <footer class="foot"><span class="pn">۱۵</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۶ · ارزش ============================ -->
+<section class="page ivory" id="p16">
+  <header class="run"><span>۱۶ · ارزش اقتصادی و مدیریتی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۶</div>
+      <div class="kicker">BUSINESS VALUE</div>
+      <h1>هر قابلیت،<br>برای حل یک مسئلهٔ مدیریتی</h1>
+      <div class="rule"></div>
+      <p class="lead">ارزش NIL Office در فهرست امکانات نیست؛ در مسئله‌هایی است که از سر راه مدیریت برمی‌دارد.</p>
+    </div>
+
+    <table class="matrix">
+      <thead><tr><th>مسئلهٔ مدیریتی</th><th>پاسخ در NIL Office</th><th>ارزش برای سازمان</th></tr></thead>
+      <tbody>
+        <tr><td>شمارهٔ تکراری و مکاتبهٔ بی‌ردپا</td><td>شماره‌گذاری اتمیک و لاگ ممیزی روی هر تغییر</td><td>اعتبار حقوقی و پاسخگویی</td></tr>
+        <tr><td>مغایرت میان فاکتور، دریافت و دفتر</td><td>زنجیرهٔ فاکتور — دریافت — سند حسابداری</td><td>کاهش مغایرت‌گیری دستی و دقت مالی</td></tr>
+        <tr><td>قرارداد و سررسیدی که فراموش می‌شود</td><td>چرخهٔ عمر، هشدار پایان قرارداد و پیوند مالی</td><td>کنترل تعهدات و جلوگیری از غافل‌گیری</td></tr>
+        <tr><td>فرصت‌های فروش بدون صاحب</td><td>پایپ‌لاین با مالک و اولویت، گزارش بدون‌پیگیری</td><td>تمرکز بر درآمد بالقوه</td></tr>
+        <tr><td>فرایند حقوق وابسته به فایل و حافظهٔ افراد</td><td>موتور محاسبه، تأیید، قفل، فیش و گزارش</td><td>شفافیت، محرمانگی و قابلیت ممیزی</td></tr>
+        <tr><td>تصمیم دیرهنگام به‌دلیل پراکندگی داده</td><td>مرکز فرمان و دستیار هوشمند روی داده‌های یکپارچه</td><td>سرعت تصمیم مدیریتی</td></tr>
+        <tr><td>اطمینان‌پذیریِ اسناد خروجی نزد مخاطب</td><td>QR استعلام اصالت و هش فایل نهایی</td><td>اعتبار برند و اعتماد طرف‌های بیرونی</td></tr>
+      </tbody>
+    </table>
+    <div class="gap2"></div>
+    <div class="strip"><div><div class="t">سرعت</div><div class="d">پاسخ و سند، بدون جمع‌آوری دستی داده.</div></div><div><div class="t">اطمینان</div><div class="d">عدد و سند قابل‌ردیابی تا مبدأ.</div></div><div><div class="t">کنترل</div><div class="d">دسترسی و ممیزی روشن برای هر نقش.</div></div></div>
+    <div class="grow"></div>
+    <div class="card" style="padding:5.4mm 6.5mm">
+      <div class="label">دربارهٔ ارقام</div>
+      <p class="small" style="color:var(--ink)">در این کاتالوگ عمداً درصد صرفه‌جویی یا ROI عمومی ذکر نشده است. ارزش اقتصادیِ واقعی به حجم کار و فرایندهای هر سازمان بستگی دارد و در مرحلهٔ نیازسنجی با داده‌های خودِ سازمان برآورد می‌شود.</p>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۶</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۷ · مزیت‌های رقابتی ============================ -->
+<section class="page ivory" id="p17">
+  <header class="run"><span>۱۷ · مزیت‌های رقابتی قابل‌اثبات</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۷</div>
+      <div class="kicker">PROVABLE ADVANTAGES</div>
+      <h1>مزیت‌هایی که<br>می‌توان نشان داد</h1>
+      <div class="rule"></div>
+      <p class="lead">هر مزیت در این صفحه، با ویژگیِ مشخصی از خود محصول و آزمون‌های آن پشتیبانی می‌شود.</p>
+    </div>
+
+    <div class="adv">
+      <div class="card"><div class="n">۰۱</div><h3>فارسیِ بومی، نه ترجمه‌شده</h3><p>رابط راست‌به‌چپ، تقویم جلالی، اعداد فارسی، شمارهٔ رسمیِ سالانه و قالب‌های اسناد ایرانی، از ابتدا در هستهٔ محصول.</p><div class="ev">شاهد: شمارهٔ سالانهٔ جلالی، چک و فاکتور فارسی/انگلیسی</div></div>
+      <div class="card"><div class="n">۰۲</div><h3>دسترسیِ دامنه‌ای و ریزدانه</h3><p>دوازده نقش دامنه‌ای در چهار سطح؛ حقوق از منابع انسانی جداست و فیش هر فرد فقط برای خودش.</p><div class="ev">شاهد: آزمون‌های RLS با کاربر واقعی برای ماژول‌های اصلی</div></div>
+      <div class="card"><div class="n">۰۳</div><h3>هوش مصنوعی با ترمزِ انسانی</h3><p>دستیار فقط عملیات ثبت‌شده را پیشنهاد می‌دهد؛ نوشتن با تأیید، هش payload و بازبینی مجوز انجام می‌شود.</p><div class="ev">شاهد: آزمون‌های موتور تأیید و رجیستری عملیات</div></div>
+      <div class="card"><div class="n">۰۴</div><h3>اصالت‌سنجیِ اسناد خروجی</h3><p>QR روی PDF نهایی، صفحهٔ عمومی استعلام و تطبیق فایل با هش SHA-256؛ بدون بارگذاری فایل روی سرور.</p><div class="ev">شاهد: آزمون ساخت PDF واقعی، اسکن QR و تطبیق هش</div></div>
+      <div class="card"><div class="n">۰۵</div><h3>دفتر تغییرناپذیر و شمارهٔ بی‌تکرار</h3><p>سند ثبت‌شده فقط با سند برگشت اصلاح می‌شود و شماره‌ها در پایگاه داده و به‌صورت اتمیک صادر می‌شوند.</p><div class="ev">شاهد: آزمون‌های هم‌زمانی شماره‌گذاری و یکپارچگی حسابداری</div></div>
+      <div class="card"><div class="n">۰۶</div><h3>حقوقِ بدون فرضِ قانونی</h3><p>هیچ نرخ یا آستانهٔ قانونی از پیش تعبیه نشده؛ قواعد نسخه‌دارند و فقط پس از تأیید مدیر به کار می‌روند.</p><div class="ev">شاهد: بنر و گردش «پیش‌نویس — بررسی — تأیید» در خود نرم‌افزار</div></div>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div style="flex:1.1"><div class="t">آزمون خودکار</div><div class="d">در زمان تدوین این کاتالوگ، ۴۱۶ آزمون خودکار در ۳۹ مجموعه بدون خطا اجرا شد؛ از جمله ساخت PDF واقعی با مرورگر و اسکن QR.</div></div>
+      <div><div class="t">آزمون پایگاه داده</div><div class="d">مجموعه‌ای از آزمون‌های SQL، امنیت و هم‌زمانی برای ماژول‌های اصلی.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۷</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۸ · استقرار ============================ -->
+<section class="page ivory" id="p18">
+  <header class="run"><span>۱۸ · مدل استقرار و مسیر پیاده‌سازی</span><span class="brand">NIL OFFICE</span></header>
+  <div class="inner">
+    <div class="head">
+      <div class="ghost">۱۸</div>
+      <div class="kicker">DEPLOYMENT</div>
+      <h1>استقرار اختصاصی،<br>مطابق سازمان شما</h1>
+      <div class="rule"></div>
+      <p class="lead">هر سازمان نمونهٔ مستقل خودش را دارد؛ با پایگاه داده، فضای فایل، کاربران و تنظیمات جداگانه.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:9mm;align-items:start">
+      <div class="phases">
+        <div class="ph"><h3><span>۱</span>نیازسنجی و انتخاب ماژول‌ها</h3><p>فرایندهای فعلی، نقش‌ها و اولویت‌ها بررسی می‌شود.</p></div>
+        <div class="ph"><h3><span>۲</span>استقرار نمونهٔ اختصاصی</h3><p>راه‌اندازی بستر، پایگاه داده، فضای فایل و دامنهٔ سازمان.</p></div>
+        <div class="ph"><h3><span>۳</span>پیکربندی</h3><p>سری شماره‌ها، سال مالی و کدینگ، حساب‌های بانکی، نقش‌ها، سربرگ و محل QR اسناد.</p></div>
+        <div class="ph"><h3><span>۴</span>انتقال داده و بایگانی</h3><p>ادامهٔ شمارهٔ بایگانی موجود و انتقال اقلام مورد نیاز.</p></div>
+        <div class="ph"><h3><span>۵</span>آموزش و پذیرش (UAT)</h3><p>آزمون با داده و سناریوهای خود سازمان و تأیید کتبی هر ماژول.</p></div>
+        <div class="ph"><h3><span>۶</span>بهره‌برداری و پشتیبانی</h3><p>راه‌اندازی در محیط عملیاتی و ادامهٔ همراهی.</p></div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:4mm">
+          <div class="label">پیکربندی‌پذیر برای هر سازمان</div>
+          <ul class="caps tight">
+            <li>سری و قالب شماره‌ها</li>
+            <li>سربرگ، امضا و محل QR</li>
+            <li>نقش‌ها و سطوح دسترسی</li>
+            <li>آستانهٔ هشدارهای مرکز فرمان</li>
+            <li>قالب‌های چاپ چک و گزارش مشتری</li>
+          </ul>
+        </div>
+        <div class="card" style="background:var(--navy);color:var(--ivory);border-color:var(--navy)">
+          <div class="label">دربارهٔ حقوق و دستمزد</div>
+          <p class="small" style="color:rgba(247,245,240,.82)">قواعد قانونی (مالیات، بیمه، ضرایب) توسط سازمان و مشاوران آن وارد و تأیید می‌شود؛ نرم‌افزار هیچ مقدار قانونی را فرض نمی‌کند.</p>
+        </div>
+      </div>
+    </div>
+    <div class="gap2"></div>
+    <div class="label">پیش‌نیازهای فنی (برای مدیران فناوری اطلاعات)</div>
+    <div class="techs">
+      <div class="card"><h3>بستر اجرا</h3><p>سرور لینوکس اختصاصی برای اجرای برنامهٔ وب.</p></div>
+      <div class="card"><h3>پایگاه داده</h3><p>پایگاه دادهٔ Postgres با احراز هویت و فضای فایل خصوصی.</p></div>
+      <div class="card"><h3>دامنه و گواهی</h3><p>نشانی اختصاصی سازمان و گواهی امن TLS.</p></div>
+      <div class="card"><h3>هوش مصنوعی (اختیاری)</h3><p>اتصال به سرویس مدل زبانی و تبدیل گفتار، تنها برای فعال‌سازی دستیار.</p></div>
+    </div>
+    <div class="grow"></div>
+    <div class="strip">
+      <div><div class="t">ایزولاسیون کامل</div><div class="d">داده‌ها و کاربران هر سازمان در نمونهٔ خودش می‌مانند.</div></div>
+      <div><div class="t">گام‌به‌گام</div><div class="d">می‌توان از چند ماژول شروع کرد و با پذیرش، دامنه را گسترش داد.</div></div>
+      <div><div class="t">پذیرش مکتوب</div><div class="d">هر ماژول پیش از بهره‌برداری با سناریوهای خود سازمان تأیید می‌شود.</div></div>
+    </div>
+  </div>
+  <footer class="foot"><span class="pn">۱۸</span><span>شرکت توسعه مدیریت راهبردی نیل</span></footer>
+</section>
+
+<!-- ============================ ۱۹ · جمع‌بندی ============================ -->
+<section class="page navy" id="p19">
+  <header class="run"><span>۱۹ · جمع‌بندی و دعوت به همکاری</span><span class="brand">NIL OFFICE</span></header>
+  <img src="{{A}}/logo/nil-emblem-gold.png" alt="" style="position:absolute;width:170mm;right:-52mm;top:34mm;opacity:.07">
+  <div class="inner">
+    <div class="kicker" style="margin-top:20mm">IN SUMMARY</div>
+    <div class="rule" style="margin:3mm 0 9mm"></div>
+    <div class="statement" style="font-size:24pt">سازمانتان را از <em>مجموعه‌ای از جزیره‌ها</em> به یک ساختارِ <em>یکپارچه، قابل‌ردیابی و هوشمند</em> تبدیل کنید.</div>
+    <div class="grow"></div>
+    <p class="lead" style="max-width:150mm">NIL Office مکاتبات، مالی، قرارداد، مشتری، نیروی انسانی و هوش مصنوعی را روی یک پایگاه داده، یک مدل دسترسی و یک ردپای ممیزی می‌نشاند؛ و هر سندِ رسمی را قابل‌استعلام می‌کند.</p>
+    <div class="grow"></div>
+    <div class="cons" style="grid-template-columns:1fr 1fr 1fr;gap:6mm">
+      <div class="c"><h3>یک پلتفرم</h3><p>به‌جای مجموعه‌ای از ابزارهای جدا.</p></div>
+      <div class="c"><h3>یک مدل اعتماد</h3><p>دسترسی، ممیزی و اصالت‌سنجی در یک چارچوب.</p></div>
+      <div class="c"><h3>یک مسیر استقرار</h3><p>اختصاصی، گام‌به‌گام و با پذیرش مکتوب.</p></div>
+    </div>
+    <div class="grow"></div>
+    <div class="card" style="padding:7mm 8mm;border-color:rgba(185,149,88,.6)">
+      <div class="label">گام بعدی</div>
+      <div style="font-size:15pt;font-weight:800;line-height:1.8">یک جلسهٔ معرفی و نیازسنجی با تیم نیل</div>
+      <p class="small" style="margin-top:1.6mm">در این جلسه ماژول‌ها را روی فرایندهای خودِ سازمان شما می‌بینیم و دامنهٔ آغاز را با هم تعیین می‌کنیم.</p>
+      <div style="height:3mm"></div>
+      <div style="font-size:10pt;font-weight:700;color:var(--gold);margin-bottom:3mm">شرکت توسعه مدیریت راهبردی نیل</div>
+      <div class="hair" style="margin-bottom:3.4mm"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3.6mm 8mm;font-size:9.6pt">
+        <div><div class="label">تلفن</div><div style="direction:ltr;text-align:right;font-weight:600;letter-spacing:.04em">۰۹۱۲ ۴۹۰ ۹۲۰۵</div></div>
+        <div><div class="label">واتس‌اپ</div><div style="direction:ltr;text-align:right;font-weight:600;letter-spacing:.04em">+971 50 130 6363</div></div>
+        <div><div class="label">وب‌سایت</div><div style="direction:ltr;text-align:right;font-weight:600">nil-management.ir</div></div>
+        <div><div class="label">ایمیل</div><div style="direction:ltr;text-align:right;font-weight:600">info@nil-management.ir</div></div>
+      </div>
+    </div>
+    <div style="height:8mm"></div>
+  </div>
+  <footer class="foot"><span class="pn">۱۹</span><span>NIL Office</span></footer>
+</section>
+
+<!-- ============================ ۲۰ · پشت جلد ============================ -->
+<section class="page navy cover" id="p20">
+  <div class="frame"></div>
+  <img src="{{A}}/logo/nil-emblem-gold.png" alt="" style="position:absolute;width:98mm;left:50%;top:66mm;transform:translateX(-50%)">
+  <div style="position:absolute;left:0;right:0;top:170mm;text-align:center">
+    <div style="direction:ltr;font-weight:300;font-size:26pt;letter-spacing:.3em;padding-left:.3em;line-height:1.3">NIL <b style="font-weight:800;color:var(--gold)">OFFICE</b></div>
+    <div class="gl" style="width:16mm;height:.5mm;background:var(--gold);margin:6mm auto"></div>
+    <div style="font-size:13pt;font-weight:600">سازمان یکپارچه، تصمیم روشن</div>
+    <div style="direction:ltr;font-size:6.8pt;letter-spacing:.34em;margin-top:3.6mm;color:rgba(247,245,240,.6)">STRATEGIC MANAGEMENT DEVELOPMENT</div>
+  </div>
+  <div class="base" style="position:absolute;left:22mm;right:22mm;bottom:20mm;display:flex;justify-content:center;font-size:8pt;color:rgba(247,245,240,.7)"><span>شرکت توسعه مدیریت راهبردی نیل · ۱۴۰۵ · <span style="direction:ltr;unicode-bidi:isolate">nil-management.ir</span></span></div>
+</section>
+
+<script>
+/* module hub (page 5) — nodes on a ring, links between modules whose data is actually connected */
+(function () {
+  const C = 64, R = 45.5, svg = document.getElementById('hubsvg'), hub = document.getElementById('hub');
+  const mods = [
+    ['دبیرخانه و مکاتبات'], ['مدیریت ارتباط (CRM)'], ['پروژه و کار'], ['قراردادها'],
+    ['پیش‌فاکتور و فاکتور'], ['دریافت و پرداخت'], ['مدیریت چک'], ['حسابداری'],
+    ['حقوق و منابع انسانی'], ['دفتر خدمات مشتریان'], ['دبیرخانهٔ هیئت‌مدیره'], ['پورتال معاملات', 'pilot']
+  ];
+  const links = [[0,1],[1,2],[1,4],[2,3],[3,4],[4,5],[5,6],[5,7],[6,7],[8,7],[8,5],[9,4],[9,1]];
+  const pos = mods.map((m, i) => { const a = (-90 + i * 30) * Math.PI / 180; return [C + R * Math.cos(a), C + R * Math.sin(a)]; });
+  let s = '<circle cx="64" cy="64" r="45.5" fill="none" stroke="rgba(16,35,63,.12)" stroke-width=".25"/>';
+  s += '<circle cx="64" cy="64" r="60" fill="none" stroke="rgba(185,149,88,.5)" stroke-width=".3" stroke-dasharray="1 1.6"/>';
+  mods.forEach((m, i) => { s += `<line x1="64" y1="64" x2="${pos[i][0]}" y2="${pos[i][1]}" stroke="rgba(16,35,63,.1)" stroke-width=".25"/>`; });
+  links.forEach(([a, b]) => { s += `<line x1="${pos[a][0]}" y1="${pos[a][1]}" x2="${pos[b][0]}" y2="${pos[b][1]}" stroke="#B99558" stroke-width=".42"/>`; });
+  svg.innerHTML = s;
+  mods.forEach((m, i) => {
+    const d = document.createElement('div'); d.className = 'node' + (m[1] ? ' pilot' : '');
+    d.textContent = m[0]; d.style.left = (pos[i][0] / 128 * 100) + '%'; d.style.top = (pos[i][1] / 128 * 100) + '%'; hub.appendChild(d);
+  });
+  [['دستیار هوشمند و ربات‌ها', 64, 3], ['NIL Verify', 26, 122], ['گزارش‌ها و مرکز فرمان', 102, 122]].forEach(([t, x, y]) => {
+    const d = document.createElement('div'); d.className = 'out'; d.textContent = t;
+    d.style.left = (x / 128 * 100) + '%'; d.style.top = (y / 128 * 100) + '%'; hub.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>
